@@ -21,13 +21,11 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
   vazia (dados, 26/10).
 
 ## Em andamento
-- Regra no banco para preencher "Compra da máquina" sozinha (migração 20261101000171): espera o "Pode publicar".
+- Dados fiscais: a função clientes-receita (5aee418, no ar) preenche regime e data de abertura vazios; os CNPJs
+  foram postos na fila (receita_em antigo) e a consulta passa sozinha, cerca de 1 por minuto.
 
 ## Esperando a usuária
-- Selo da ficha cadastral na lista (assinada / aguardando / não assinada): pronto, espera publicar.
-- Dados fiscais (regime tributário, data de abertura) pela consulta da Receita: a consulta antiga (CNPJ.ws) não
-  guardou Simples/MEI nem abertura; precisa consultar de novo.
-- Anexos: procurar no Drive e nos e-mails os contratos assinados e documentos que os clientes mandaram.
+- Anexos sem dono (~50 do ZapSign e ~40 arquivos genéricos do Drive): ligar à mão se ela quiser.
 - Levantamento da qualidade do cadastro (sem CPF/CNPJ, sem cidade/UF, sem telefone, repetidos): só com números,
   quando ela pedir.
 - Cor das redes "outras" (hoje ciano) e se quer destacar o dono da rede.
@@ -40,7 +38,11 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
   categoria Licenciado My Frost.
 - Repetidos: unificar só mesmo nome na mesma cidade (pessoa + empresa vale). Ficam separados: só o primeiro nome,
   cidades diferentes, dois CNPJs (filiais) ou dois CPFs diferentes.
-- "Compra da máquina" do cadastro acompanha a data das máquinas do cliente.
+- "Compra da máquina" do cadastro acompanha a data das máquinas do cliente (gatilho em equipamentos, no ar).
+- Inativar esconde o cliente da lista (inativo_em), sem arquivar; os com "Vendeu a máquina" foram inativados.
+- Anexos achados no Gmail/Drive entram como link (tipo 'link', caminho = URL com ?cliente=<código>), porque a
+  sessão não sobe arquivo para o Storage; "certos" e "prováveis" (pelo nome) entraram com o ok dela.
+- Máquina repetida (base My Frost sem data × nota com data, mesmo modelo): a tela mostra só a com data.
 - Marcadores nunca são tirados; unificar, inativar ou corrigir em lote só depois de mostrar a lista e ter o ok.
 
 ## Onde está

@@ -22,7 +22,11 @@ export const ID_MY_FROST = "00000000-0000-4000-8000-00000000f057";
 const LIMITE = 20 * 1024 * 1024;
 export const tamanhoArquivo = (n: number | null) => !n ? "" : n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`;
 
+/** Anexo que é um link (documento que ficou no Drive ou no e-mail, ex.: contrato assinado pelo ZapSign): abre o link. */
+export const ehLink = (caminho: string) => /^https?:\/\//i.test(caminho);
+
 export async function abrirDocumento(d: Documento) {
+  if (ehLink(d.caminho)) { window.open(d.caminho, "_blank", "noopener"); return; }
   const { data, error } = await supabase.storage.from("documentos").createSignedUrl(d.caminho, 600);
   if (error || !data?.signedUrl) return notifyError(error ?? new Error("não foi possível abrir"));
   window.open(data.signedUrl, "_blank", "noopener");
@@ -47,7 +51,7 @@ export async function apagarDocumento(d: Documento) {
   if (!(await confirmar(`Apagar "${d.nome}"?`))) return false;
   const { error } = await supabase.from("documentos").delete().eq("id", d.id);
   if (error) { notifyError(error); return false; }
-  await supabase.storage.from("documentos").remove([d.caminho]);
+  if (!ehLink(d.caminho)) await supabase.storage.from("documentos").remove([d.caminho]);
   return true;
 }
 
