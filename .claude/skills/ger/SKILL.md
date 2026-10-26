@@ -103,3 +103,6 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   período. O quadro (KanbanPagar) e os passos numerados saíram da tela; contas fixas, renegociadas, imprimir, exportar e
   Aprovações ficam no "Mais" (MenuAcoes com `texto`). A pagar: dia = dia programado (`diaDoPagamento`), "não pagar" e
   golpe não contam como vencidas. Não voltar a pôr vários botões cheios na tela: um só (Nova conta).
+- Recibos (26/10, feito pelo FUN): o componente Recibos tem `escopo` ("financeiro" esconde os recibos de funcionário,
+  marcados em `recibos.de_funcionario` pelo gatilho trg_recibo_de_funcionario). Ao mexer na aba Recibos do Financeiro,
+  manter esse filtro.
