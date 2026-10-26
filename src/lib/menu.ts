@@ -133,6 +133,7 @@ export const grupos: Grupo[] = [
       { to: "/funcionarios-admissao", tela: "funcionarios", label: "Admissão e saída", curto: "Admissão", icon: ClipboardCheck, busca: "funcionário rh admissão admissional desligamento demissão saída rescisão pendência falta documento cpf pis ctps aso" },
       { to: "/funcionarios-ferias", tela: "funcionarios", label: "Férias e ponto", curto: "Férias", icon: CalendarClock, busca: "funcionário rh férias ferias período aquisitivo concessivo vencida vencendo abono vender dias ponto folha de ponto horas" },
       { to: "/funcionarios-crown", tela: "funcionarios", label: "Crown Móveis (antes da MF)", curto: "Crown", icon: History, busca: "crown móveis moveis ex-funcionários antigos antes da mf época quanto recebeu salário por fora com carteira sem carteira" },
+      { to: "/funcionarios-recibos", tela: "funcionarios", label: "Recibos da equipe", curto: "Recibos", icon: Receipt, busca: "funcionário rh recibo recibos pagamento salário vale assinatura pdf lote" },
       { to: "/funcionarios-pagamentos", tela: "funcionarios", label: "Pagamentos da equipe", curto: "Pagos", icon: HandCoins, busca: "funcionário rh pagamento pagamentos salário pix extrato" },
     ],
   },

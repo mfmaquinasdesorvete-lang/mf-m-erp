@@ -1,5 +1,5 @@
 # MEMORY — FUN (ERP Line – Funcionários (RH))
-Atualizado em 25/10/2026.
+Atualizado em 26/10/2026.
 
 ## Estado agora
 Funcionários é uma área própria do menu, com 6 abas no ar. O cadastro tem a equipe atual e os ex-funcionários
@@ -14,6 +14,7 @@ das épocas anteriores. Falta a usuária importar os documentos do Drive (a past
 - Admissão e saída: o que falta no cadastro e na pasta (ede120d).
 - Férias e ponto: períodos, vencimento e lançamento; divisão Ponto (9fcc2f0).
 - Página Crown Móveis: época antes da MF, com/sem carteira e pagamentos antigos (450481e).
+- Recibos da equipe: os de funcionário saem do Financeiro → Recibos; só admin e financeiro leem (este pedido).
 
 ## Em andamento
 - Nada em código.
@@ -29,15 +30,19 @@ das épocas anteriores. Falta a usuária importar os documentos do Drive (a past
 - Ex-funcionários da Crown (nome antigo da MF) ficam numa página só deles, fora da equipe atual.
 - Cartões: "Sem carteira" = autônomo na ativa; "No INSS" = situação afastado.
 - Férias e ponto no modo simples: períodos e lançamento das férias; folha de ponto na pasta.
+- Recibos de funcionário ficam só na área de Funcionários, fora do Financeiro.
 - Use sempre o nome do cadastro (inclusive o nome social) nas pastas e nos títulos.
 
 ## Onde está
 - Telas: `src/pages/Funcionarios.tsx` e `src/components/funcionarios/` (PastaFuncionario, PastaDaEquipe,
   ImportarPasta, AdmissaoSaida, FeriasEquipe, CrownMoveis).
 - Regras: `src/lib/pastaFuncionario.ts`, `grupoFuncionarios.ts`, `admissaoFuncionario.ts`, `ferias.ts`, `crown.ts`.
-- Rotas: /funcionarios, -pasta, -admissao, -ferias, -crown, -pagamentos.
+- Rotas: /funcionarios, -pasta, -admissao, -ferias, -crown, -recibos, -pagamentos.
+- Recibos: o componente é do Financeiro (`src/components/financeiro/Recibos.tsx`, opção `escopo`); a marca
+  `recibos.de_funcionario` vem do gatilho `trg_recibo_de_funcionario`.
 - Banco: `funcionarios` (+ `epoca_crown`), `documentos` (+ `pasta`), `funcionario_ferias`,
-  `funcionario_pagamentos`; gatilho `trg_funcionarios_atualizado`. Acesso só de admin e financeiro.
+  `funcionario_pagamentos`, `recibos.de_funcionario`; gatilho `trg_funcionarios_atualizado`.
+  Acesso só de admin e financeiro.
 - Funções do Supabase: nenhuma.
 
 ## Próximos passos

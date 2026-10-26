@@ -25,6 +25,7 @@ import { PastaDaEquipe } from "@/components/funcionarios/PastaDaEquipe";
 import { AdmissaoSaida } from "@/components/funcionarios/AdmissaoSaida";
 import { FeriasEquipe } from "@/components/funcionarios/FeriasEquipe";
 import { CrownMoveis } from "@/components/funcionarios/CrownMoveis";
+import { Recibos } from "@/components/financeiro/Recibos";
 import { soDaCrown } from "@/lib/crown";
 
 // pagamentos aos funcionários nos extratos (era a aba Funcionários de Gastos separados)
@@ -107,8 +108,8 @@ const VISUAL_GRUPO: Record<GrupoEquipe, { icon: typeof Users; cor: "azul" | "neu
   sem_carteira: { icon: Users, cor: "ambar" }, inss: { icon: HeartPulse, cor: "vermelho" },
 };
 
-export type AbaFuncionarios = "equipe" | "pasta" | "admissao" | "ferias" | "crown" | "pagamentos";
-export const ROTA_FUNCIONARIOS: Record<AbaFuncionarios, string> = { equipe: "/funcionarios", pasta: "/funcionarios-pasta", admissao: "/funcionarios-admissao", ferias: "/funcionarios-ferias", crown: "/funcionarios-crown", pagamentos: "/funcionarios-pagamentos" };
+export type AbaFuncionarios = "equipe" | "pasta" | "admissao" | "ferias" | "crown" | "recibos" | "pagamentos";
+export const ROTA_FUNCIONARIOS: Record<AbaFuncionarios, string> = { equipe: "/funcionarios", pasta: "/funcionarios-pasta", admissao: "/funcionarios-admissao", ferias: "/funcionarios-ferias", crown: "/funcionarios-crown", recibos: "/funcionarios-recibos", pagamentos: "/funcionarios-pagamentos" };
 
 export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios }) {
   const { papel, pode } = usePerfil();
@@ -205,11 +206,12 @@ export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios
   // link antigo (?aba=pagamentos) vai para a tela nova
   if (params.get("aba") === "pagamentos") return <Navigate to={ROTA_FUNCIONARIOS.pagamentos} replace />;
   const abas = <Tabs value={aba} onChange={(v) => navegar(ROTA_FUNCIONARIOS[v])}
-    options={[{ value: "equipe", label: `Equipe · ${equipe.length}` }, { value: "pasta", label: "Pasta de documentos" }, { value: "admissao", label: "Admissão e saída" }, { value: "ferias", label: "Férias e ponto" }, { value: "crown", label: "Crown Móveis" }, { value: "pagamentos", label: "Pagamentos" }]} />;
+    options={[{ value: "equipe", label: `Equipe · ${equipe.length}` }, { value: "pasta", label: "Pasta de documentos" }, { value: "admissao", label: "Admissão e saída" }, { value: "ferias", label: "Férias e ponto" }, { value: "crown", label: "Crown Móveis" }, { value: "recibos", label: "Recibos" }, { value: "pagamentos", label: "Pagamentos" }]} />;
   if (aba === "pasta") return <div>{abas}<PastaDaEquipe lista={atuais} /></div>;
   if (aba === "admissao") return <div>{abas}<AdmissaoSaida lista={atuais} /></div>;
   if (aba === "ferias") return <div>{abas}<FeriasEquipe lista={atuais} /></div>;
   if (aba === "crown") return <div>{abas}<CrownMoveis lista={lista} /></div>;
+  if (aba === "recibos") return <div>{abas}<Recibos escopo="funcionarios" /></div>;
   if (aba === "pagamentos") return (
     <div>
       {abas}

@@ -1452,6 +1452,18 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Quem vê: administrador e financeiro.",
     ],
   },
+  "/funcionarios-recibos": {
+    tags: ["RH", "RECIBOS", "PAGAMENTOS"],
+    destaque: "Os recibos dos funcionários, separados do Financeiro.",
+    partes: [
+      "Quais aparecem: recibos de pagamento de conta da folha ou pró-labore, ou com o recebedor no cadastro de funcionários.",
+      "Fora do Financeiro: esses recibos saem de Financeiro → Recibos e ficam só aqui.",
+      "Quem vê: administrador e financeiro (o banco não mostra a outros papéis).",
+      "Busca e filtros: número, nome, referência, tipo e mês.",
+      "PDF: um a um ou todos da lista num arquivo só, para assinar de uma vez.",
+      "Cancelar ou excluir: com motivo; a exclusão fica na auditoria.",
+    ],
+  },
   "/funcionarios-pagamentos": {
     tags: ["RH", "PAGAMENTOS", "EXTRATOS"],
     destaque: "O que foi pago a cada funcionário, em todas as contas.",

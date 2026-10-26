@@ -86,6 +86,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/funcionarios-admissao": "Admissão e saída: o que falta no cadastro e na pasta de cada funcionário.",
   "/funcionarios-ferias": "Férias e ponto: períodos de férias de cada funcionário registrado, o que já tirou e a folha de ponto na pasta.",
   "/funcionarios-crown": "Crown Móveis (nome antigo da MF): ex-funcionários daquela época, com ou sem carteira, quanto recebeu e documentos.",
+  "/funcionarios-recibos": "Recibos de pagamento aos funcionários (fora do Financeiro), com PDF um a um ou em lote.",
   "/funcionarios-pagamentos": "Pagamentos aos funcionários em todas as contas, reconhecidos pelo nome como aparece no Pix.",
   "/documentos": "Todos os anexos (pedidos, OS, clientes, contas, produtos) num lugar só.",
   "/scrum": "Scrum de cada equipe (ERP Line, Produção, Assistência, Vendas e Financeiro): backlog na ordem de prioridade, sprints de 1 ou 2 semanas com objetivo, quadro A fazer → Fazendo → Revisão → Feito, daily com impedimentos, revisão e retrospectiva ao encerrar, e painel com burndown, velocidade e pontos por pessoa. As Ideias do Sobre o ERP Line viram itens do backlog do ERP Line. No item, o assistente preenche os campos, detalha a descrição, monta tarefas, critérios de aceite, cenários e casos de teste, mostra o que já existe parecido e resume os comentários.",

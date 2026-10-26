@@ -32,6 +32,8 @@ export type Recibo = {
   pagador_nome: string; pagador_doc: string | null; recebedor_nome: string; recebedor_doc: string | null;
   valor: number; referente: string; forma_pagamento: string | null; data_pagamento: string; cidade: string | null;
   observacoes: string | null; cancelado_em: string | null; cancelado_motivo: string | null; created_at: string;
+  /** recibo de pagamento a funcionário (o banco marca): fica em Funcionários → Recibos */
+  de_funcionario?: boolean;
 };
 export type RascunhoRecibo = Partial<Recibo>;
 
@@ -232,8 +234,9 @@ export function ReciboModal({ rascunho, onClose }: { rascunho: RascunhoRecibo; o
   );
 }
 
-/** Aba Financeiro → Recibos: todos os recibos emitidos, com reimpressão e cancelamento. */
-export function Recibos() {
+/** Aba Financeiro → Recibos: os recibos emitidos, com reimpressão e cancelamento. Os de funcionário ficam só em
+ *  Funcionários → Recibos (escopo "funcionarios"; pedido de 26/10). */
+export function Recibos({ escopo = "financeiro" }: { escopo?: "financeiro" | "funcionarios" } = {}) {
   const { pode, tem } = usePerfil();
   const podeEmitir = pode("editar_financeiro") || tem("vendas");
   const podeExcluir = pode("editar_financeiro");
@@ -257,9 +260,10 @@ export function Recibos() {
   const [mes, setMes] = useState("");
   const termo = busca.trim().toLowerCase();
   const lista = useMemo(() => filtrar(todos).filter((r) =>
-    (!tipo || r.tipo === tipo) && (!mes || r.data_pagamento.startsWith(mes))
+    !!r.de_funcionario === (escopo === "funcionarios")
+    && (!tipo || r.tipo === tipo) && (!mes || r.data_pagamento.startsWith(mes))
     && (!termo || [r.numero, r.pagador_nome, r.recebedor_nome, r.referente, contaDe(r)?.descricao, contaDe(r) && nomeTerceiro(contaDe(r)!), contaDe(r)?.documento]
-      .join(" ").toLowerCase().includes(termo))), [todos, tipo, mes, termo, filtrar, contaDe]);
+      .join(" ").toLowerCase().includes(termo))), [todos, tipo, mes, termo, filtrar, contaDe, escopo]);
   const total = lista.filter((r) => !r.cancelado_em).reduce((s, r) => s + Number(r.valor), 0);
   const [lote, setLote] = useState<{ blob: Blob; n: number } | null>(null);
   const [gerando, setGerando] = useState(false);
