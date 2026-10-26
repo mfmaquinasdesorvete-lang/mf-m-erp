@@ -21,10 +21,8 @@ export const TIPOS_IMAGEM_CLIENTE = ["image/jpeg", "image/png", "image/webp", "i
 const nulo = { type: ["string", "null"] };
 export const ESQUEMA_CLIENTE = {
   type: "object", additionalProperties: false, required: CAMPOS_IA,
-  properties: {
-    ...Object.fromEntries(CAMPOS_IA.map((c) => [c, nulo])),
-    tipo_pessoa: { type: ["string", "null"], enum: ["PF", "PJ", null] },
-  },
+  // tudo texto ou null, tipo_pessoa também: a API recusa enum com null ("PF"/"PJ" é conferido em normalizarCliente)
+  properties: Object.fromEntries(CAMPOS_IA.map((c) => [c, nulo])),
 } as const;
 
 export const INSTRUCOES_CLIENTE = `Você ajuda a equipe da MF Máquinas (indústria brasileira de máquinas de sorvete; os clientes são sorveterias, açaiterias, franquias e revendas) a cadastrar clientes. Você recebe a conversa do WhatsApp com o cliente, uma foto do cartão de visita ou os dois.

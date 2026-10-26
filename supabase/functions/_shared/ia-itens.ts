@@ -31,7 +31,8 @@ export const ESQUEMA_ITENS = {
           produto_id: { type: ["string", "null"] },
           fator: { type: "number" },
           nome_novo: { type: ["string", "null"] },
-          tipo_novo: { type: ["string", "null"], enum: ["insumo", "peca", "acessorio", null] },
+          // insumo | peca | acessorio, conferido em normalizarItens (a API recusa enum com null)
+          tipo_novo: { type: ["string", "null"] },
           motivo: { type: "string" },
           confianca: { type: "string", enum: ["alta", "media", "baixa"] },
         },

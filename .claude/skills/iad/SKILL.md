@@ -85,3 +85,6 @@ Recebo as ideias da usuária para a IA no trabalho do dia a dia e cuido das IAs 
   e é anexada só depois de a anotação gravar; se falhar, avisa e não grava a anotação de novo.
 - "Sem internet para entender a fala" no Chrome do computador: o reconhecimento de fala do navegador usa a internet do
   Google; com rede instável, escreva ou cole o texto (o resto funciona igual).
+- Esquema de saída da IA (json_schema): a API recusa `enum` junto com `null` ("Enum value does not match declared
+  type"). Campo opcional com lista fechada vai como `type: ["string","null"]` sem enum e a lista é conferida no
+  normalizar; o teste "esquemas das IAs" em `iaCliente.test.ts` pega isso.

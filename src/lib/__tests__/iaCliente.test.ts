@@ -31,3 +31,25 @@ describe("IA do cadastro de cliente", () => {
     expect(avisos[0]).toContain("não confere");
   });
 });
+
+describe("esquemas das IAs", () => {
+  it("nenhum esquema usa enum junto com null (a API da Anthropic recusa o pedido)", async () => {
+    const modulos = await Promise.all([
+      import("../../../supabase/functions/_shared/ia-cliente"), import("../../../supabase/functions/_shared/ia-itens"),
+      import("../../../supabase/functions/_shared/ia-produto"), import("../../../supabase/functions/_shared/ia-voz"),
+      import("../../../supabase/functions/_shared/ia-busca"), import("../../../supabase/functions/_shared/ia-manutencao"),
+      import("../../../supabase/functions/_shared/ia-orcamento"), import("../../../supabase/functions/_shared/ia-texto"),
+      import("../../../supabase/functions/_shared/ia-titulos"), import("../../../supabase/functions/_shared/ia-resumo"),
+      import("../../../supabase/functions/_shared/ia-busca-docs"), import("../../../supabase/functions/_shared/ia-acao"),
+    ]);
+    const ruins: string[] = [];
+    const olhar = (n: unknown, onde: string) => {
+      if (!n || typeof n !== "object") return;
+      const o = n as Record<string, unknown>;
+      if (Array.isArray(o.enum) && (o.enum.includes(null) || (Array.isArray(o.type) && o.type.includes("null")))) ruins.push(onde);
+      for (const [k, v] of Object.entries(o)) olhar(v, `${onde}.${k}`);
+    };
+    modulos.forEach((m, i) => Object.entries(m).filter(([k]) => k.startsWith("ESQUEMA")).forEach(([k, v]) => olhar(v, `${i}:${k}`)));
+    expect(ruins).toEqual([]);
+  });
+});
