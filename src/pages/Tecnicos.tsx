@@ -68,7 +68,7 @@ function CartaoGuia({ t, abrir, clientes }: { t: Tecnico; abrir: () => void; cli
   const insta = linkInstagram(t.instagram);
   const uf = t.uf?.toUpperCase() || (t.cidades?.[0]?.split("/")[1] ?? "").toUpperCase() || (t.ufs?.length === 1 ? t.ufs[0] : null);
   return (
-    <div className="flex items-center gap-3 pr-7">{/* pr-7: o canto direito é da caixinha de seleção */}
+    <div className="flex items-center gap-2 pr-7">{/* pr-7: o canto direito é da caixinha de seleção */}
       <button type="button" onClick={abrir} className="linha-clicavel flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left">
         <LogoTecnico t={t} tamanho={48} />
         <span className="min-w-0 flex-1">
@@ -82,15 +82,15 @@ function CartaoGuia({ t, abrir, clientes }: { t: Tecnico; abrir: () => void; cli
       </button>
       {insta && (
         <a href={insta} target="_blank" rel="noreferrer" title="Abrir o Instagram" aria-label={`Instagram de ${t.nome}`}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-fixo-rose-500 text-white hover:opacity-90">
-          <Instagram size={20} aria-hidden />
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-fixo-rose-500 text-white hover:opacity-90">
+          <Instagram size={16} aria-hidden />
         </a>
       )}
       {t.whatsapp && (
         <a href={whatsappLink(t.whatsapp, `Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`)} target="_blank" rel="noreferrer"
           title="Chamar no WhatsApp" aria-label={`Chamar ${t.nome} no WhatsApp`}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-emerald-600 text-white hover:bg-emerald-700">
-          <MessageCircle size={20} aria-hidden />
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-600 text-white hover:bg-emerald-700">
+          <MessageCircle size={16} aria-hidden />
         </a>
       )}
     </div>

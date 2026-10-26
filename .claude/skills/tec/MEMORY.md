@@ -1,5 +1,5 @@
 # MEMORY — TEC (ERP Line – Técnicos)
-Atualizado em 25/10/2026.
+Atualizado em 26/10/2026.
 
 ## Estado agora
 Cadastros → Técnicos virou um guia de cartões enxutos, com foto, estado, Instagram e WhatsApp.
@@ -11,14 +11,14 @@ Os parceiros Dr. Frost têm a foto do anúncio. Não há pedido de técnicos em 
 - Cartão enxuto: foto (ou iniciais), nome, sigla do estado, ícone do WhatsApp sem o número e quantos clientes
   ele já atendeu, contados por `clientes.tecnico_id`. O resto aparece ao abrir o técnico (25304a8).
 - Foto do anúncio Dr. Frost gravada em `tecnicos.logo_url` nos 108 parceiros; o cartão aproxima no círculo do
-  banner. Ícone do Instagram com link (f1d6fb1).
+  banner. Ícone do Instagram com link (f1d6fb1); ícones de Instagram e WhatsApp menores, 32 px, a pedido dela.
 - Linha do chat em `chats_claude` (ordem 34, cor laranja).
 
 ## Em andamento
 - Nada.
 
 ## Esperando a usuária
-- Confirmar se o zoom da foto do anúncio deixa o rosto ou o logo centralizado no círculo.
+- Nada (as fotos ficaram centralizadas, ela aprovou pelo print).
 
 ## Decisões da usuária
 - O cartão mostra só o necessário: nome, estado, WhatsApp (só o ícone), Instagram (só o ícone) e quantos clientes
