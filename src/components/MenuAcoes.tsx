@@ -2,11 +2,13 @@
 // O menu abre por cima da página (fora da tabela), para não ser cortado pela rolagem da lista.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { MoreHorizontal, type LucideIcon } from "lucide-react";
+import { ChevronDown, MoreHorizontal, type LucideIcon } from "lucide-react";
 
 export type ItemMenu = { rotulo: string; icone?: LucideIcon; onClick: () => void; perigo?: boolean; disabled?: boolean; dica?: string };
 
-export function MenuAcoes({ itens, rotulo = "Mais ações", extra }: { itens: (ItemMenu | null | false | undefined)[]; rotulo?: string; extra?: ReactNode }) {
+export function MenuAcoes({ itens, rotulo = "Mais ações", extra, texto }: { itens: (ItemMenu | null | false | undefined)[]; rotulo?: string; extra?: ReactNode;
+  /** botão com texto ("Mais") no lugar do "⋯" sozinho */
+  texto?: string }) {
   const lista = itens.filter(Boolean) as ItemMenu[];
   const botao = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -36,10 +38,17 @@ export function MenuAcoes({ itens, rotulo = "Mais ações", extra }: { itens: (I
   }
   return (
     <>
-      <button ref={botao} type="button" onClick={abrir} aria-haspopup="menu" aria-expanded={!!pos} aria-label={rotulo} title={rotulo}
-        className="botao-icone h-9 w-9 border border-slate-200 hover:border-slate-400">
-        <MoreHorizontal size={18} aria-hidden />
-      </button>
+      {texto ? (
+        <button ref={botao} type="button" onClick={abrir} aria-haspopup="menu" aria-expanded={!!pos} title={rotulo}
+          className="inline-flex h-10 items-center gap-1 rounded-lg border border-slate-300 bg-surface px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          {texto} <ChevronDown size={15} aria-hidden />
+        </button>
+      ) : (
+        <button ref={botao} type="button" onClick={abrir} aria-haspopup="menu" aria-expanded={!!pos} aria-label={rotulo} title={rotulo}
+          className="botao-icone h-9 w-9 border border-slate-200 hover:border-slate-400">
+          <MoreHorizontal size={18} aria-hidden />
+        </button>
+      )}
       {pos && createPortal(
         <div ref={menu} role="menu" style={{ position: "fixed", top: pos.top, bottom: pos.bottom, right: pos.right }}
           className="z-flutuante min-w-52 overflow-hidden rounded-xl border border-slate-200 bg-surface py-1 shadow-pop">

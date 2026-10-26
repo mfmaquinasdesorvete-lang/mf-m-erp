@@ -98,3 +98,8 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   `src/lib/pdf.ts` (cada item em duas linhas da tabela com rowSpan: nome em negrito e, embaixo, SKU/NCM, texto do catálogo
   e especificações; foto desenhada no didDrawCell). A página do cliente lê `comercial`, `especificacoes` e `preco_lista`
   de `proposta_publica` (migração 158, troca de trecho no texto atual da função).
+- Contas a pagar e a receber (26/10, escolha da usuária): `CartoesAgora` + `EscolhaEstado` (`src/components/financeiro/AgoraContas.tsx`)
+  e as regras em `src/lib/agoraContas.ts` (com teste). Os cartões olham todas as contas (sem o período); a lista usa o
+  período. O quadro (KanbanPagar) e os passos numerados saíram da tela; contas fixas, renegociadas, imprimir, exportar e
+  Aprovações ficam no "Mais" (MenuAcoes com `texto`). A pagar: dia = dia programado (`diaDoPagamento`), "não pagar" e
+  golpe não contam como vencidas. Não voltar a pôr vários botões cheios na tela: um só (Nova conta).

@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, Barcode, CalendarClock, Check, CheckCheck, ClipboardCheck, Copy, Eye, FileDown, Handshake, Layers, Link2, List, MessageCircle, Pencil, Plus, Printer, Repeat, RotateCcw, ScanBarcode, Send, SquareKanban, Tags, Undo2, Users, Wallet } from "lucide-react";
-import { Badge, BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
+import { Ban, Barcode, CalendarClock, Check, CheckCheck, ClipboardCheck, Copy, Eye, FileDown, Handshake, Link2, MessageCircle, Pencil, Plus, Printer, Repeat, RotateCcw, ScanBarcode, Send, Tags, Undo2, Users, Wallet } from "lucide-react";
+import { Badge, BotaoAtalho, Button, COR_ATALHO, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave, semUnificados } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
-import { brl, dataBR, hoje, situacaoConta, somarDias, whatsappLink, pl } from "@/lib/format";
+import { brl, dataBR, hoje, situacaoConta, somarDias, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
@@ -30,16 +30,17 @@ import { BotaoRecibo, Recibos, reciboDePagar, reciboDeReceber } from "@/componen
 import { pixDaConta } from "@/lib/cobranca";
 import type { LancDre, Rateio } from "@/lib/dre";
 import { BarraLote, ModalAgendar, ModalNaoPagar, PagarLoteModal, useProgramar } from "@/components/financeiro/DecisaoPagamento";
-import { irParaColuna, KanbanPagar, NavPassos, type ResumoPasso } from "@/components/financeiro/KanbanPagar";
 import { ChipRenegociada, HistoricoNegociacao, ModalRenegociar, PainelRenegociadas } from "@/components/financeiro/Renegociacao";
 import { PrestarContas, SeloAdiantamento, useGastosAdiantamento } from "@/components/financeiro/Adiantamento";
 import { PagarPixInter } from "@/components/financeiro/PixInter";
 import { ehAdiantamento, gastosParaDre } from "@/lib/adiantamento";
 import { useAprovarPagar } from "@/components/financeiro/AprovarPagar";
-import { ChipTipo, ResumoPagarTipos } from "@/components/financeiro/ResumoPagar";
-import { raizCnpj, resumoPorTipo, tipoPagar, type TipoPagar } from "@/lib/tiposPagar";
+import { ChipTipo } from "@/components/financeiro/ResumoPagar";
+import { ORDEM_TIPOS, raizCnpj, TIPOS_PAGAR, tipoPagar, type TipoPagar } from "@/lib/tiposPagar";
+import { noCartao, noEstado, resumoAgora, type CartaoAgora, type EstadoLista, type RegrasAgora } from "@/lib/agoraContas";
+import { CartoesAgora, EscolhaEstado, FaixaCartao } from "@/components/financeiro/AgoraContas";
 import type { ContaRevisao } from "@/lib/aprovacao";
-import { aguardaAprovacao, COR_RENEGOCIADA, COR_TOM, diaDoPagamento, naVisaoPagar, paraPagarHoje, PASSOS_PAGAR, passoPagar, situacaoPagar, VISOES_PAGAR, type Decisao, type PassoPagar, type VisaoPagar } from "@/lib/programacao";
+import { aguardaAprovacao, contaParada, COR_TOM, diaDoPagamento, naVisaoPagar, paraPagarHoje, passoPagar, situacaoPagar, type Decisao, type VisaoPagar } from "@/lib/programacao";
 import { BarraFiltros, ChipsSituacao, RodapeLista } from "@/components/filtros/BarraFiltros";
 import { noPeriodo, noPeriodoOuPendente, rotuloPeriodo, SEM_PERIODO, semanaAtual, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { MenuAcoes } from "@/components/MenuAcoes";
@@ -103,17 +104,6 @@ const SELECT_PAGAR = "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio
 /** Só o que as contas a receber, a cobrança, o recibo e a busca de cliente usam (o cadastro inteiro passa de 5 MB). */
 const CAMPOS_CLIENTE_CONTA = "id, codigo, nome, nome_fantasia, cpf_cnpj, municipio, uf, email, telefone, telefone_adicional, whatsapp, portal_token, portal_link";
 
-function filtrar<T extends { status: string; vencimento: string }>(lista: T[], filtro: string, mes: string) {
-  return lista
-    .filter((c) => !mes || c.vencimento.startsWith(mes))
-    .filter((c) => {
-      const s = situacaoConta(c.status, c.vencimento);
-      if (filtro === "pendentes") return s === "aberto" || s === "vencido";
-      if (filtro === "todos") return true;
-      return s === filtro;
-    })
-    .sort((a, b) => a.vencimento.localeCompare(b.vencimento));
-}
 
 export default function Financeiro() {
   const { pode, papel, tem } = usePerfil();
@@ -164,16 +154,6 @@ export default function Financeiro() {
   const carregandoPagar = recentes.isLoading || esperandoHistorico;
   const pagar = useMemo(() => filtrar(pagarTodos), [pagarTodos, filtrar]);
 
-  const resumo = useMemo(() => {
-    const aberto = (l: { status: string; valor: number; vencimento: string }[]) => l.filter((c) => c.status === "aberto");
-    const soma = (l: { valor: number }[]) => l.reduce((s, c) => s + Number(c.valor), 0);
-    const r = aberto(receber), p = aberto(pagar);
-    return {
-      aReceber: soma(r), vencidoReceber: soma(r.filter((c) => c.vencimento < hoje())),
-      aPagar: soma(p), vencidoPagar: soma(p.filter((c) => c.vencimento < hoje())),
-      pagar7dias: soma(p.filter((c) => c.vencimento <= somarDias(7))),
-    };
-  }, [receber, pagar]);
   const paraVisao = useMemo(() => ({
     receber: receber.map((c) => ({ ...c, terceiro: c.cliente ? c.cliente.nome_fantasia?.trim() || c.cliente.nome : null })),
     pagar: pagar.map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? null })),
@@ -212,13 +192,7 @@ export default function Financeiro() {
           veSaldo={tem("financeiro", "contador")} podeBaixar={pode("editar_financeiro")} />
       ) : (
         <>
-          {aba !== "pagar" && aba !== "fixas" && <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Indicador rotulo="A receber (aberto)" icon={ArrowDownCircle} cor="azul" valor={brl(resumo.aReceber)} />
-            <Indicador rotulo="Recebimentos vencidos" icon={AlertTriangle} cor={resumo.vencidoReceber > 0 ? "vermelho" : "verde"} valor={brl(resumo.vencidoReceber)} />
-            {veContasPagar && <Indicador rotulo="A pagar (aberto)" icon={ArrowUpCircle} cor="laranja" valor={brl(resumo.aPagar)} />}
-            {veContasPagar && <Indicador rotulo="A pagar nos próximos 7 dias" icon={CalendarClock} cor={resumo.vencidoPagar > 0 ? "vermelho" : "ambar"}
-              valor={brl(resumo.pagar7dias)} sub={resumo.vencidoPagar ? `${brl(resumo.vencidoPagar)} vencido` : undefined} />}
-          </div>}
+          {/* os números do topo ficam nos cartões de cada tela (pedido de 26/10): sem a fileira repetida aqui */}
           {(aba === "pagar" || aba === "fixas") && veContasPagar ? <ContasPagar key={destaque?.titulo ?? ""} contas={destaque ? pagar.filter((c) => destaque.ids.includes(c.id)) : pagar} novaAoAbrir={novaAoAbrir} contaInicial={contaInicial} onNovaAberta={() => { setNovaAoAbrir(false); setContaInicial(null); }}
             tipoInicial={tipoInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} carregando={carregandoPagar}
             visaoInicial={visaoInicial} onVisaoAplicada={() => setVisaoInicial(null)} corte={corte} onPedeHistorico={() => setPedeHistorico(true)} /> : <ContasReceber contas={receber} carregando={carregandoReceber} />}
@@ -228,32 +202,6 @@ export default function Financeiro() {
   );
 }
 
-function Filtros({ filtro, setFiltro, mes, setMes, onNovo, onImprimir, onExportar }: {
-  filtro: string; setFiltro: (v: string) => void; mes: string; setMes: (v: string) => void; onNovo?: () => void;
-  onImprimir: () => void; onExportar: () => void;
-}) {
-  return (
-    // celular: filtro e mês lado a lado, e os três botões numa linha só
-    <div className="mb-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
-      <label className="min-w-0">
-        <span className="mb-1 block text-xs font-semibold text-slate-500 sm:sr-only">Mostrar</span>
-        <select className="input sm:w-auto" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
-          {FILTROS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-        </select>
-      </label>
-      <label className="min-w-0 sm:flex sm:items-center sm:gap-2">
-        <span className="mb-1 block text-xs font-semibold text-slate-500 sm:mb-0 sm:text-sm sm:font-normal sm:text-slate-600">Vencimento em</span>
-        <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês de vencimento" />
-      </label>
-      <div className="hidden flex-1 sm:block" />
-      <div className={`col-span-2 grid gap-2 sm:flex ${onNovo ? "grid-cols-3" : "grid-cols-2"}`}>
-        <Button variant="secondary" onClick={onImprimir}><Printer size={16} /> Imprimir</Button>
-        <Button variant="secondary" onClick={onExportar}><FileDown size={16} /> Exportar</Button>
-        {onNovo && <Button onClick={onNovo}><Plus size={16} /> Nova<span className="hidden sm:inline"> conta</span></Button>}
-      </div>
-    </div>
-  );
-}
 
 /* ------------------------- Imprimir e exportar a lista ------------------------- */
 
@@ -299,8 +247,12 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
   const { padrao, unidades } = useUnidade();
   const { pode } = usePerfil();
   const podeEditar = pode("editar_financeiro");
-  const [filtro, setFiltro] = useState("pendentes");
-  const [mes, setMes] = useState("");
+  const navigate = useNavigate();
+  // mesma cara das contas a pagar (pedido de 26/10): cartões do que fazer agora e a lista em aberto, recebida ou toda
+  const [cartao, setCartao] = useState<CartaoAgora | null>(null);
+  const [estado, setEstado] = useState<EstadoLista>("aberto");
+  const [busca, setBusca] = useState("");
+  const [periodo, setPeriodo] = useState<Periodo>(() => semanaAtual(hoje()));
   const [nova, setNova] = useState<Partial<Receber> | null>(null);
   const [baixa, setBaixa] = useState<{ conta: Receber; tabela: "contas_receber" } | null>(null);
   const [motivo, setMotivo] = useState<{ conta: Receber; acao: "cancelar" | "estornar" } | null>(null);
@@ -335,8 +287,19 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
   const { data: clientes = [] } = useRows<Cliente>("clientes", { select: CAMPOS_CLIENTE_CONTA, order: "nome", ascending: true, key: ["contas"] });
   const save = useSave("contas_receber");
   const invalidate = useInvalidate();
-  const lista = filtrar(contas, filtro, mes);
-  const rel = useRelatorio("receber", filtro, mes);
+  const dia = hoje();
+  const termo = busca.trim().toLowerCase();
+  const semPeriodo = useMemo(() => contas.filter((c) => !termo
+    || [c.descricao, c.cliente?.nome, c.cliente?.nome_fantasia, c.forma_pagamento, c.categoria].some((t) => (t ?? "").toLowerCase().includes(termo))), [contas, termo]);
+  const regras: RegrasAgora<Receber> = { decidir: (c) => (c as any).revisao === "em_revisao" };
+  const resumo = useMemo(() => resumoAgora(semPeriodo, dia, regras), [semPeriodo, dia]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lista = useMemo(() => (cartao ? semPeriodo.filter((c) => noCartao(c, cartao, dia, regras))
+    : semPeriodo.filter((c) => noEstado(c, estado) && noPeriodoOuPendente(c.vencimento, periodo, c.status === "aberto")))
+    .sort((a, b) => !cartao && estado === "pagas" ? (b.data_pagamento ?? "").localeCompare(a.data_pagamento ?? "") : a.vencimento.localeCompare(b.vencimento)),
+  [semPeriodo, cartao, estado, periodo, dia]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rotuloLista = cartao ? { vencidas: "Vencidas", hoje: "Hoje", semana: "Esta semana", decidir: "Para decidir" }[cartao]
+    : [{ aberto: "Em aberto", pagas: "Recebidas", todas: "Todas" }[estado], temPeriodo(periodo) ? `vencimento ${rotuloPeriodo(periodo, dia).toLowerCase()}` : ""].filter(Boolean).join(" · ");
+  const rel = useRelatorio("receber", "todos", "", [rotuloLista, termo && `busca "${busca.trim()}"`].filter(Boolean).join(" · "));
   const paraRel = () => lista.map((c) => ({ ...c, terceiro: c.cliente?.nome ?? "" }));
 
   const copiar = (texto: string, o: string) => navigator.clipboard.writeText(texto).then(() => notify(`${o} copiado`));
@@ -374,9 +337,22 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
   return (
     <>
       {rel.visor}
-      <Filtros filtro={filtro} setFiltro={setFiltro} mes={mes} setMes={setMes}
-        onImprimir={() => rel.imprimir(paraRel())} onExportar={() => rel.exportar(paraRel(), (c) => ({ Forma: c.forma_pagamento }))}
-        onNovo={podeEditar ? () => setNova({ forma_pagamento: "boleto", vencimento: somarDias(3), descricao: "", unidade_id: padrao, categoria: "vendas", rateio: [] } as any) : undefined} />
+      <CartoesAgora resumo={resumo} ativo={cartao} onEscolher={setCartao} />
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar cliente, descrição ou forma de pagamento…"
+        periodo={cartao ? undefined : periodo} onPeriodo={cartao ? undefined : setPeriodo} rotuloData="Vencimento"
+        onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); }}
+        direita={<>
+          {!cartao && <EscolhaEstado valor={estado} onMudar={setEstado} rotuloPagas="Recebidas" />}
+          <span className="flex flex-1 justify-end gap-2 sm:flex-none">
+          <MenuAcoes texto="Mais" rotulo="Mais opções" itens={[
+            { rotulo: "Imprimir a lista", icone: Printer, onClick: () => rel.imprimir(paraRel()) },
+            { rotulo: "Exportar para Excel", icone: FileDown, onClick: () => rel.exportar(paraRel(), (c) => ({ Forma: c.forma_pagamento })) },
+            { rotulo: "Aprovações", icone: ClipboardCheck, onClick: () => navigate("/aprovacoes") },
+          ]} />
+          {podeEditar && <Button onClick={() => setNova({ forma_pagamento: "boleto", vencimento: somarDias(3), descricao: "", unidade_id: padrao, categoria: "vendas", rateio: [] } as any)}><Plus size={16} /> Nova conta</Button>}
+          </span>
+        </>} />
+      {cartao && <FaixaCartao cartao={cartao} onLimpar={() => setCartao(null)} />}
       <ListaContas vazia={!carregando && lista.length === 0}>
         {lista.map((c) => {
           const s = situacaoConta(c.status, c.vencimento);
@@ -519,19 +495,24 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   const { pode } = usePerfil();
   const podeDecidir = pode("editar_financeiro");
   const { data: cfgRecibo } = useConfig();
-  // uma visão por vez (com a contagem de cada uma), busca, período do vencimento e filtros guardados num botão
-  // passos com o código de cores (1 a decidir … 3 pagas) e os extras: renegociadas, contas fixas e todas
-  const [visao, setVisao] = useState<VisaoPagar>(destaque ? "todas" : visaoInicial ?? "decidir");
-  useEffect(() => { if (visaoInicial) { setVisao(visaoInicial); onVisaoAplicada?.(); } }, [visaoInicial]); // eslint-disable-line react-hooks/exhaustive-deps
-  const especial = visao === "renegociadas" || visao === "fixas";
+  const navigate = useNavigate();
+  // pedido de 26/10 (a tela estava confusa): no topo os cartões do que fazer agora (vencidas, hoje, esta semana e para
+  // decidir); embaixo a lista em aberto, paga ou toda, com o período no chip. Renegociadas e contas fixas ficam no "Mais"
+  const [cartao, setCartao] = useState<CartaoAgora | null>(null);
+  const [estado, setEstado] = useState<EstadoLista>(destaque ? "todas" : "aberto");
+  const [especial, setEspecial] = useState<"renegociadas" | "fixas" | null>(null);
+  // quem abre a tela já numa visão (painel, Configurações → Contas fixas) cai no cartão ou na lista equivalente
+  const aplicarVisao = (v: VisaoPagar) => {
+    setCartao(v === "decidir" ? "decidir" : v === "hoje" ? "hoje" : v === "atrasadas" ? "vencidas" : null);
+    setEspecial(v === "renegociadas" || v === "fixas" ? v : null);
+    setEstado(v === "pagas" ? "pagas" : v === "todas" ? "todas" : "aberto");
+  };
+  useEffect(() => { if (visaoInicial) { aplicarVisao(visaoInicial); onVisaoAplicada?.(); } }, [visaoInicial]); // eslint-disable-line react-hooks/exhaustive-deps
   // renegociação: o acordo (contas marcadas ou uma só) e o histórico da negociação
   const [renegociar, setRenegociar] = useState<Pagar[] | null>(null);
   const [prestar, setPrestar] = useState<Pagar | null>(null);
   const [pixInter, setPixInter] = useState<Pagar | null>(null);
   const [negociacao, setNegociacao] = useState<string | null>(null);
-  // quadro (Kanban, o padrão) ou lista; a escolha fica guardada neste aparelho
-  const [modo, setModoState] = useState<"lista" | "quadro">(() => { try { return localStorage.getItem("erp:pagar:visual") === "lista" || destaque ? "lista" : "quadro"; } catch { return "quadro"; } });
-  const setModo = (m: "lista" | "quadro") => { setModoState(m); setSel(new Set()); try { localStorage.setItem("erp:pagar:visual", m); } catch { /* sem armazenamento */ } };
   // tipo da conta (transportadora, fornecedor, folha…): a transportadora pelo CNPJ do cadastro de transportadoras
   const [tipo, setTipo] = useState<TipoPagar | "">(tipoInicial);
   useEffect(() => { if (tipoInicial) setTipo(tipoInicial); }, [tipoInicial]);
@@ -593,36 +574,28 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
 
   const termo = busca.trim().toLowerCase();
   // busca como no Tiny: nº do documento, fornecedor, histórico (descrição e observações), nº da NF de entrada e da OC
-  const filtradas = useMemo(() => contas.filter((c) => {
+  // busca e filtros valem para tudo; o período só para a lista (os cartões olham todas as contas em aberto)
+  const semPeriodo = useMemo(() => contas.filter((c) => {
     const o = origens.get(c.id);
     return (!termo || [c.descricao, c.fornecedor?.nome, c.fornecedor?.cnpj, c.documento, c.categoria, c.observacoes, ...termosOrigem(o)].some((t) => (t ?? "").toLowerCase().includes(termo)))
-      && noPeriodoOuPendente(dataDaConta(c, campoData, o), periodo, c.status === "aberto") && (!categoria || c.categoria === categoria) && (!marcador || ((c as any).marcadores ?? []).includes(marcador))
-      && (!origemF || (o?.origem ?? "outro") === origemF);
-  }), [contas, termo, periodo, campoData, categoria, marcador, origens, origemF]);
+      && (!categoria || c.categoria === categoria) && (!marcador || ((c as any).marcadores ?? []).includes(marcador))
+      && (!origemF || (o?.origem ?? "outro") === origemF) && (!tipo || tipos.get(c.id) === tipo);
+  }), [contas, termo, categoria, marcador, origens, origemF, tipo, tipos]);
+  const base = useMemo(() => semPeriodo.filter((c) => noPeriodoOuPendente(dataDaConta(c, campoData, origens.get(c.id)), periodo, c.status === "aberto")),
+    [semPeriodo, periodo, campoData, origens]);
   const origensUsadas = useMemo(() => {
     const n = new Map<CodigoOrigem, number>();
     for (const c of contas) { const k = origens.get(c.id)?.origem ?? "outro"; n.set(k, (n.get(k) ?? 0) + 1); }
     return (Object.keys(ORIGENS) as CodigoOrigem[]).filter((k) => n.has(k)).map((k) => ({ k, n: n.get(k)! }));
   }, [contas, origens]);
-  // o resumo por tipo segue a busca e o período; o tipo escolhido filtra o quadro e a lista
-  const resumoTipos = useMemo(() => resumoPorTipo(filtradas, tipoDe, hoje()), [filtradas, tipos]); // eslint-disable-line react-hooks/exhaustive-deps
-  const base = useMemo(() => (tipo ? filtradas.filter((c) => tipoDe(c) === tipo) : filtradas), [filtradas, tipo, tipos]); // eslint-disable-line react-hooks/exhaustive-deps
-  const lista = useMemo(() => base.filter((c) => naVisaoPagar(c, visao, dia)).sort((a, b) => visao === "pagas"
-    ? (b.data_pagamento ?? "").localeCompare(a.data_pagamento ?? "") : diaDoPagamento(a).localeCompare(diaDoPagamento(b))), [base, visao, dia]);
-  const visoes = VISOES_PAGAR.map((x) => ({ value: x.v, label: x.rotulo, n: base.filter((c) => naVisaoPagar(c, x.v, dia)).length }));
-  // no quadro, "Pagas" mostra os últimos 30 dias (como a coluna)
-  const desde30 = somarDias(-30);
-  const passos: ResumoPasso[] = PASSOS_PAGAR.map((p) => {
-    const l = base.filter((c) => passoPagar(c, dia) === p.id && (modo === "lista" || p.id !== "pagas" || (c.data_pagamento ?? "") >= desde30));
-    return { ...p, n: l.length, total: l.reduce((s0, c) => s0 + Number(c.valor), 0) };
-  });
-  const escolherPasso = (id: PassoPagar) => {
-    setSel(new Set());
-    if (modo === "quadro") {
-      if (especial) { setVisao(id); setTimeout(() => irParaColuna(id), 80); } else irParaColuna(id);
-    } else setVisao(id);
-  };
-  const nVisao = (v: VisaoPagar) => visoes.find((x) => x.value === v)?.n ?? 0;
+  const regras: RegrasAgora<Pagar> = { dia: diaDoPagamento, parada: contaParada, decidir: (c) => passoPagar(c, dia) === "decidir" };
+  const resumo = useMemo(() => resumoAgora(semPeriodo, dia, regras), [semPeriodo, dia]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lista = useMemo(() => (especial === "fixas" ? base.filter((c) => naVisaoPagar(c, "fixas", dia))
+    : cartao ? semPeriodo.filter((c) => noCartao(c, cartao, dia, regras))
+    : base.filter((c) => noEstado(c, estado)))
+    .sort((a, b) => !cartao && estado === "pagas" ? (b.data_pagamento ?? "").localeCompare(a.data_pagamento ?? "") : diaDoPagamento(a).localeCompare(diaDoPagamento(b))),
+  [base, semPeriodo, cartao, estado, especial, dia]); // eslint-disable-line react-hooks/exhaustive-deps
+  const nFixas = contas.filter((c) => naVisaoPagar(c, "fixas", dia)).length;
   // renegociadas: quantos acordos em andamento (não quantas contas)
   const { data: negociacoes = [] } = useRows<{ id: string; situacao: string; unidade_id: string | null }>("pagar_negociacoes", { order: "created_at", ascending: false });
   const negAndamento = filtrarUnidade(negociacoes).filter((n) => n.situacao === "negociando" || n.situacao === "acordo").length;
@@ -634,7 +607,8 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   const marcar = (id: string) => setSel((s0) => { const s1 = new Set(s0); if (s1.has(id)) s1.delete(id); else s1.add(id); return s1; });
   const marcarTodas = () => setSel(todasMarcadas ? new Set() : new Set(abertasVisiveis.map((c) => c.id)));
   const somaDe = (l: Pagar[]) => l.reduce((s0, c) => s0 + Number(c.valor), 0);
-  const rotuloVisao = VISOES_PAGAR.find((x) => x.v === visao)?.rotulo ?? "";
+  const rotuloVisao = especial === "fixas" ? "Contas fixas" : cartao ? { vencidas: "Vencidas", hoje: "Hoje", semana: "Esta semana", decidir: "Para decidir" }[cartao]
+    : { aberto: "Em aberto", pagas: "Pagas", todas: "Todas" }[estado];
   const rel = useRelatorio("pagar", "todos", "", [rotuloVisao, temPeriodo(periodo) ? `${rotuloCampo.toLowerCase()} ${rotuloPeriodo(periodo, dia).toLowerCase()}` : "",
     origemF && `origem: ${ORIGENS[origemF].rotulo.toLowerCase()}`, termo && `busca "${busca.trim()}"`].filter(Boolean).join(" · "));
   const paraRel = () => lista.map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? "" }));
@@ -708,13 +682,18 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
     <>
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={contas.length} onLimpar={onLimparDestaque} />}
       {rel.visor}
-      <ResumoPagarTipos r={resumoTipos} tipo={tipo} onTipo={(t) => { setTipo(t); setSel(new Set()); }} />
-      {aprov.faixa(() => escolherPasso("decidir"))}
+      <CartoesAgora resumo={resumo} ativo={cartao} onEscolher={(k) => { setCartao(k); setEspecial(null); setSel(new Set()); }} />
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar fornecedor, documento, histórico, nº da NF ou da OC…"
-        periodo={periodo} onPeriodo={setPeriodo} rotuloData={rotuloCampo}
+        periodo={cartao ? undefined : periodo} onPeriodo={cartao ? undefined : setPeriodo} rotuloData={rotuloCampo}
         campoData={{ valor: campoData, opcoes: CAMPOS_DATA, onChange: (v) => setCampoData(v as CampoData) }}
         nFiltros={(categoria ? 1 : 0) + (marcador ? 1 : 0) + (tipo ? 1 : 0) + (origemF ? 1 : 0)}
         filtros={<>
+          <label className="text-xs font-semibold text-slate-600">Tipo
+            <select className="input mt-0.5 h-9 w-auto" value={tipo} onChange={(e) => { setTipo(e.target.value as TipoPagar | ""); setSel(new Set()); }}>
+              <option value="">Todos</option>
+              {ORDEM_TIPOS.map((t) => <option key={t} value={t}>{TIPOS_PAGAR[t].rotulo}</option>)}
+            </select>
+          </label>
           <label className="text-xs font-semibold text-slate-600">Origem
             <select className="input mt-0.5 h-9 w-auto" value={origemF} onChange={(e) => setOrigemF(e.target.value as CodigoOrigem | "")}>
               <option value="">Todas</option>
@@ -731,45 +710,39 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
         </>}
         onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setCategoria(""); setMarcador(""); setTipo(""); setOrigemF(""); }}
         direita={<>
-          <div className="inline-flex rounded-lg border border-slate-300 bg-surface p-0.5 shadow-sm" role="group" aria-label="Ver as contas em">
-            {([["quadro", SquareKanban, "Quadro"], ["lista", List, "Lista"]] as const).map(([m, Icone, rotulo]) => (
-              <button key={m} type="button" aria-pressed={modo === m} onClick={() => setModo(m)} title={m === "quadro" ? "Quadro Kanban: uma coluna por situação" : "Lista por situação"}
-                className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-semibold ${modo === m ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>
-                <Icone size={15} aria-hidden /><span className="hidden sm:inline">{rotulo}</span>
-              </button>
-            ))}
-          </div>
-          <Button variant="secondary" onClick={() => rel.imprimir(paraRel())} title="Imprimir a lista"><Printer size={16} /><span className="hidden lg:inline"> Imprimir</span></Button>
-          <Button variant="secondary" onClick={() => rel.imprimir(paraRel(), true)} title="Imprimir agrupado por fornecedor, com o total de cada um"><Users size={16} /><span className="hidden lg:inline"> Por fornecedor</span></Button>
-          <Button variant="secondary" onClick={() => rel.exportar(paraRel(), (c) => ({ Categoria: c.categoria, Documento: c.documento ?? "", Origem: rotuloOrigem(origens.get(c.id)) ?? "",
-            Emissão: celula(dataDaConta(c, "emissao", origens.get(c.id))), Competência: celula(dataDaConta(c, "competencia")) }))} title="Exportar para Excel"><FileDown size={16} /><span className="hidden lg:inline"> Exportar</span></Button>
+          {!cartao && !especial && <EscolhaEstado valor={estado} onMudar={(e) => { setEstado(e); setSel(new Set()); }} />}
+          <span className="flex flex-1 justify-end gap-2 sm:flex-none">
+          <MenuAcoes texto="Mais" rotulo="Mais opções" itens={[
+            { rotulo: "Imprimir a lista", icone: Printer, onClick: () => rel.imprimir(paraRel()) },
+            { rotulo: "Imprimir por fornecedor", icone: Users, onClick: () => rel.imprimir(paraRel(), true) },
+            { rotulo: "Exportar para Excel", icone: FileDown, onClick: () => rel.exportar(paraRel(), (c) => ({ Categoria: c.categoria, Documento: c.documento ?? "", Origem: rotuloOrigem(origens.get(c.id)) ?? "",
+              Emissão: celula(dataDaConta(c, "emissao", origens.get(c.id))), Competência: celula(dataDaConta(c, "competencia")) })) },
+            { rotulo: `Contas fixas (${nFixas})`, icone: Repeat, onClick: () => { setEspecial("fixas"); setCartao(null); setSel(new Set()); } },
+            { rotulo: `Renegociadas (${negAndamento})`, icone: Handshake, onClick: () => { setEspecial("renegociadas"); setCartao(null); setSel(new Set()); } },
+            { rotulo: `Aprovações${aprov.minhaVez.length ? ` (${aprov.minhaVez.length} na sua vez)` : ""}`, icone: ClipboardCheck, onClick: () => navigate("/aprovacoes") },
+          ]} />
           <Button onClick={novaConta}><Plus size={16} /> Nova conta</Button>
-        </>} />
-      {podeDecidir && pagarHoje.length > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-4 shadow-card sm:p-4" style={{ background: PASSOS_PAGAR[2].fundo, color: PASSOS_PAGAR[2].tinta }}>
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/40"><Wallet size={22} aria-hidden /></span>
-          <span className="mr-auto min-w-0">
-            <span className="block text-base font-bold leading-tight">{pagarHoje.length} {pl(pagarHoje.length, "conta", "contas")} para pagar hoje · <span className="num whitespace-nowrap">{brl(somaDe(pagarHoje))}</span></span>
-            <span className="mt-0.5 block text-xs leading-snug">Pague no banco e registre aqui: o ERP dá baixa em todas de uma vez.</span>
           </span>
-          <button type="button" onClick={() => setLotePagarHoje(true)} className="inline-flex min-h-toque w-full items-center justify-center gap-1.5 rounded-xl bg-fixo-yellow-950 px-4 text-sm font-bold text-white hover:brightness-125 sm:w-auto">
-            <CheckCheck size={16} aria-hidden /> Registrar o pagamento de todas
-          </button>
+        </>} />
+      {cartao && (
+        <FaixaCartao cartao={cartao} onLimpar={() => setCartao(null)}>
+          {cartao === "hoje" && podeDecidir && pagarHoje.length > 0 && (
+            <Button variant="secondary" onClick={() => setLotePagarHoje(true)} title="Pague no banco e registre aqui: o ERP dá baixa em todas de uma vez">
+              <CheckCheck size={15} /> Registrar o pagamento das {pagarHoje.length} programadas para hoje
+            </Button>
+          )}
+        </FaixaCartao>
+      )}
+      {cartao === "decidir" && aprov.faixa(() => navigate("/aprovacoes"))}
+      {especial && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-slate-600">Mostrando: <b className="text-fg">{especial === "fixas" ? "Contas fixas" : "Renegociadas"}</b></span>
+          <button type="button" className="link-modulo font-semibold" onClick={() => setEspecial(null)}>voltar à lista</button>
         </div>
       )}
-      <NavPassos passos={passos} ativo={modo === "lista" || especial ? visao : null} onEscolher={escolherPasso} extras={<>
-        <BotaoExtra ativo={visao === "renegociadas"} onClick={() => { setVisao(visao === "renegociadas" ? "decidir" : "renegociadas"); setSel(new Set()); }}
-          icone={Handshake} rotulo="Renegociadas" n={negAndamento} fundo={COR_RENEGOCIADA.fundo} tinta={COR_RENEGOCIADA.tinta}
-          dica="Contas renegociadas com o fornecedor: o acordo, as parcelas pagas e o histórico (áudios, prints e arquivos)" />
-        <BotaoExtra ativo={visao === "fixas"} onClick={() => { setVisao(visao === "fixas" ? "decidir" : "fixas"); setSel(new Set()); }}
-          icone={Repeat} rotulo="Contas fixas" n={nVisao("fixas")} fundo="#e0e7ff" tinta="#1e1b4b"
-          dica="Aluguel, salários, mensalidades: o ERP lança cada uma sozinho, com antecedência" />
-        {modo === "lista" && <BotaoExtra ativo={visao === "todas"} onClick={() => { setVisao("todas"); setSel(new Set()); }}
-          icone={Layers} rotulo="Todas" n={nVisao("todas")} fundo="#f1f5f9" tinta="#0f172a" dica="Todas as contas (menos as canceladas)" />}
-      </>} />
-      {visao === "renegociadas" ? (
+      {especial === "renegociadas" ? (
         <PainelRenegociadas contas={contas} onAbrir={setNegociacao} />
-      ) : visao === "fixas" ? (
+      ) : especial === "fixas" ? (
         <div className="space-y-4">
           <ContasFixas contas={contas} />
           {lista.length > 0 && <h3 className="text-sm font-bold text-fg">Contas lançadas pelas fixas, em aberto ({lista.length})</h3>}
@@ -793,13 +766,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
             ))}
           </Table></div>}
         </div>
-      ) : modo === "quadro" ? (
-        <KanbanPagar contas={base} podeDecidir={podeDecidir} situacaoDe={situacaoDe} acoesDe={acoesDe} onRegistrar={(c) => setBaixa(c)} tipoDe={tipoDe} />
       ) : <>
-      {(() => {
-        const p = PASSOS_PAGAR.find((x) => x.id === visao);
-        return p ? <p className="-mt-1 mb-3 text-xs text-slate-600"><b className="text-fg">{p.passo} · {p.rotulo}:</b> {p.explica} <b className="text-fg">→ {p.fazer}.</b></p> : null;
-      })()}
       {podeDecidir && abertasVisiveis.length > 0 && (
         <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 md:hidden">
           <input type="checkbox" className="h-5 w-5" checked={todasMarcadas} onChange={marcarTodas} /> Marcar todas em aberto ({abertasVisiveis.length})
@@ -961,18 +928,6 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
       {motivo && <MotivoModal conta={motivo.conta} acao={motivo.acao} tabela="contas_pagar" onClose={() => setMotivo(null)} />}
       {aprov.modais}
     </>
-  );
-}
-
-/** Botão dos extras das contas a pagar (renegociadas, contas fixas, todas), com a cor de cada um. */
-function BotaoExtra({ ativo, onClick, icone: Icone, rotulo, n, fundo, tinta, dica }: {
-  ativo: boolean; onClick: () => void; icone: typeof Handshake; rotulo: string; n: number; fundo: string; tinta: string; dica: string;
-}) {
-  return (
-    <button type="button" aria-pressed={ativo} onClick={onClick} title={dica} style={{ background: fundo, color: tinta }}
-      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-bold shadow-card transition hover:-translate-y-0.5 ${ativo ? "ring-[3px] ring-fg ring-offset-2 ring-offset-surface" : ""}`}>
-      <Icone size={15} aria-hidden /> {rotulo} <span className="num rounded-full bg-white/60 px-1.5 text-xs">{n}</span>
-    </button>
   );
 }
 
