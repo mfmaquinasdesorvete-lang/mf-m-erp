@@ -1,5 +1,5 @@
 # MEMORY — TRA (ERP Line – Transportadoras)
-Atualizado em 25/10/2026.
+Atualizado em 26/10/2026.
 
 ## Estado agora
 A cotação de frete (equipe e loja) está no ar e já cota pelo Mercado Envios (conta do Mercado Livre da MF).
@@ -17,7 +17,7 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
 - Cadastro: 12 transportadoras novas; repetidos do Mercado Envios unificados (filial).
 
 ## Em andamento
-- Nada sendo programado agora.
+- Aba CT-e mais clara (pedido de 26/10): pronta, esperando o "Pode publicar".
 
 ## Esperando a usuária
 - Mandar os 6 rascunhos do Gmail pedindo a tabela de frete atualizada (São Miguel, Rodonaves, Braspress, Aceville,
@@ -31,6 +31,9 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
 - Rodonaves e Olist Envios são empresas diferentes; não misturar.
 - Gastos com frete: só os CT-e da MF (os da My Frost foram para o chat MYF).
 - Tabelas de frete para as transportadoras sem API (pedido de 24/10).
+- Aba CT-e (26/10): período padrão "este mês", um cartão do frete pago com a barra compras/vendas/transferências,
+  "O que fazer" com as ações, faturas agrupadas pela transportadora com as filiais dentro, abas em 3 grupos
+  (Envios, Custos, Ajustes). CT-e de antes de out/2026 não entram em fatura (pagos pelas contas antigas).
 - Senhas e chaves só nos secrets do Supabase, cadastradas por ela; nada de coleta ou contratação sem o ok dela.
 
 ## Onde está

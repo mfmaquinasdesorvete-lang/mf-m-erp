@@ -3,6 +3,7 @@
 // frete que a MF paga (compras, vendas, transferências), % do frete sobre a nota, entrega no prazo e o que ainda não
 // entrou em fatura. Os CT-e da SEFAZ (busca automática pela Focus) chegam com a chave; o cancelado fica fora das contas.
 // Arquivo puro (testado).
+import { INICIO_FATURAS_CTE } from "./gastosFrete";
 
 export type LinhaCte = {
   numero: string; tipo: string; nf_numero: string | null; nf_serie: string | null; nf_valor: number | null;
@@ -114,6 +115,11 @@ export type ResumoCtes = {
   qtd: number; fretePagoMF: number; qtdPagoMF: number; compras: number; vendas: number; transferencias: number;
   nfCompras: number; nfVendas: number; semFatura: number; qtdSemFatura: number; entregues: number; noPrazo: number; atrasoMedio: number | null;
   cancelados: number;
+  /** % do frete sobre a nota: só os CT-e com o valor da nota (frete e nota dos mesmos CT-e) */
+  pesoCompras: { frete: number; nf: number; ligados: number; total: number };
+  pesoVendas: { frete: number; nf: number; ligados: number; total: number };
+  /** CT-e de antes das faturas pelo ERP: o frete foi pago pelas contas antigas (Tiny) */
+  pagosAntes: number; qtdPagosAntes: number;
 };
 /** Números do painel para a lista dada (já filtrada pelo período). CT-e cancelado não conta. */
 export function resumoCtes(todos: Cte[]): ResumoCtes {
@@ -122,12 +128,18 @@ export function resumoCtes(todos: Cte[]): ResumoCtes {
   const soma = (l: Cte[], f: (c: Cte) => number) => r2(l.reduce((s, c) => s + (Number(f(c)) || 0), 0));
   const comEntrega = ctes.filter((c) => atrasoDias(c) != null);
   const atrasados = comEntrega.filter((c) => (atrasoDias(c) ?? 0) > 0);
+  const peso = (l: Cte[]) => {
+    const com = l.filter((c) => Number(c.nf_valor) > 0);
+    return { frete: soma(com, (c) => c.valor), nf: soma(com, (c) => c.nf_valor ?? 0), ligados: com.length, total: l.length };
+  };
   return {
     qtd: ctes.length, fretePagoMF: soma(pagos, (c) => c.valor), qtdPagoMF: pagos.length,
     compras: soma(pagos.filter((c) => c.sentido === "entrada"), (c) => c.valor), vendas: soma(pagos.filter((c) => c.sentido === "saida"), (c) => c.valor),
     transferencias: soma(pagos.filter((c) => c.sentido === "transferencia"), (c) => c.valor),
     nfCompras: soma(pagos.filter((c) => c.sentido === "entrada"), (c) => c.nf_valor ?? 0), nfVendas: soma(pagos.filter((c) => c.sentido === "saida"), (c) => c.nf_valor ?? 0),
-    semFatura: soma(pagos.filter((c) => !c.fatura_id), (c) => c.valor), qtdSemFatura: pagos.filter((c) => !c.fatura_id).length,
+    semFatura: soma(pagos.filter(faturavel), (c) => c.valor), qtdSemFatura: pagos.filter(faturavel).length,
+    pesoCompras: peso(pagos.filter((c) => c.sentido === "entrada")), pesoVendas: peso(pagos.filter((c) => c.sentido === "saida")),
+    pagosAntes: soma(pagos.filter(antesDasFaturas), (c) => c.valor), qtdPagosAntes: pagos.filter(antesDasFaturas).length,
     entregues: comEntrega.length, noPrazo: comEntrega.length - atrasados.length,
     atrasoMedio: atrasados.length ? r2(atrasados.reduce((s, c) => s + (atrasoDias(c) ?? 0), 0) / atrasados.length) : null,
     cancelados: todos.length - ctes.length,
@@ -153,8 +165,12 @@ export function porRemetente(ctes: Cte[], limite = 8) {
   return [...m.values()].sort((a, b) => b.frete - a.frete).slice(0, limite);
 }
 
-/** CT-e que podem entrar numa fatura: a MF paga, sem fatura, autorizado (não cancelado). */
-export const faturavel = (c: Pick<Cte, "mf_paga" | "fatura_id" | "situacao">) => c.mf_paga && !c.fatura_id && valido(c);
+/** CT-e de antes das faturas pelo ERP (INICIO_FATURAS_CTE), sem fatura: já pago pelas contas antigas (Tiny). */
+export const antesDasFaturas = (c: Pick<Cte, "mf_paga" | "fatura_id" | "situacao" | "emissao">) =>
+  c.mf_paga && !c.fatura_id && valido(c) && c.emissao < INICIO_FATURAS_CTE;
+/** CT-e que podem entrar numa fatura: a MF paga, sem fatura, autorizado (não cancelado) e desde INICIO_FATURAS_CTE. */
+export const faturavel = (c: Pick<Cte, "mf_paga" | "fatura_id" | "situacao" | "emissao">) =>
+  c.mf_paga && !c.fatura_id && valido(c) && c.emissao >= INICIO_FATURAS_CTE;
 
 export type FaturaSugerida = {
   chave: string; transportadora_id: string | null; fatura: string | null; vencimento: string | null;

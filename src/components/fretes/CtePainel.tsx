@@ -4,27 +4,27 @@
 // o frete e as faturas para montar (CT-e sem fatura juntos por transportadora) que viram conta a pagar.
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, BadgeCheck, CheckCircle2, CircleDollarSign, Clock, FileSpreadsheet, Link2, PackageCheck, Receipt, RefreshCw, Truck, Upload, X } from "lucide-react";
-import { Badge, Button, Field, Modal, Section, Stat, Table, nomeMes, chip } from "@/components/ui";
+import { AlertTriangle, BadgeCheck, CheckCircle2, Clock, FileSpreadsheet, Link2, Receipt, RefreshCw, Upload, X } from "lucide-react";
+import { Badge, Button, Section, Table, nomeMes, chip } from "@/components/ui";
 import { ImportarCteXml } from "@/components/fretes/ImportarCteXml";
+import { BarraSentidos, FaturasParaMontar, MenuImportar, div, nomeTransportadora, pct } from "@/components/fretes/CteResumo";
+import { ImportarCtes } from "@/components/fretes/CteImportarPlanilha";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { MontarFatura } from "@/components/fretes/CteFaturas";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR } from "@/lib/format";
+import { brl, dataBR, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 import {
-  COLUNAS_CTE, SENTIDOS, atrasoDias, entregue, faturasSugeridas, faturavel, lerPlanilhaCtes, pesoDoFrete, porMes, porRemetente, resumoCtes, valido,
-  type Cte, type FaturaSugerida, type LinhaCte, type Sentido,
+  COLUNAS_CTE, SENTIDOS, atrasoDias, entregue, faturasSugeridas, faturavel, pesoDoFrete, porMes, porRemetente, resumoCtes, valido,
+  type Cte, type Sentido,
 } from "@/lib/cte";
 import type { Transportadora } from "@/lib/types";
 
-const pct = (v: number | null) => (v == null || !Number.isFinite(v) ? "—" : `${(v * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`);
-const div = (a: number, b: number) => (b > 0 ? a / b : null);
 const sem = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-export const nomeTransportadora = (t?: Transportadora | null) => (t ? t.nome_fantasia || t.nome : "—");
+export { nomeTransportadora };
 
 const COR_SENTIDO: Record<Sentido, string> = {
   entrada: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
@@ -63,51 +63,28 @@ function BuscaSefaz({ vazio = false }: { vazio?: boolean }) {
   const quando = s?.em ? new Date(s.em) : null;
   const erro = s?.erro;
   return (
-    <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border p-3 text-sm ${erro ? "border-amber-300 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
-      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${erro ? "bg-amber-200 text-amber-900" : "bg-emerald-200 text-emerald-900"}`}>
-        {erro ? <AlertTriangle size={16} aria-hidden /> : <BadgeCheck size={16} aria-hidden />}
-      </span>
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${erro ? "rounded-cartao border border-amber-300 bg-amber-50 p-2 text-amber-900" : "text-slate-600"}`}>
+      {erro ? <AlertTriangle size={14} className="shrink-0" aria-hidden /> : <BadgeCheck size={14} className="shrink-0 text-emerald-600" aria-hidden />}
       <span className="min-w-0 flex-1 basis-60">
-        <b className="block text-fg">CT-e automáticos da SEFAZ (SC e SP)</b>
-        <span className="block text-slate-700">
-          {quando ? <>Última busca {quando.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-            {` · ${s?.da_sefaz ?? 0} CT-e vieram da SEFAZ`}{s?.pendentes_xml ? ` · ${s.pendentes_xml} esperando o XML` : ""}</>
-            : vazio ? "A busca roda a cada 15 minutos junto com as notas dos fornecedores. A SEFAZ guarda os CT-e só pelos últimos 3 meses."
-            : "Ainda não rodou: a busca roda a cada 15 minutos junto com as notas dos fornecedores."}
-        </span>
-        {erro && <span className="mt-0.5 block text-amber-900 [overflow-wrap:anywhere]">{erro}</span>}
+        CT-e automáticos da SEFAZ (SC e SP):{" "}
+        {quando ? <>última busca {quando.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}{` · ${s?.da_sefaz ?? 0} vieram da SEFAZ`}</>
+          : vazio ? "a busca roda a cada 15 minutos; a SEFAZ guarda os CT-e só pelos últimos 3 meses."
+          : "ainda não rodou (roda a cada 15 minutos)."}
+        {erro && <span className="block font-semibold [overflow-wrap:anywhere]">{erro}</span>}
       </span>
-      {pode && <Button variant="secondary" onClick={buscar} disabled={buscando}><RefreshCw size={15} className={buscando ? "animate-spin" : ""} /> {buscando ? "Buscando…" : "Buscar agora"}</Button>}
+      {pode && <button type="button" className="link-acao inline-flex items-center gap-1" onClick={buscar} disabled={buscando}><RefreshCw size={13} className={buscando ? "animate-spin" : ""} /> {buscando ? "Buscando…" : "Buscar agora"}</button>}
     </div>
   );
 }
 
-/** Faturas para montar: os CT-e sem fatura juntos por transportadora (e pelo nº da fatura quando vem no CT-e). */
-function FaturasParaMontar({ grupos, porId, onMontar }: {
-  grupos: FaturaSugerida[]; porId: Map<string, Transportadora>; onMontar: (g: FaturaSugerida) => void;
-}) {
-  if (!grupos.length) return null;
-  return (
-    <Section title="Faturas para montar">
-      <p className="mb-2 text-xs text-slate-600">CT-e que a MF paga e ainda não estão em fatura. Quando a fatura da transportadora chegar, confira e toque em
-        Montar: ela vai para Contas a pagar (tipo Transportadoras) e passa pela aprovação.</p>
-      <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-        {grupos.map((g) => (
-          <li key={g.chave} className="cartao flex flex-col gap-2 border-l-[5px] border-l-cyan-500 p-3">
-            <span className="flex flex-wrap items-baseline justify-between gap-x-2">
-              <b className="min-w-0 flex-1 truncate">{nomeTransportadora(g.transportadora_id ? porId.get(g.transportadora_id) : null)}</b>
-              <span className="num whitespace-nowrap text-lg font-bold">{brl(g.total)}</span>
-            </span>
-            <span className="text-xs text-slate-600">
-              {g.qtd} CT-e de {dataBR(g.desde)}{g.ate !== g.desde ? ` a ${dataBR(g.ate)}` : ""}{g.daSefaz ? ` · ${g.daSefaz} da SEFAZ` : ""}
-              {g.fatura && <> · fatura nº <b>{g.fatura}</b> informada no CT-e</>}{g.vencimento && <> · vence {dataBR(g.vencimento)}</>}
-            </span>
-            <Button className="self-start" onClick={() => onMontar(g)}><Receipt size={15} /> Montar fatura</Button>
-          </li>
-        ))}
-      </ul>
-    </Section>
-  );
+/** Quantos CT-e da SEFAZ ainda esperam o XML completo (para o "O que fazer"). */
+function usePendentesXml() {
+  const { data } = useQuery({
+    queryKey: ["ctes_sefaz_situacao"],
+    queryFn: async () => ((await supabase.rpc("ctes_sefaz_situacao")).data ?? null) as SituacaoSefaz | null,
+    refetchInterval: 5 * 60_000,
+  });
+  return data?.pendentes_xml ?? 0;
 }
 
 export function CtePainel({ transportadoras }: { transportadoras: Transportadora[] }) {
@@ -116,7 +93,8 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
   const podeFaturar = tem("financeiro");
   const { filtrar } = useUnidade();
   const { data: todos = [] } = useRows<Cte>("ctes", { select: COLUNAS_CTE, order: "emissao", ascending: false });
-  const [de, setDe] = useState("");
+  // período padrão: este mês (o total "de sempre" misturava os anos)
+  const [de, setDe] = useState(() => `${hoje().slice(0, 7)}-01`);
   const [ate, setAte] = useState("");
   const [transp, setTransp] = useState("");
   const [sentido, setSentido] = useState<Sentido | "">("");
@@ -142,6 +120,9 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
   const marcadosLista = selecionaveis.filter((c) => marcados.has(c.id));
   const totalMarcado = marcadosLista.reduce((s, c) => s + Number(c.valor), 0);
   const sugeridas = faturasSugeridas(ctes);
+  const pendentesXml = usePendentesXml();
+  const semFaturaTotal = sugeridas.reduce((t, g) => ({ qtd: t.qtd + g.qtd, valor: Math.round((t.valor + g.total) * 100) / 100 }), { qtd: 0, valor: 0 });
+  const rotuloPeriodo = de || ate ? `${de ? dataBR(de) : "início"} a ${ate ? dataBR(ate) : "hoje"}` : "todo o período";
 
   const marcar = (id: string) => setMarcados((m) => { const n = new Set(m); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const marcarTodos = () => setMarcados(marcadosLista.length === selecionaveis.length ? new Set() : new Set(selecionaveis.map((c) => c.id)));
@@ -172,27 +153,39 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
             </select></label>
         ) : undefined}
         nFiltros={[transp, sentido, soSemFatura, soAtraso].filter(Boolean).length} onLimpar={limpar}
-        direita={(podeImportar || podeFaturar) && <>
-          {podeImportar && <Button variant="secondary" onClick={() => setImportar(true)}><Upload size={16} /> Importar planilha</Button>}
-          {podeImportar && <ImportarCteXml />}
-          {podeFaturar && <Button onClick={() => setFatura({ ids: marcadosLista.map((c) => c.id) })}><Receipt size={16} /> Montar fatura{marcadosLista.length ? ` (${marcadosLista.length})` : ""}</Button>}
-        </>} />
+        direita={podeImportar && <MenuImportar onPlanilha={() => setImportar(true)} />} />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <Stat label="Frete pago pela MF" icon={CircleDollarSign} valor={brl(resumo.fretePagoMF)}
-          sub={`${resumo.qtdPagoMF} de ${resumo.qtd} CT-e · os outros o fornecedor ou o cliente pagou`} />
-        <Stat label="Compras chegando (frete à pagar)" icon={PackageCheck} tom="info" valor={brl(resumo.compras)}
-          sub={`${pct(div(resumo.compras, resumo.nfCompras))} sobre ${brl(resumo.nfCompras)} em notas de compra`} onClick={() => setSentido(sentido === "entrada" ? "" : "entrada")} />
-        <Stat label="Vendas saindo (frete pago pela MF)" icon={Truck} tom="bom" valor={brl(resumo.vendas)}
-          sub={`${pct(div(resumo.vendas, resumo.nfVendas))} sobre ${brl(resumo.nfVendas)} em notas de venda`} onClick={() => setSentido(sentido === "saida" ? "" : "saida")} />
-        <Stat label="Transferências SC↔SP" icon={ArrowRight} valor={brl(resumo.transferencias)} sub="frete entre a matriz e a filial"
-          onClick={() => setSentido(sentido === "transferencia" ? "" : "transferencia")} />
-        <Stat label="Ainda sem fatura" icon={Receipt} tom={resumo.qtdSemFatura ? "atencao" : "bom"} valor={brl(resumo.semFatura)}
-          sub={resumo.qtdSemFatura ? `${resumo.qtdSemFatura} CT-e para conferir quando a fatura chegar` : "todos os CT-e já estão em fatura"}
-          onClick={() => setSoSemFatura(!soSemFatura)} />
-        <Stat label="Entregas no prazo" icon={Clock} tom={atrasados ? "atencao" : "bom"} valor={`${resumo.noPrazo} de ${resumo.entregues}`}
-          sub={atrasados ? `${atrasados} com atraso · média de ${String(resumo.atrasoMedio).replace(".", ",")} dia(s) — toque para ver` : "nenhum atraso no período"}
-          onClick={() => setSoAtraso(!soAtraso)} />
+      <div className="grid gap-3 lg:grid-cols-5">
+        <section className="cartao p-4 lg:col-span-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold text-slate-600">Frete pago pela MF</h2>
+            <span className="rounded-full border border-slate-200 px-2 py-0.5 text-2xs font-semibold text-slate-600">{rotuloPeriodo}</span>
+          </div>
+          <p className="num mt-1 text-2xl font-bold text-fg">{brl(resumo.fretePagoMF)}</p>
+          <p className="text-xs text-slate-500">{resumo.qtdPagoMF} de {resumo.qtd} CT-e (nos outros, o fornecedor ou o cliente pagou)</p>
+          <BarraSentidos resumo={resumo} sentido={sentido} onSentido={setSentido} />
+          {resumo.qtdPagosAntes > 0 && <p className="mt-2 text-xs text-slate-500">{resumo.qtdPagosAntes} CT-e de antes de outubro de 2026 ({brl(resumo.pagosAntes)}) já foram pagos pelas contas antigas e não entram em fatura.</p>}
+        </section>
+
+        <section className="cartao p-4 lg:col-span-2">
+          <h2 className="mb-2 text-sm font-semibold text-slate-600">O que fazer</h2>
+          <ul className="divide-y divide-slate-100 text-sm">
+            <li className="flex flex-wrap items-center gap-2 py-2">
+              <Receipt size={16} className="shrink-0 text-slate-500" aria-hidden />
+              <span className="min-w-0 flex-1">{semFaturaTotal.qtd ? <><b>{semFaturaTotal.qtd} CT-e sem fatura</b> · {brl(semFaturaTotal.valor)}</> : "Nenhum CT-e esperando fatura"}</span>
+              {podeFaturar && <Button tamanho="mini" onClick={() => setFatura({ ids: marcadosLista.map((c) => c.id) })} disabled={!semFaturaTotal.qtd}>Montar fatura</Button>}
+            </li>
+            <li className="flex flex-wrap items-center gap-2 py-2">
+              <FileSpreadsheet size={16} className="shrink-0 text-slate-500" aria-hidden />
+              <span className="min-w-0 flex-1">{pendentesXml ? <><b>{pendentesXml} CT-e esperando o XML</b> da SEFAZ (chegam sozinhos; os antigos, envie)</> : "Nenhum CT-e esperando o XML"}</span>
+            </li>
+            <li className="flex flex-wrap items-center gap-2 py-2">
+              <Clock size={16} className="shrink-0 text-slate-500" aria-hidden />
+              <span className="min-w-0 flex-1">{atrasados ? <><b>{atrasados} {atrasados === 1 ? "entrega atrasada" : "entregas atrasadas"}</b> · {resumo.noPrazo} de {resumo.entregues} no prazo</> : `Entregas: ${resumo.noPrazo} de ${resumo.entregues} no prazo`}</span>
+              {atrasados > 0 && <button type="button" className="link-acao" onClick={() => setSoAtraso(!soAtraso)}>{soAtraso ? "Mostrar todos" : "Ver"}</button>}
+            </li>
+          </ul>
+        </section>
       </div>
       {resumo.cancelados > 0 && <p className="text-xs text-slate-600">{resumo.cancelados} CT-e {resumo.cancelados === 1 ? "cancelado fica" : "cancelados ficam"} na lista, mas fora das contas e das faturas.</p>}
 
@@ -243,7 +236,8 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
           ))}
           {soSemFatura && <button type="button" onClick={() => setSoSemFatura(false)} className={chip(true, "border-amber-200 bg-amber-100 text-amber-800")}>sem fatura <X size={12} /></button>}
           {soAtraso && <button type="button" onClick={() => setSoAtraso(false)} className={chip(true, "border-amber-200 bg-amber-100 text-amber-800")}>com atraso <X size={12} /></button>}
-          {podeFaturar && marcadosLista.length > 0 && <span className="ml-auto text-sm font-semibold">{marcadosLista.length} marcados · {brl(totalMarcado)}</span>}
+          {podeFaturar && marcadosLista.length > 0 && <span className="ml-auto flex items-center gap-2 text-sm font-semibold">{marcadosLista.length} marcados · {brl(totalMarcado)}
+            <Button tamanho="mini" onClick={() => setFatura({ ids: marcadosLista.map((c) => c.id) })}><Receipt size={13} /> Montar fatura</Button></span>}
         </div>
         <Table empty={!lista.length}
           head={<>
@@ -287,81 +281,5 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
       {fatura && <MontarFatura ctes={ctes} transportadoras={transportadoras} inicial={fatura.ids} numeroInicial={fatura.numero} vencimentoInicial={fatura.vencimento}
         onClose={(ok) => { setFatura(null); if (ok) setMarcados(new Set()); }} />}
     </div>
-  );
-}
-
-type Arquivo = { nome: string; linhas: LinhaCte[]; erros: string[] };
-
-/** Lê o CSV (UTF-8 ou o padrão do Windows) e mostra o que vai entrar antes de gravar. */
-function ImportarCtes({ transportadoras, usadas, onClose }: { transportadoras: Transportadora[]; usadas: string[]; onClose: () => void }) {
-  const invalidar = useInvalidate();
-  const opcoes = transportadoras.filter((t) => t.ativo !== false && (!t.tipo || t.tipo === "transportadora"));
-  const [transp, setTransp] = useState(usadas[0] ?? "");
-  const [arquivos, setArquivos] = useState<Arquivo[]>([]);
-  const [gravando, setGravando] = useState(false);
-  const linhas = arquivos.flatMap((a) => a.linhas);
-  const datas = linhas.map((l) => l.emissao).sort();
-
-  async function ler(files: FileList | null) {
-    const lidos: Arquivo[] = [];
-    for (const f of Array.from(files ?? [])) {
-      const bytes = new Uint8Array(await f.arrayBuffer());
-      let texto: string;
-      try { texto = new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch { texto = new TextDecoder("windows-1252").decode(bytes); }
-      lidos.push({ nome: f.name, ...lerPlanilhaCtes(texto) });
-    }
-    setArquivos(lidos);
-  }
-
-  async function gravar() {
-    if (!transp) return notifyError(new Error("escolha a transportadora"));
-    setGravando(true);
-    const total = { novos: 0, atualizados: 0, ignorados: 0 };
-    try {
-      for (const a of arquivos.filter((x) => x.linhas.length)) {
-        const { data, error } = await supabase.rpc("importar_ctes", { p_transportadora: transp, p_linhas: a.linhas, p_arquivo: a.nome });
-        if (error) throw error;
-        const r = data as typeof total;
-        total.novos += r.novos; total.atualizados += r.atualizados; total.ignorados += r.ignorados;
-      }
-      notify(`${total.novos} CT-e novos${total.atualizados ? `, ${total.atualizados} atualizados (entrega)` : ""}${total.ignorados ? `, ${total.ignorados} ignorados` : ""}`);
-      invalidar("ctes");
-      onClose();
-    } catch (e) { notifyError(e); } finally { setGravando(false); }
-  }
-
-  return (
-    <Modal open onClose={onClose} title="Importar CT-e da transportadora">
-      <div className="space-y-4">
-        <p className="text-sm text-slate-600">No site da transportadora, baixe o relatório de CT-e do período em CSV (colunas Documento, Tipo, Nota Fiscal, CNPJ Dest…).
-          Pode mandar vários meses de uma vez e repetir um mês: o CT-e que já está no ERP só atualiza a entrega.</p>
-        <Field label="Transportadora">
-          <select className="input" value={transp} onChange={(e) => setTransp(e.target.value)}>
-            <option value="">Escolha…</option>
-            {opcoes.map((t) => <option key={t.id} value={t.id}>{nomeTransportadora(t)}{t.municipio ? ` · ${t.municipio}/${t.uf ?? ""}` : ""}</option>)}
-          </select>
-        </Field>
-        <Field label="Planilhas (CSV)">
-          <input className="input" type="file" accept=".csv,text/csv" multiple onChange={(e) => ler(e.target.files)} />
-        </Field>
-        {arquivos.length > 0 && (
-          <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
-            {arquivos.map((a) => (
-              <li key={a.nome} className="p-3">
-                <span className="flex flex-wrap items-center gap-2"><FileSpreadsheet size={15} className="text-slate-500" /><span className="min-w-0 flex-1 font-semibold [overflow-wrap:anywhere]">{a.nome}</span>
-                  <span>{a.linhas.length} CT-e · {brl(a.linhas.reduce((s, l) => s + l.valor, 0))}</span></span>
-                {a.erros.map((e) => <span key={e} className="mt-1 block text-xs text-amber-700">{e}</span>)}
-              </li>
-            ))}
-          </ul>
-        )}
-        {linhas.length > 0 && <p className="text-sm">Vão entrar <b>{linhas.length} CT-e</b> de {dataBR(datas[0])} a {dataBR(datas[datas.length - 1])}. O ERP vê quem é a MF em cada um
-          (compra, venda ou transferência), quem paga o frete e liga à nota.</p>}
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={gravar} disabled={!linhas.length || !transp || gravando}><Upload size={16} /> {gravando ? "Importando…" : `Importar ${linhas.length || ""} CT-e`}</Button>
-        </div>
-      </div>
-    </Modal>
   );
 }

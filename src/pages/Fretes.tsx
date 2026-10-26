@@ -8,7 +8,7 @@ import { GastosFrete } from "@/components/fretes/GastosFrete";
 import { PesoMedidas } from "@/components/fretes/PesoMedidas";
 import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowRight, BadgeCheck, CircleDollarSign, ClipboardList, PackageCheck, Plus, Truck, X } from "lucide-react";
-import { Button, PageHeader, Table, Tabs } from "@/components/ui";
+import { Button, PageHeader, Table, Tabs, chip } from "@/components/ui";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { EnvioForm } from "@/components/fretes/EnvioForm";
 import { IndicadoresMes } from "@/components/fretes/IndicadoresMes";
@@ -66,12 +66,24 @@ const TONS = {
   zero: "border-slate-200 bg-surface text-slate-500",
 };
 
+type AbaFretes = "painel" | "cotacao" | "rastreio" | "indicadores" | "envios" | "cte" | "faturas" | "gastos" | "medidas" | "tabelas" | "regras";
+const ROTULO_ABA: Record<AbaFretes, string> = {
+  painel: "Painel", envios: "Envios", rastreio: "Rastreio", cotacao: "Cotação rápida", cte: "CT-e", faturas: "Faturas de frete", gastos: "Gastos com frete",
+  indicadores: "Indicadores do mês", tabelas: "Tabelas de frete", regras: "Regras de frete", medidas: "Peso e medidas",
+};
+const GRUPOS_ABAS: { rotulo: string; abas: AbaFretes[] }[] = [
+  { rotulo: "Envios", abas: ["painel", "envios", "rastreio", "cotacao"] },
+  { rotulo: "Custos", abas: ["cte", "faturas", "gastos", "indicadores"] },
+  { rotulo: "Ajustes", abas: ["tabelas", "regras", "medidas"] },
+];
+
 export default function Fretes() {
   const { pode } = usePerfil();
   const podeEditar = pode("cotar_frete") || pode("editar_financeiro");
   const { filtrar } = useUnidade();
   const invalidar = useInvalidate();
-  const [aba, setAba] = useAbaUrl<"painel" | "cotacao" | "rastreio" | "indicadores" | "envios" | "cte" | "faturas" | "gastos" | "medidas" | "tabelas" | "regras">("painel", ["painel", "cotacao", "rastreio", "indicadores", "envios", "cte", "faturas", "gastos", "medidas", "tabelas", "regras"] as const);
+  const [aba, setAba] = useAbaUrl<AbaFretes>("painel", ["painel", "cotacao", "rastreio", "indicadores", "envios", "cte", "faturas", "gastos", "medidas", "tabelas", "regras"] as const);
+  const grupo = GRUPOS_ABAS.find((g) => g.abas.includes(aba)) ?? GRUPOS_ABAS[0];
   const [filtros, setFiltros] = useState<FiltrosPainel>({});
   const [mes, setMes] = useState(mesAtual);
   const [indicador, setIndicador] = useState<string | null>(null);
@@ -154,12 +166,18 @@ export default function Fretes() {
   return (
     <div>
       <PageHeader title="Fretes e envios" subtitle="Cotação padronizada, aprovação, coleta, entrega e ocorrências de cada envio; CT-e e faturas das transportadoras"
-        actions={podeEditar && <Button onClick={() => setAberto({})}><Plus size={16} /> Novo envio</Button>} />
+        actions={podeEditar && grupo === GRUPOS_ABAS[0] && <Button onClick={() => setAberto({})}><Plus size={16} /> Novo envio</Button>} />
       {aberto && <EnvioForm envioId={aberto.id} onClose={() => { setAberto(null); invalidar("envios", "envio_ocorrencias", "envio_cotacoes", "documentos"); }} />}
 
+      {/* 11 abas em três grupos: o grupo em cima e as abas dele embaixo */}
+      <div className="mb-2 flex flex-wrap gap-1.5" role="group" aria-label="Grupo de abas">
+        {GRUPOS_ABAS.map((g) => (
+          <button key={g.rotulo} type="button" aria-pressed={g === grupo} onClick={() => { if (g !== grupo) { setAba(g.abas[0]); setIndicador(null); } }}
+            className={chip(g === grupo, "border-transparent bg-modulo-escuro text-white")}>{g.rotulo}</button>
+        ))}
+      </div>
       <Tabs value={aba} onChange={(v) => { setAba(v); setIndicador(null); }}
-        options={[{ value: "painel", label: "Painel" }, { value: "cotacao", label: "Cotação rápida" }, { value: "rastreio", label: rastreio.atencao ? `Rastreio (${rastreio.atencao})` : "Rastreio" }, { value: "indicadores", label: "Indicadores do mês" }, { value: "envios", label: `Envios (${envios.length})` },
-          { value: "cte", label: "CT-e" }, { value: "faturas", label: "Faturas de frete" }, { value: "gastos", label: "Gastos com frete" }, { value: "medidas", label: "Peso e medidas" }, { value: "tabelas", label: "Tabelas de frete" }, { value: "regras", label: "Regras de frete" }]} />
+        options={grupo.abas.map((a) => ({ value: a, label: a === "rastreio" && rastreio.atencao ? `Rastreio (${rastreio.atencao})` : a === "envios" ? `Envios (${envios.length})` : ROTULO_ABA[a] }))} />
 
       {aba === "cotacao" && <CotacaoRapida />}
       {aba === "gastos" && <GastosFrete podeImportar={podeEditar} />}
