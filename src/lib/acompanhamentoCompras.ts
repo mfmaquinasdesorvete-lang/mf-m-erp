@@ -48,3 +48,16 @@ export function atrasada(p: PecaCompra, hoje: string): boolean {
   const prev = previsaoDaPeca(p);
   return !!prev && prev.slice(0, 10) < hoje;
 }
+
+/** Andamento de uma ordem de compra (ocs_andamento no banco): o passo que aparece na lista de Compras (pedido de 26/10). */
+export type AndamentoOC = { pedido_compra_id: string; paga: boolean; nota: boolean; a_caminho: boolean; chegou: boolean };
+
+export function passoDaOC(status: string, a: AndamentoOC | undefined): { rotulo: string; cor: string } | null {
+  if (!a || !["enviado", "parcial", "recebido"].includes(status)) return null;
+  const pago = a.paga ? " · paga" : "";
+  if (a.chegou || status === "recebido") return { rotulo: `Chegou${pago}`, cor: "bg-emerald-100 text-emerald-800" };
+  if (a.a_caminho) return { rotulo: `A caminho${pago}`, cor: "bg-sky-100 text-sky-800" };
+  if (a.nota) return { rotulo: `Nota emitida${pago}`, cor: "bg-indigo-100 text-indigo-800" };
+  if (a.paga) return { rotulo: "Paga · esperando nota", cor: "bg-amber-100 text-amber-800" };
+  return null;
+}

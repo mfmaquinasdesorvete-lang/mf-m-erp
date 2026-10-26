@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atrasada, etapaDaPeca, ocorrenciaEntregue, previsaoDaPeca, type NotaCompra, type PecaCompra } from "../acompanhamentoCompras";
+import { atrasada, etapaDaPeca, ocorrenciaEntregue, passoDaOC, previsaoDaPeca, type AndamentoOC, type NotaCompra, type PecaCompra } from "../acompanhamentoCompras";
 
 const peca = (p: Partial<PecaCompra> = {}): PecaCompra => ({
   item_id: "i", descricao: "Inversor", sku: null, produto_id: null, quantidade: 4, recebida: 0, valor: null,
@@ -34,5 +34,17 @@ describe("acompanhamento de compras", () => {
     expect(ocorrenciaEntregue("ENTREGUE")).toBe(true);
     expect(ocorrenciaEntregue("Saiu para entrega")).toBe(false);
     expect(ocorrenciaEntregue("Entrega não realizada")).toBe(false);
+  });
+});
+
+describe("passo da ordem de compra na lista", () => {
+  const a = (p: Partial<AndamentoOC>): AndamentoOC => ({ pedido_compra_id: "x", paga: false, nota: false, a_caminho: false, chegou: false, ...p });
+  it("mostra o passo mais adiantado e se foi paga", () => {
+    expect(passoDaOC("enviado", a({}))).toBeNull();
+    expect(passoDaOC("enviado", a({ paga: true }))?.rotulo).toBe("Paga · esperando nota");
+    expect(passoDaOC("enviado", a({ paga: true, nota: true }))?.rotulo).toBe("Nota emitida · paga");
+    expect(passoDaOC("enviado", a({ nota: true, a_caminho: true }))?.rotulo).toBe("A caminho");
+    expect(passoDaOC("recebido", a({ paga: true }))?.rotulo).toBe("Chegou · paga");
+    expect(passoDaOC("cotacao", a({ paga: true }))).toBeNull();
   });
 });

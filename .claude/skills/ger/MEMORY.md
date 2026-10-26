@@ -32,6 +32,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Pagamentos de um prestador esperam a planilha do Tiny (TIN).
 
 ## Decisões da usuária
+- Nota do fornecedor liga sozinha à OC (mesmo fornecedor e valor até 2%); lista de Compras mostra o passo da OC (26/10).
 - Marcadores: juntar e excluir escondem o antigo (ativo = false), não apagam (migração 160). Juntados: Comprou Usada, Tiny, Técnicos My (26/10).
 - Parcela de acordo de renegociação entra já aprovada (migração 159); 2ª revisão só acima de R$ 1.000 (Configurações, alçada) (26/10).
 - Aprovações: o que é de antes da semana e já foi pago ou cancelado sai da fila (só conciliar); conta em aberto antiga fica na fila para ela olhar; cancelada não aparece na fila (26/10).

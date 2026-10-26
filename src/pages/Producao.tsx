@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { BarraFiltros, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
 import { noPeriodoOuPendente, SEM_PERIODO, semanaAtual, type Periodo } from "@/lib/filtroLista";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { passoDaOC, type AndamentoOC } from "@/lib/acompanhamentoCompras";
 import {
   CheckCircle2, ClipboardList, Factory, FileDown, History, Layers, MessageCircle, PackageCheck, PackageSearch, Play, Plus, Receipt, ShoppingBag, Trash2, Truck, Wrench, XCircle,
 } from "lucide-react";
@@ -631,6 +633,15 @@ function PedidosCompra({ abrirNovo, onAberto, abrirId, onAbertaId }: { abrirNovo
   const [verExcluidas, setVerExcluidas] = useState(false);
   const { data: marcadores = [] } = useMarcadores();
   const recebeu = (p: PedidoCompra) => ["parcial", "recebido"].includes(p.status) || (p.itens ?? []).some((i) => Number(i.quantidade_recebida) > 0);
+  // em que passo cada OC está: paga, nota do fornecedor (ligada sozinha), a caminho, chegou (pedido de 26/10)
+  const { data: andamento } = useQuery({
+    queryKey: ["pedidos_compra", "andamento"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("ocs_andamento");
+      if (error) throw error;
+      return new Map(((data ?? []) as AndamentoOC[]).map((a) => [a.pedido_compra_id, a]));
+    },
+  });
 
   useEffect(() => {
     if (abrirNovo) { setAberto(novaOC()); onAberto(); }
@@ -733,7 +744,11 @@ function PedidosCompra({ abrirNovo, onAberto, abrirId, onAbertaId }: { abrirNovo
             <td className="td">{p.fornecedor?.nome ?? <span className="text-amber-700">a definir</span>}
               <div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td text-slate-600">{(p.itens ?? []).slice(0, 2).map((i) => i.descricao).join(", ")}{(p.itens?.length ?? 0) > 2 ? ` +${p.itens!.length - 2}` : ""}</td>
-            <td className="td"><Badge value={p.status === "cotacao" ? "pc_cotacao" : `pc_${p.status}`} /></td>
+            <td className="td">{(() => {
+              const passo = passoDaOC(p.status, andamento?.get(p.id));
+              return passo ? <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${passo.cor}`}>{passo.rotulo}</span>
+                : <Badge value={p.status === "cotacao" ? "pc_cotacao" : `pc_${p.status}`} />;
+            })()}</td>
             <td className={`td num ${["enviado", "parcial"].includes(p.status) && p.previsao_entrega && p.previsao_entrega < hoje() ? "font-semibold text-red-600" : ""}`}>{dataBR(p.previsao_entrega)}</td>
             <td className="td num text-right font-semibold">{brl(p.valor_total)}</td>
             <td className="td whitespace-nowrap" onClick={(e) => e.stopPropagation()}>

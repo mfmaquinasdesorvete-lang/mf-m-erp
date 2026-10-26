@@ -106,3 +106,7 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 - Recibos (26/10, feito pelo FUN): o componente Recibos tem `escopo` ("financeiro" esconde os recibos de funcionário,
   marcados em `recibos.de_funcionario` pelo gatilho trg_recibo_de_funcionario). Ao mexer na aba Recibos do Financeiro,
   manter esse filtro.
+- OC andando sozinha (26/10): o gatilho `trg_oc_nota_automatica` (nfe_recebidas) chama `oc_ligar_nota_automatica`, que
+  liga a nota à única OC enviada do mesmo fornecedor e com o mesmo total (até 2%); com mais de uma possível, só avisa.
+  A lista de Compras mostra o passo por `ocs_andamento()` + `passoDaOC` (paga, nota emitida, a caminho, chegou).
+  O MCP pede confirmação para `drop trigger`/`delete`: crie gatilho novo sem drop (ou peça à usuária no SQL Editor).
