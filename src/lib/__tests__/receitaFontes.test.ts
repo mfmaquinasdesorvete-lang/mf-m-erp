@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cnaeFormatado, conciliarCliente, daBrasilApi, doCnpja, doCnpjWs } from "../../../supabase/functions/_shared/receita";
+import { cnaeFormatado, conciliarCliente, daBrasilApi, doCnpja, doCnpjWs, regimeDaReceita } from "../../../supabase/functions/_shared/receita";
 import { cnaesDoTexto, cnaesEmTexto } from "../cnpj";
 
 // respostas de exemplo (inventadas), no formato de cada fonte
@@ -38,6 +38,16 @@ describe("fontes da Receita", () => {
     const y = conciliarCliente({ nome: "Sorveteria Exemplo Ltda", uf: "PR", inscricao_estadual: "123456" }, r);
     expect(y.ie_situacao).toBe("baixada");
     expect(y.tags).toContain("ie_baixada");
+  });
+
+  it("preenche o regime tributário e a data de abertura só quando estão vazios", () => {
+    const r = doCnpja(CNPJA)!;
+    expect(conciliarCliente({ nome: "Sorveteria Exemplo Ltda", uf: "SC" }, r).atualizar).toMatchObject({ regime_tributario: 1, data_nascimento: "2019-03-12" });
+    const ja = conciliarCliente({ nome: "Sorveteria Exemplo Ltda", uf: "SC", regime_tributario: 3, data_nascimento: "2010-01-01" }, r).atualizar;
+    expect([ja.regime_tributario, ja.data_nascimento]).toEqual([undefined, undefined]);
+    expect(regimeDaReceita({ mei: { optante: true, desde: null }, simples: { optante: true, desde: null } })).toBe(4);
+    expect(regimeDaReceita({ mei: { optante: false, desde: null }, simples: { optante: false, desde: null } })).toBe(3);
+    expect(regimeDaReceita({})).toBeNull();
   });
 
   it("BrasilAPI e CNPJ.ws também trazem Simples/MEI e atividade quando informam", () => {

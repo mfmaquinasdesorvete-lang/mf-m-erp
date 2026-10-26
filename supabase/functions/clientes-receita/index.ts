@@ -45,7 +45,9 @@ async function conferir(db: ReturnType<typeof adminClient>, c: any, tabela: Tabe
   }
   const x = conciliarCliente(c, r);
   const atualizar = { ...x.atualizar } as Record<string, unknown>;
-  if (tabela === "fornecedores") delete atualizar.contribuinte_icms; // fornecedor não tem esse campo
+  if (tabela === "fornecedores") { // fornecedor não tem esses campos
+    delete atualizar.contribuinte_icms; delete atualizar.regime_tributario; delete atualizar.data_nascimento;
+  }
   const { error } = await db.from(tabela).update({
     ...atualizar, tags: x.tags, receita: r, receita_situacao: x.receita_situacao, ie_situacao: x.ie_situacao, receita_em: new Date().toISOString(),
   }).eq("id", c.id);

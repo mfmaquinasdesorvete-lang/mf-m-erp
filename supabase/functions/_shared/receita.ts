@@ -19,6 +19,8 @@ export type DadosReceita = {
 export type ClienteReceita = {
   nome: string; nome_fantasia?: string | null; email?: string | null; telefone?: string | null; whatsapp?: string | null;
   inscricao_estadual?: string | null; contribuinte_icms?: number | null; tags?: string[] | null;
+  /** dados fiscais do cadastro do cliente (fornecedor não tem): regime (1 Simples, 3 normal, 4 MEI) e data de abertura */
+  regime_tributario?: number | null; data_nascimento?: string | null;
 } & Partial<Endereco>;
 
 export const ETIQUETAS: Record<string, string> = {
@@ -168,6 +170,14 @@ export function nomeSemCnpj(nome: string) {
   return original ? nomeProprio(limpo) : null;
 }
 
+/** Código de regime tributário pelo que a Receita informa: MEI = 4, Simples Nacional = 1, nenhum dos dois = 3 (normal). */
+export function regimeDaReceita(r: Pick<DadosReceita, "simples" | "mei">): number | null {
+  if (r.mei?.optante) return 4;
+  if (r.simples?.optante) return 1;
+  if (r.simples && r.simples.optante === false) return 3;
+  return null;
+}
+
 /**
  * O que fazer com o cliente depois de consultar a Receita: campos vazios a preencher, etiquetas e situações.
  * Nunca troca o que já está preenchido.
@@ -194,6 +204,13 @@ export function conciliarCliente(c: ClienteReceita, r: DadosReceita) {
     // mesmo endereço: completa só os pedaços que faltam (bairro, CEP, UF…)
     if (!diferente) for (const k of ["cep", "numero", "complemento", "bairro", "municipio", "uf"] as const) if (vazio(c[k]) && r.endereco[k]) atualizar[k] = r.endereco[k];
   }
+
+  // dados fiscais (só quando vazios): regime pelo Simples/MEI da Receita e a data de abertura do CNPJ
+  if (c.regime_tributario == null) {
+    const regime = regimeDaReceita(r);
+    if (regime) atualizar.regime_tributario = regime;
+  }
+  if (vazio(c.data_nascimento) && r.abertura) atualizar.data_nascimento = r.abertura;
 
   // inscrição estadual: a do cadastro está ativa? o cadastro não tem e a Receita tem uma ativa no estado?
   const uf = String(c.uf ?? r.endereco.uf ?? "");
