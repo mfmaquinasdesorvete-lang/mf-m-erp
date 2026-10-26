@@ -15,7 +15,11 @@ import { TEXTOS_PADRAO } from "@/lib/textosPadrao";
 
 type Proposta = {
   numero: number; data: string | null; validade: string | null; status: string; pedido_status: string; cliente: string; vendedor: string | null;
-  itens: { descricao: string; quantidade: number; valor_unitario: number; total: number; foto: string | null; texto: string | null; garantia_meses: number | null; usada?: boolean }[];
+  itens: { descricao: string; quantidade: number; valor_unitario: number; total: number; foto: string | null; texto: string | null; garantia_meses: number | null; usada?: boolean;
+    /** máquina (Proposta Comercial): código, ficha técnica e o preço de lista quando há desconto */
+    sku?: string | null; ncm?: string | null; unidade?: string | null; maquina?: boolean; preco_lista?: number | null; especificacoes?: { nome: string; valor: string }[] | null }[];
+  /** tem máquina: é a Proposta Comercial (frete "a cotar", desconto sobre o preço de lista, assinatura do vendedor) */
+  comercial?: boolean;
   subtotal: number; desconto: number; frete: number; total: number; forma_pagamento: string; parcelas: number; observacoes: string | null;
   motivo_rejeicao: string | null;
   /** venda aprovada: o que falta pagar e se dá para pagar pelo link (Pix ou cartão) */
@@ -58,7 +62,7 @@ export default function PropostaPublica() {
             <div className="text-xs opacity-90">{[p.empresa.razao_social, p.empresa.cnpj && `CNPJ ${cnpjFmt(p.empresa.cnpj)}`].filter(Boolean).join(" · ")}</div>
           </div>
           <div className="text-right">
-            <div className="text-sm font-semibold uppercase tracking-wide opacity-90">{p.layout.titulo}</div>
+            <div className="text-sm font-semibold uppercase tracking-wide opacity-90">{p.comercial ? "Proposta Comercial" : p.layout.titulo}</div>
             <div className="text-2xl font-bold">nº {p.numero}</div>
           </div>
         </header>
@@ -88,10 +92,23 @@ export default function PropostaPublica() {
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="font-bold text-slate-900">{i.descricao}</div>
-                  {i.texto && <p className="mt-0.5 line-clamp-3 text-sm text-slate-600 print:line-clamp-none">{i.texto}</p>}
+                  {(i.sku || i.ncm) && i.maquina && <div className="text-xs text-slate-500">{[i.sku && `SKU ${i.sku}`, i.ncm && `NCM ${i.ncm}`].filter(Boolean).join(" · ")}</div>}
+                  {i.texto && <p className={`mt-0.5 text-sm text-slate-600 ${i.maquina ? "" : "line-clamp-3 print:line-clamp-none"}`}>{i.texto}</p>}
+                  {!!i.especificacoes?.length && (
+                    <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-xs text-slate-600">
+                      {i.especificacoes.filter((e) => e.nome?.trim() || e.valor?.trim()).map((e, k) => (
+                        <li key={k}>{e.nome?.trim() && <b className="font-semibold text-slate-700">{e.nome.trim()}: </b>}{e.valor}</li>
+                      ))}
+                    </ul>
+                  )}
                   {i.garantia_meses ? <p className="mt-0.5 text-xs font-semibold text-emerald-700">Garantia de {i.garantia_meses} meses</p> : null}
                 </div>
                 <div className="shrink-0 text-right">
+                  {i.preco_lista ? (
+                    <div className="text-xs text-slate-500">
+                      <s>{brl(i.preco_lista)}</s> <span className="font-semibold text-emerald-700">-{(Math.round((1 - i.valor_unitario / i.preco_lista) * 10000) / 100).toLocaleString("pt-BR")}%</span>
+                    </div>
+                  ) : null}
                   <div className="text-sm text-slate-500">{Number(i.quantidade).toLocaleString("pt-BR")} × {brl(i.valor_unitario)}</div>
                   <div className="text-lg font-bold text-slate-900">{brl(i.total)}</div>
                 </div>
@@ -102,7 +119,7 @@ export default function PropostaPublica() {
           <div className="ml-auto w-full max-w-xs space-y-1 text-sm">
             <Linha r="Produtos" v={brl(p.subtotal)} />
             {Number(p.desconto) > 0 && <Linha r="Desconto" v={`- ${brl(p.desconto)}`} />}
-            {Number(p.frete) > 0 && <Linha r="Frete" v={brl(p.frete)} />}
+            {Number(p.frete) > 0 ? <Linha r="Frete" v={brl(p.frete)} /> : p.comercial ? <Linha r="Frete" v="a cotar" /> : null}
             <div className="flex justify-between border-t-2 pt-2 text-xl font-bold text-slate-900" style={{ borderColor: cor }}><span>Total</span><span>{brl(p.total)}</span></div>
             <div className="text-right text-slate-600">{FORMAS[p.forma_pagamento] ?? p.forma_pagamento}{p.parcelas > 1 ? ` em ${p.parcelas}x de ${brl(p.total / p.parcelas)}` : " à vista"}</div>
           </div>
@@ -111,6 +128,9 @@ export default function PropostaPublica() {
           {p.layout.condicoes && <Bloco titulo="Condições">{p.layout.condicoes}</Bloco>}
           {p.itens.some((i) => i.garantia_meses) && p.empresa.termo_garantia && <Bloco titulo="Garantia">{p.empresa.termo_garantia}</Bloco>}
           {p.itens.some((i) => i.usada) && <Bloco titulo="Máquina usada">{p.empresa.termo_usada || TEXTOS_PADRAO.usada_termo}</Bloco>}
+          {p.comercial && p.vendedor && (
+            <div className="text-sm text-slate-700">Atenciosamente,<br /><b className="text-slate-900">{p.vendedor}</b><br /><span className="text-slate-500">Departamento de vendas</span></div>
+          )}
 
           {aberta && (
             <div className="flex flex-col gap-2 border-t border-slate-200 pt-5 sm:flex-row print:hidden">
@@ -123,7 +143,7 @@ export default function PropostaPublica() {
             </div>
           )}
           <div className="flex flex-wrap gap-3 text-sm print:hidden">
-            {zap && <a href={whatsappLink(zap, `Olá! Sobre a proposta nº ${p.numero}.`)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-emerald-700"><MessageCircle size={16} /> Tirar dúvidas no WhatsApp</a>}
+            {zap && <a href={whatsappLink(zap, `Olá! Sobre a ${p.comercial ? "Proposta Comercial" : "proposta"} nº ${p.numero}.`)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-emerald-700"><MessageCircle size={16} /> Tirar dúvidas no WhatsApp</a>}
             <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1.5 font-semibold text-slate-600"><Printer size={16} /> Imprimir / salvar PDF</button>
           </div>
         </div>

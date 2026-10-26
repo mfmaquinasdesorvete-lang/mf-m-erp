@@ -32,6 +32,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Pagamentos de um prestador esperam a planilha do Tiny (TIN).
 
 ## Decisões da usuária
+- Venda de máquina é "Proposta Comercial": PDF no layout da antiga do Tiny (foto, ficha técnica, preço de lista e desconto, assinatura do vendedor) (26/10).
 - Custo do produto só pela compra à vista; a compra a prazo fica no histórico e não muda o custo (25/10).
 - Pedido pago sem NF = retirado ou enviado por fora: vira "entregue" e sai da fila da NF-e.
 - Pedido sem pagamento vindo do Tiny não aprovado não existiu.

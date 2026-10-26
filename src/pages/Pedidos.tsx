@@ -11,7 +11,7 @@ import { OcorrenciasVenda } from "@/components/vendas/OcorrenciasVenda";
 import { CheckCircle2, ChevronRight, Copy, Send, Sparkles, FileCheck2, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Undo2, Wrench, XCircle } from "lucide-react";
 import { ConciliarVendas } from "@/components/vendas/ConciliarVendas";
 import { PdfViewer } from "@/components/PdfViewer";
-import { comUnidade, pdfOrcamento } from "@/lib/pdf";
+import { comUnidade, fotoParaPdf, pdfOrcamento, type ItemFicha } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import { Badge, Button, chip, Field, Modal, PageHeader, Table, Tabs, CLASSE_BOTAO, TOM_ACAO } from "@/components/ui";
 import { osDoPedido } from "@/lib/osVideo";
@@ -298,7 +298,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           : "Orçamentos e vendas de peças, do WhatsApp à entrega, com frete e nota fiscal."}
         actions={vista === "erp" ? <>
           <Button variant="secondary" disabled={!lista.length} onClick={() => exportarPedidos(lista, infoDe)}><FileDown size={16} /> Exportar</Button>
-          {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} /> {area === "maquinas" ? "Nova proposta" : "Novo orçamento"}</Button>}
+          {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} /> {area === "maquinas" ? "Nova proposta comercial" : "Novo orçamento"}</Button>}
         </> : undefined} />
 
       {area === "maquinas" && <Tabs value={vista} onChange={setVista} options={[{ value: "erp", label: "Propostas e vendas" }, { value: "tiny", label: "Propostas do Tiny (MF)" }]} />}
@@ -348,11 +348,11 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           )}
         </>} />
       {!quadro && <ChipsSituacao valor={filtro} onChange={setFiltro} cores={CORES_STATUS}
-        opcoes={STATUS.map((st) => ({ value: st, label: ROTULO_STATUS[st], n: st === "todos" ? semSituacao.length : semSituacao.filter((x) => x.status === st).length }))} />}
+        opcoes={STATUS.map((st) => ({ value: st, label: area === "maquinas" && st === "orcamento" ? "Propostas" : ROTULO_STATUS[st], n: st === "todos" ? semSituacao.length : semSituacao.filter((x) => x.status === st).length }))} />}
       {vePagamento && <ChipsPagamento valor={pagamento} onChange={setPagamento} lista={quadro ? filtrados : semPagamento} info={info} />}
 
       {quadro && (
-        <KanbanVendas vendas={semSituacao} onAbrir={(p) => setAberto({ ...p, itens: p.itens ?? [] })}
+        <KanbanVendas vendas={semSituacao} onAbrir={(p) => setAberto({ ...p, itens: p.itens ?? [] })} rotulos={area === "maquinas" ? { orcamento: "Propostas comerciais" } : undefined}
           onVerNaLista={(c) => { setFiltro(c); setVisual("lista"); }}
           extras={(p) => <>
             {vePagamento && <span className="flex items-center gap-1.5"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} compacta /></span>}
@@ -658,7 +658,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
   // devolução de produtos: NF de devolução (com NF-e) ou volta ao estoque pelo pedido (sem NF)
   const [devolver, setDevolver] = useState(false);
   const invalidate = useInvalidate();
-  const { pode, tem, user_id } = usePerfil();
+  const { pode, tem, user_id, email: meuEmail } = usePerfil();
   const podeEditar = pode("editar_pedidos");
   // link de pagamento (InfinitePay): vendas e financeiro veem; ao aprovar por Pix ou cartão, já sai pronto
   const verPagamento = tem("vendas", "financeiro");
@@ -961,7 +961,9 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
   // Pix do pedido (chave da unidade): vai no PDF e no WhatsApp quando a forma de pagamento é Pix
   const unidadePedido = unidades.find((u) => u.id === p.unidade_id);
   const pixPedido = p.forma_pagamento === "pix" ? pixDoPedido(unidadePedido, { numero: p.numero, valor_total: total, parcelas: Number(p.parcelas || 1) }) : null;
-  const tituloPdf = tituloPedido(p, cliente, cfg?.proposta_titulo || "Proposta");
+  // venda de máquina: o documento é a Proposta Comercial (pedido de 26/10), com foto e ficha técnica de cada máquina
+  const comercial = p.itens.some((i) => produtos.find((x) => x.id === i.produto_id)?.tipo === "maquina");
+  const tituloPdf = tituloPedido(p, cliente, comercial ? "Proposta Comercial" : cfg?.proposta_titulo || "Proposta");
 
   async function montarPdf(): Promise<Blob | null> {
     if (!cfg || !p.itens.length) return null;
@@ -970,11 +972,23 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
       const prod = produtos.find((x) => x.id === i.produto_id);
       if (prod?.tipo === "maquina") garantias[i.produto_id] = prod.garantia_meses ?? cfg.garantia_meses_padrao;
     }
+    const ficha: Record<string, ItemFicha> = {};
+    if (comercial) {
+      await Promise.all(p.itens.map(async (i) => {
+        const prod = produtos.find((x) => x.id === i.produto_id);
+        if (!prod || ficha[i.produto_id]) return;
+        ficha[i.produto_id] = {
+          sku: prod.sku, ncm: prod.ncm, unidade: prod.unidade, preco_lista: Number(prod.preco_venda) || null,
+          texto: prod.descricao_catalogo || prod.subtitulo || null, especificacoes: prod.especificacoes ?? null,
+          foto: cfg.proposta_fotos !== false ? await fotoParaPdf(urlFotoProduto(prod.foto_caminho)) : null,
+        };
+      }));
+    }
     return pdfOrcamento({
       numero: p.numero, status: p.status, cliente, itens: p.itens, desconto: Number(p.desconto || 0), frete: Number(p.frete || 0),
       forma_pagamento: p.forma_pagamento ?? "boleto", parcelas: Number(p.parcelas || 1), observacoes: p.observacoes,
       vendedor: vendedores.find((v) => v.id === p.vendedor_id)?.nome ?? p.vendedor, garantias, validade: p.proposta_validade,
-      pix: pixPedido, titulo: tituloPdf,
+      pix: pixPedido, titulo: tituloPdf, comercial, ficha, enviadoPor: comercial ? meuEmail : null,
     }, comUnidade(cfg, unidadePedido));
   }
   async function gerarPdf() {
@@ -1010,7 +1024,9 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
     ? p.notas?.filter((n) => n.ambiente !== "homologacao" && n.status === "cancelada").slice(-1)[0] : undefined;
 
   return (
-    <Modal open onClose={onClose} title={p.id ? `Pedido #${p.numero}` : "Novo pedido"} wide>
+    <Modal open onClose={onClose} title={!p.status || p.status === "orcamento"
+      ? (comercial ? (p.id ? `Proposta Comercial #${p.numero}` : "Nova Proposta Comercial") : p.id ? `Orçamento #${p.numero}` : "Novo orçamento")
+      : `Pedido #${p.numero}`} wide>
       <form onSubmit={salvar} className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           {p.status && <Badge value={p.status} />}

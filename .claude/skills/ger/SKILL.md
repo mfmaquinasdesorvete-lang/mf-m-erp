@@ -94,3 +94,7 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   `nf_custos_core` só mudam `produtos.preco_custo` quando ela é verdadeira; a prazo e "não informado" entram no estoque
   e ficam no histórico sem mudar o custo. A tela pede a escolha quando o XML não diz (a maioria das notas com tPag 99).
   A migração 157 troca só o trecho do custo no texto atual das duas funções (se o trecho mudar, ela para com erro).
+- Proposta Comercial (26/10): pedido com máquina usa `pdfOrcamento({ comercial: true, ficha })` → `propostaComercial` em
+  `src/lib/pdf.ts` (cada item em duas linhas da tabela com rowSpan: nome em negrito e, embaixo, SKU/NCM, texto do catálogo
+  e especificações; foto desenhada no didDrawCell). A página do cliente lê `comercial`, `especificacoes` e `preco_lista`
+  de `proposta_publica` (migração 158, troca de trecho no texto atual da função).

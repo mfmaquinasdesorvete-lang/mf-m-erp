@@ -37,8 +37,10 @@ export function colunasDoQuadro<T extends Pick<Pedido, "status" | "created_at" |
   });
 }
 
-export function KanbanVendas<T extends Pedido>({ vendas, onAbrir, onVerNaLista, extras }: {
+export function KanbanVendas<T extends Pedido>({ vendas, onAbrir, onVerNaLista, extras, rotulos }: {
   vendas: T[]; onAbrir: (v: T) => void; onVerNaLista: (c: ColunaVenda) => void;
+  /** nomes próprios das colunas (venda de máquinas: "Propostas" no lugar de "Orçamentos") */
+  rotulos?: Partial<Record<ColunaVenda, string>>;
   /** o que vai embaixo do valor no cartão (pagamento e envio) */
   extras?: (v: T) => ReactNode;
 }) {
@@ -47,11 +49,11 @@ export function KanbanVendas<T extends Pedido>({ vendas, onAbrir, onVerNaLista, 
   return (
     <div className="relative -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-3 md:mx-0 md:snap-none md:px-0" aria-label="Quadro das vendas">
       {colunas.map((col) => (
-        <section key={col.id} id={`coluna-venda-${col.id}`} aria-label={col.rotulo}
+        <section key={col.id} id={`coluna-venda-${col.id}`} aria-label={rotulos?.[col.id] ?? col.rotulo}
           className="flex w-[80vw] max-w-[300px] shrink-0 snap-center scroll-ml-3 flex-col rounded-xl bg-slate-50 sm:w-[250px]">
           <header className="flex items-center gap-2 px-3 pb-1 pt-2.5" title={`${col.explica} ${col.fazer}`}>
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: col.cor }} aria-hidden />
-            <h3 className="min-w-0 flex-1 truncate text-sm font-bold text-fg">{col.rotulo}</h3>
+            <h3 className="min-w-0 flex-1 truncate text-sm font-bold text-fg">{rotulos?.[col.id] ?? col.rotulo}</h3>
             <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-bold text-slate-600">{col.n}</span>
           </header>
           <p className="num px-3 pb-2 text-xs text-slate-500">{brl(col.total)}</p>

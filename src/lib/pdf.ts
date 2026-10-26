@@ -40,6 +40,23 @@ async function quadradoPng(src: string): Promise<string> {
   return c.toDataURL("image/png");
 }
 
+/** Foto do produto para o PDF (JPEG até 320 px, na proporção dela); sem foto ou se não abrir, nulo. */
+export async function fotoParaPdf(src: string | null | undefined): Promise<{ data: string; w: number; h: number } | null> {
+  if (!src) return null;
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    await new Promise((ok, erro) => { img.onload = ok; img.onerror = erro; img.src = src; });
+    const k = Math.min(1, 320 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+    const g = c.getContext("2d")!;
+    g.fillStyle = "#ffffff"; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(img, 0, 0, c.width, c.height);
+    return { data: c.toDataURL("image/jpeg", 0.85), w: c.width, h: c.height };
+  } catch { return null; }
+}
+
 const NAVY: [number, number, number] = [7, 13, 24];
 const hexRgb = (h?: string | null): [number, number, number] | null => {
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(h ?? "");
@@ -259,10 +276,17 @@ export async function pdfOrcamento(p: {
   pix?: { copiaECola: string; valor: number; rotulo: string } | null;
   /** título do arquivo (aparece no leitor de PDF) */
   titulo?: string;
+  /** Proposta Comercial de máquina (pedido de 26/10): a tabela mostra foto, descrição e ficha técnica, SKU/NCM,
+   *  preço de lista e desconto de cada item, como a proposta antiga do Tiny, e fecha com a assinatura do vendedor */
+  comercial?: boolean;
+  ficha?: Record<string, ItemFicha>;
+  /** e-mail de quem gerou a proposta ("Enviado por") */
+  enviadoPor?: string | null;
 }, cfg: Config) {
   const { doc, autoTable, logo } = await novoDoc();
   if (p.titulo) doc.setProperties({ title: p.titulo });
   const ehOrcamento = !p.status || p.status === "orcamento";
+  if (p.comercial) return propostaComercial(doc, autoTable, logo, p, cfg, ehOrcamento);
   // Layout da proposta (Configurações → Proposta comercial)
   const cor = hexRgb(cfg.proposta_cor) ?? NAVY;
   cabecalho(doc, cfg, ehOrcamento ? (cfg.proposta_titulo || "Proposta comercial").toUpperCase() : "PEDIDO DE VENDA", p.numero ? `Nº ${p.numero}` : "Rascunho", logo);
@@ -324,6 +348,140 @@ export async function pdfOrcamento(p: {
   if (p.observacoes) y = paragrafo(doc, "Observações", p.observacoes, y);
   if (p.vendedor) y = paragrafo(doc, "Atendimento", `${p.vendedor}${cfg.whatsapp ? ` - WhatsApp ${cfg.whatsapp}` : ""}`, y);
   if (ehOrcamento && cfg.proposta_rodape) paragrafo(doc, "", cfg.proposta_rodape, y);
+
+  rodape(doc);
+  return doc.output("blob");
+}
+
+/** O que a Proposta Comercial mostra de cada produto (vem do cadastro). */
+export type ItemFicha = {
+  foto?: { data: string; w: number; h: number } | null; sku?: string | null; ncm?: string | null; unidade?: string | null;
+  preco_lista?: number | null; texto?: string | null; especificacoes?: { nome: string; valor: string }[] | null;
+};
+
+/** Proposta Comercial de máquina: o layout da proposta antiga do Tiny, mais limpo (pedido de 26/10). */
+function propostaComercial(doc: Doc, autoTable: Awaited<ReturnType<typeof novoDoc>>["autoTable"], logo: string | null,
+  p: Parameters<typeof pdfOrcamento>[0], cfg: Config, ehOrcamento: boolean) {
+  const w = doc.internal.pageSize.getWidth();
+  const cor = hexRgb(cfg.proposta_cor) ?? NAVY;
+  cabecalho(doc, cfg, ehOrcamento ? "PROPOSTA COMERCIAL" : "PEDIDO DE VENDA", p.numero ? `Nº ${p.numero}` : "Rascunho", logo);
+  doc.setFillColor(...cor); doc.rect(0, 30, w, 1.6, "F");
+  let y = blocoCliente(doc, p.cliente, 36);
+  if (cfg.proposta_apresentacao) y = paragrafo(doc, "", cfg.proposta_apresentacao, y) + 1;
+  const quem = [p.vendedor && `Vendedor(a): ${p.vendedor}`, p.enviadoPor && `Enviado por: ${p.enviadoPor}`].filter(Boolean).join("     ");
+  if (quem) { doc.setFontSize(8.5); doc.setTextColor(71, 85, 105); doc.text(quem, 14, y); y += 6; }
+
+  const ficha = p.ficha ?? {};
+  const desc = (i: Item) => {
+    const f = ficha[i.produto_id];
+    const lista = Number(f?.preco_lista || 0);
+    return lista > i.valor_unitario + 0.004 ? Math.round((1 - i.valor_unitario / lista) * 10000) / 100 : 0;
+  };
+  const comFoto = p.itens.some((i) => ficha[i.produto_id]?.foto);
+  const pct = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
+  const qtd = (v: number) => Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+  const detalhes = (i: Item) => {
+    const f = ficha[i.produto_id];
+    const specs = (f?.especificacoes ?? []).filter((e) => e.nome?.trim() || e.valor?.trim()).map((e) => `• ${[e.nome?.trim(), e.valor?.trim()].filter(Boolean).join(": ")}`);
+    return [[f?.sku && `SKU ${f.sku}`, f?.ncm && `NCM ${f.ncm}`].filter(Boolean).join("  ·  "), f?.texto?.trim() || "", specs.join("\n"),
+      p.garantias[i.produto_id] ? `Garantia de ${p.garantias[i.produto_id]} meses` : "", i.numero_serie ? `Nº de série: ${i.numero_serie}` : ""]
+      .filter(Boolean).join("\n\n");
+  };
+  const num = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // cada item ocupa duas linhas da tabela: o nome em negrito e, embaixo, a descrição e a ficha técnica; as outras
+  // colunas juntam as duas linhas (rowSpan)
+  const linhaDoItem: number[] = [];
+  const body = p.itens.flatMap((i, k) => {
+    const f = ficha[i.produto_id];
+    const junto = (content: string, extra: Record<string, unknown> = {}) => ({ content, rowSpan: 2, ...extra });
+    const det = detalhes(i);
+    linhaDoItem.push(k, k);
+    return [
+      [junto(String(k + 1)), ...(comFoto ? [junto("", f?.foto ? { styles: { minCellHeight: 32 } } : {})] : []),
+        { content: i.descricao, styles: { fontStyle: "bold", fontSize: 8.5, cellPadding: { top: 2, right: 2, bottom: det ? 0.5 : 2, left: 2 } } },
+        junto(`${qtd(i.quantidade)}${f?.unidade ? ` ${f.unidade}` : ""}`),
+        junto(num(Number(f?.preco_lista || i.valor_unitario))), junto(desc(i) ? pct(desc(i)) : "-"), junto(num(i.valor_unitario)),
+        junto(num(i.quantidade * i.valor_unitario))],
+      [{ content: det, styles: { textColor: [71, 85, 105], cellPadding: { top: 0.5, right: 2, bottom: 2.5, left: 2 } } }],
+    ];
+  });
+  const head = ["Nº", ...(comFoto ? [""] : []), "Item", "Qtd", "Preço lista", "Desc.", "Preço un.", "Total (R$)"];
+  const dinheiro = { halign: "right" as const, cellWidth: 21 };
+  autoTable(doc, {
+    startY: y,
+    head: [head],
+    body: body as any,
+    theme: "grid",
+    styles: { font: "helvetica", fontSize: 8, cellPadding: 2, textColor: [30, 41, 59], valign: "top", lineColor: [226, 232, 240], lineWidth: 0.2 },
+    headStyles: { fillColor: cor, textColor: 255, fontStyle: "bold", fontSize: 7.5, lineColor: cor },
+    columnStyles: comFoto
+      ? { 0: { cellWidth: 7, halign: "center" }, 1: { cellWidth: 26 }, 2: { cellWidth: "auto" }, 3: { cellWidth: 12, halign: "center" },
+          4: dinheiro, 5: { cellWidth: 14, halign: "right" }, 6: dinheiro, 7: { ...dinheiro, cellWidth: 23, fontStyle: "bold" as const } }
+      : { 0: { cellWidth: 7, halign: "center" }, 1: { cellWidth: "auto" }, 2: { cellWidth: 12, halign: "center" },
+          3: dinheiro, 4: { cellWidth: 14, halign: "right" }, 5: dinheiro, 6: { ...dinheiro, cellWidth: 23, fontStyle: "bold" as const } },
+    // a foto desenhada dentro da célula (proporção mantida)
+    didDrawCell: (c: any) => {
+      if (c.section !== "body" || !comFoto || c.column.index !== 1) return;
+      const item = p.itens[linhaDoItem[c.row.index]];
+      const f = item && ficha[item.produto_id]?.foto;
+      if (!f) return;
+      const maxW = c.cell.width - 4, maxH = Math.min(c.cell.height - 4, 32);
+      const k = Math.min(maxW / f.w, maxH / f.h);
+      try { doc.addImage(f.data, "JPEG", c.cell.x + 2 + (maxW - f.w * k) / 2, c.cell.y + 2, f.w * k, f.h * k); } catch { /* foto inválida */ }
+    },
+    margin: { left: 14, right: 14 },
+  });
+  y = (doc as any).lastAutoTable.finalY + 5;
+  if (y > 250) { doc.addPage(); y = 20; }
+
+  const subtotal = p.itens.reduce((s, i) => s + i.quantidade * i.valor_unitario, 0);
+  const total = Math.max(subtotal - Number(p.desconto || 0) + Number(p.frete || 0), 0);
+  const somaQtd = p.itens.reduce((s, i) => s + Number(i.quantidade), 0);
+  doc.setFontSize(8.5); doc.setTextColor(71, 85, 105); doc.setFont("helvetica", "normal");
+  doc.text(`Número de itens: ${p.itens.length}   ·   Soma das quantidades: ${qtd(somaQtd)}`, 14, y);
+
+  // totais em caixa, à direita
+  const linhas: [string, string, boolean][] = [["Total dos itens", brl(subtotal), false]];
+  if (Number(p.desconto)) linhas.push(["Desconto", `- ${brl(p.desconto)}`, false]);
+  linhas.push(["Frete", Number(p.frete) ? brl(p.frete) : "a cotar", false]);
+  linhas.push(["Total da proposta", brl(total), true]);
+  const bx = w - 14 - 78, bh = linhas.length * 6 + 5;
+  doc.setDrawColor(226, 232, 240); doc.setFillColor(248, 250, 252);
+  doc.roundedRect(bx, y + 3, 78, bh, 2, 2, "FD");
+  let ty = y + 9;
+  for (const [r, v, forte] of linhas) {
+    doc.setFont("helvetica", forte ? "bold" : "normal"); doc.setFontSize(forte ? 11 : 8.5);
+    doc.setTextColor(forte ? 15 : 71, forte ? 23 : 85, forte ? 42 : 105);
+    doc.text(r, bx + 4, ty); doc.text(v, bx + 74, ty, { align: "right" });
+    ty += 6;
+  }
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(71, 85, 105);
+  doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, 14, y + 9);
+  y += bh + 9;
+
+  const formas: Record<string, string> = { boleto: "Boleto bancário", pix: "Pix", cartao: "Cartão", transferencia: "Transferência", dinheiro: "Dinheiro" };
+  y = paragrafo(doc, "Condições comerciais",
+    `${formas[p.forma_pagamento] ?? p.forma_pagamento}${p.parcelas > 1 ? ` em ${p.parcelas}x de ${brl(total / p.parcelas)}` : " à vista"}.`, y);
+  if (p.observacoes) y = paragrafo(doc, "Plano de pagamento e observações", p.observacoes, y);
+  if (p.pix) y = blocoPix(doc, p.pix, y);
+  if (ehOrcamento) y = paragrafo(doc, "Validade da proposta", p.validade
+    ? `Até ${dataBR(p.validade)}.` : `${cfg.validade_orcamento_dias} dias a partir da data de emissão.`, y);
+  if (cfg.orcamento_prazo_entrega) y = paragrafo(doc, "Prazo de entrega", cfg.orcamento_prazo_entrega, y);
+  if (cfg.proposta_condicoes) y = paragrafo(doc, "", cfg.proposta_condicoes, y);
+  if (Object.keys(p.garantias).length) y = paragrafo(doc, "Garantia", cfg.termo_garantia, y);
+  if (p.itens.some((i) => ehUsada(i.descricao))) y = paragrafo(doc, "Máquina usada", textoPadrao(cfg, "usada_termo"), y);
+  if (!ehOrcamento && textoPadrao(cfg, "pedido_condicoes")) y = paragrafo(doc, "Condições do pedido", textoPadrao(cfg, "pedido_condicoes"), y);
+  if (cfg.proposta_rodape) y = paragrafo(doc, "", cfg.proposta_rodape, y);
+
+  // assinatura de quem vendeu
+  if (y > 262) { doc.addPage(); y = 20; }
+  y += 4;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(30, 41, 59);
+  doc.text("Atenciosamente,", 14, y);
+  doc.setFont("helvetica", "bold");
+  doc.text(p.vendedor || cfg.nome_fantasia || cfg.razao_social || "", 14, y + 5);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(71, 85, 105);
+  doc.text(["Departamento de vendas", cfg.whatsapp ? `WhatsApp ${formatarTelefone(cfg.whatsapp)}` : ""].filter(Boolean).join("  ·  "), 14, y + 10);
 
   rodape(doc);
   return doc.output("blob");
