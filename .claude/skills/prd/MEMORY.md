@@ -27,10 +27,13 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 
 ## Esperando a usuária
 - Planilha de custo, peso, medidas e foto das peças que vendem (mandada em 24/10).
+- Planilha de custo dos 36 sem custo (26/10): usinadas = valor da tornearia de fora por peça (+ material se a MF
+  fornece); compradas = custo por unidade. O Tiny não tem esse custo (backup zerado; API só com o login dela).
 - Liberar no acesso à rede os sites dos fornecedores de refrigeração, para buscar peso e medidas.
 - Teste com 3 fotos no padrão (fundo branco, quadrada); as fotos sem logo do Canva ficam com o MKT.
 
 ## Decisões da usuária
+- Peça usinada: a tornearia é de fora e cobra por peça; o custo vem desse valor (sem ficha técnica por enquanto).
 - Compra à vista ou a prazo: marcada na entrada da nota (o GER põe a escolha na tela); Pix e parcelas se marcam
   sozinhos pelo XML. A formação de preço usa o custo à vista.
 - Unificar só com a confirmação dela; marcadores só somam.
