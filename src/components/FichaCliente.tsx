@@ -16,7 +16,7 @@ import { useInvalidate } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
 import { comprasDoCliente, produtosDoCliente, resumoCliente, ROTULO_SITUACAO, sugestoesCliente } from "@/lib/fichaCliente";
 import { textoVenda } from "@/lib/garantia";
-import { EtiquetaMaquina, MaquinasCliente } from "@/components/clientes/MaquinasCliente";
+import { EtiquetaMaquina, MaquinasCliente, semMaquinaRepetida } from "@/components/clientes/MaquinasCliente";
 import { BlocoFicha } from "@/components/clientes/BlocoFicha";
 import { ClientesDaRede, SelosRede, useRedes } from "@/components/clientes/RedeCliente";
 import { PainelFicha } from "@/components/clientes/PainelFicha";
@@ -91,7 +91,7 @@ function useFicha(c: Cliente) {
       const notas = [...new Map([...(notasC.data ?? []), ...(notasD.data ?? [])].map((n: any) => [n.id, n])).values()];
       return {
         pedidos: (ped.data ?? []) as any[], notas, contas: (contas.data ?? []) as any[], oss: (oss.data ?? []) as any[],
-        equipamentos: (equip.data ?? []) as any[], contatos: (contatos.data ?? []) as any[],
+        equipamentos: semMaquinaRepetida((equip.data ?? []) as any[]), contatos: (contatos.data ?? []) as any[],
         // antes da migração a tabela não existe: a ficha abre sem essa parte
         legado: (legado.error ? [] : legado.data ?? []) as any[],
         propostasTiny: (propostasTiny.error ? [] : propostasTiny.data ?? []) as PropostaTiny[],

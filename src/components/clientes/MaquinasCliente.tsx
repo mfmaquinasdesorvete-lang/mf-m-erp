@@ -57,6 +57,15 @@ export function corMaquinaHex(rotulo: string) {
   return HEX[/text-(\w+)-/.exec(corMaquina(rotulo))?.[1] ?? "slate"] ?? HEX.slate;
 }
 
+/**
+ * A mesma máquina registrada duas vezes: uma veio da base da My Frost sem data e a outra veio da nota, com data e o
+ * mesmo modelo. Fica só a que tem data (a sem data some da lista; o registro continua no banco).
+ */
+export function semMaquinaRepetida<T extends { descricao: string; data_venda?: string | null; origem?: string | null; numero_serie?: string | null }>(lista: T[]): T[] {
+  const comData = new Set(lista.filter((m) => m.data_venda).map((m) => rotuloMaquina(m.descricao)));
+  return lista.filter((m) => m.data_venda || !m.origem || m.numero_serie || !comData.has(rotuloMaquina(m.descricao)));
+}
+
 const mesAno = (d: string | null) => (d ? `${d.slice(5, 7)}/${d.slice(0, 4)}` : "");
 
 /**
@@ -116,6 +125,7 @@ export function useMaquinasPorCliente() {
   return useMemo(() => {
     const m = new Map<string, MaquinaResumo[]>();
     for (const e of data) m.set(e.cliente_id, [...(m.get(e.cliente_id) ?? []), e]);
+    for (const [k, v] of m) m.set(k, semMaquinaRepetida(v));
     return m;
   }, [data]);
 }
