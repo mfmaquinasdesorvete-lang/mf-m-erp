@@ -24,6 +24,10 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
 - Regra no banco para preencher "Compra da máquina" sozinha (migração 20261101000171): espera o "Pode publicar".
 
 ## Esperando a usuária
+- Selo da ficha cadastral na lista (assinada / aguardando / não assinada): pronto, espera publicar.
+- Dados fiscais (regime tributário, data de abertura) pela consulta da Receita: a consulta antiga (CNPJ.ws) não
+  guardou Simples/MEI nem abertura; precisa consultar de novo.
+- Anexos: procurar no Drive e nos e-mails os contratos assinados e documentos que os clientes mandaram.
 - Levantamento da qualidade do cadastro (sem CPF/CNPJ, sem cidade/UF, sem telefone, repetidos): só com números,
   quando ela pedir.
 - Cor das redes "outras" (hoje ciano) e se quer destacar o dono da rede.

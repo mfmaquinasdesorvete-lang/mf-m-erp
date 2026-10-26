@@ -2,7 +2,7 @@ import { dddDe } from "@/lib/buscaCliente";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Archive, BadgeCheck, Clock, FileSpreadsheet, IdCard, Wrench, LayoutDashboard, UserPlus } from "lucide-react";
+import { Archive, BadgeCheck, Clock, FileX, FileSpreadsheet, IdCard, Wrench, LayoutDashboard, UserPlus } from "lucide-react";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { ImportarContatos } from "@/components/ImportarContatos";
@@ -309,8 +309,7 @@ export default function Clientes() {
               <div className="mt-0.5 flex flex-wrap items-center gap-1">
                 {r.codigo != null && <span className="font-mono text-2xs text-slate-500">cód. {r.codigo}</span>}
                 {crm && <span className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-2xs font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
-                {f === "assinado" && <span title="Ficha cadastral assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-1.5 py-0.5 text-2xs font-semibold text-emerald-800"><BadgeCheck size={11} aria-hidden /> ficha assinada</span>}
-                {f === "pendente" && <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-2xs font-semibold text-sky-800"><Clock size={11} aria-hidden /> aguardando assinatura</span>}
+                <SeloAssinatura f={f} />
                 {r.portal_conferir && (
                   <span title="Cadastrado pelo representante no portal: confira os dados" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-900">
                     do portal: conferir
@@ -351,6 +350,7 @@ export default function Clientes() {
             meta={<>{[[r.municipio, r.uf].filter(Boolean).join("/"), r.codigo != null ? `cód. ${r.codigo}` : null].filter(Boolean).join(" · ")}
               {r.cpf_cnpj && <span className="num block">{docFormat(r.cpf_cnpj)}</span>}</>}
             selos={<>
+              <SeloAssinatura f={situacaoFicha.get(r.id)} />
               {crm && <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-2xs font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
               <EtiquetasCliente c={r} tipos={tipos} naLista />
               <SelosRede redes={redes(r)} />
@@ -361,4 +361,11 @@ export default function Clientes() {
     />
     </>
   );
+}
+
+/** Ficha cadastral do cliente na lista: sempre um selo, assinada (verde), aguardando (azul) ou não assinada (cinza). */
+function SeloAssinatura({ f }: { f?: string }) {
+  if (f === "assinado") return <span title="Ficha cadastral assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-1.5 py-0.5 text-2xs font-semibold text-emerald-800"><BadgeCheck size={12} aria-hidden /> assinada</span>;
+  if (f === "pendente") return <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-2xs font-semibold text-sky-800"><Clock size={12} aria-hidden /> aguardando assinatura</span>;
+  return <span title="Ficha cadastral ainda não assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-600"><FileX size={12} aria-hidden /> não assinada</span>;
 }
