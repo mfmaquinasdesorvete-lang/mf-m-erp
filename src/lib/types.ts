@@ -13,6 +13,8 @@ export type Cliente = {
   inscricao_municipal?: string | null; inscricao_suframa?: string | null; regime_tributario?: number | null; data_nascimento?: string | null;
   /** mês/ano da compra da máquina (no Tiny ficava no campo Código) */
   compra_maquina_em?: string | null;
+  /** cliente inativo: some da lista de clientes, mas continua com o histórico (null = ativo) */
+  inativo_em?: string | null; inativo_motivo?: string | null;
   status_crm?: string | null; vendedor_id?: string | null; forma_pagamento_id?: string | null; condicao_pagamento?: string | null;
   desconto_padrao?: number | null; limite_credito?: number | null; cobranca_diferente?: boolean;
   cobranca_cep?: string | null; cobranca_logradouro?: string | null; cobranca_numero?: string | null; cobranca_complemento?: string | null;

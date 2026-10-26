@@ -2,7 +2,7 @@ import { dddDe } from "@/lib/buscaCliente";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Archive, BadgeCheck, Clock, FileX, FileSpreadsheet, IdCard, Wrench, LayoutDashboard, UserPlus } from "lucide-react";
+import { Archive, BadgeCheck, Clock, EyeOff, FileX, Recycle, FileSpreadsheet, IdCard, Wrench, LayoutDashboard, UserPlus } from "lucide-react";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { ImportarContatos } from "@/components/ImportarContatos";
@@ -136,6 +136,8 @@ export default function Clientes() {
   const [arrumar, setArrumar] = useState(false);
   const [unificar, setUnificar] = useState<string[] | null>(null);
   const [abrirAgora, setAbrirAgora] = useState<Cliente | null>(null);
+  // inativos ficam escondidos; o botão "Inativos" mostra só eles (para conferir e reativar)
+  const [verInativos, setVerInativos] = useState(false);
   const tipos = useTiposContato();
   const maquinas = useMaquinasPorCliente();
   const redes = useRedes();
@@ -210,11 +212,29 @@ export default function Clientes() {
       plural="clientes"
       extraActions={<>
         <Link to="/painel/cadastros" className="inline-flex min-h-toque items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-surface px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:min-h-0"><LayoutDashboard size={16} /> Painel dos clientes</Link>
+        <Button variant={verInativos ? "primary" : "secondary"} onClick={() => setVerInativos((v) => !v)} title="Clientes inativados: ficam fora da lista, com o histórico guardado">
+          <EyeOff size={16} /> {verInativos ? "Voltar aos ativos" : `Inativos (${todos.filter((c) => c.inativo_em).length})`}
+        </Button>
         {podeArrumar && <Button variant="secondary" onClick={() => setArrumar(true)} title="WhatsApp pelo celular, conferência com a Receita, cadastros repetidos e fornecedores na lista"><Wrench size={16} /> Arrumar cadastro</Button>}
         {podeImportar && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar</Button>}
         {papel === "admin" && <Button variant="secondary" onClick={() => setMyFrost(true)} title="Clientes, máquinas e peças da My Frost Máquinas (empresa anterior), do backup do Tiny"><Archive size={16} /> Base da My Frost</Button>}
       </>}
       acoesLote={podeArrumar ? [{
+        label: verInativos ? "Reativar" : "Inativar",
+        executar: async (ids) => {
+          const inativar = !verInativos;
+          if (inativar && !(await confirmar(`Inativar ${ids.length} ${pl(ids.length, "cliente", "clientes")}? ${pl(ids.length, "Ele sai", "Eles saem")} da lista, mas pedidos, notas, máquinas e marcadores continuam guardados. Dá para reativar no botão "Inativos".`))) {
+            throw new Error("Nada foi inativado");
+          }
+          for (let i = 0; i < ids.length; i += 200) {
+            const { error } = await supabase.from("clientes")
+              .update(inativar ? { inativo_em: new Date().toISOString(), inativo_motivo: "inativado na lista" } : { inativo_em: null, inativo_motivo: null })
+              .in("id", ids.slice(i, i + 200));
+            if (error) throw error;
+          }
+          return `${ids.length} ${pl(ids.length, "cliente", "clientes")} ${inativar ? pl(ids.length, "inativado", "inativados") : pl(ids.length, "reativado", "reativados")}`;
+        },
+      }, {
         label: "Unificar",
         executar: async (ids) => {
           if (ids.length < 2) throw new Error("Selecione 2 ou mais cadastros da mesma pessoa/empresa para unificar");
@@ -252,6 +272,7 @@ export default function Clientes() {
       title="Clientes"
       table="clientes"
       marcadores={["cliente", "clientes"]}
+      filtroBase={verInativos ? (r) => !!r.inativo_em : (r) => !r.inativo_em}
       fundoLinha={(r) => { const rede = redes(r)[0]; return rede ? fundoRede(rede.familia) : undefined; }}
       order="nome"
       defaults={{ tipo_pessoa: "PF", contribuinte_icms: 9, nome: "", avisos_email: true }}
@@ -310,6 +331,7 @@ export default function Clientes() {
                 {r.codigo != null && <span className="font-mono text-2xs text-slate-500">cód. {r.codigo}</span>}
                 {crm && <span className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-2xs font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
                 <SeloAssinatura f={f} />
+                <SeloUsada r={r} maquinas={maquinas.get(r.id) ?? []} />
                 {r.portal_conferir && (
                   <span title="Cadastrado pelo representante no portal: confira os dados" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-900">
                     do portal: conferir
@@ -351,6 +373,7 @@ export default function Clientes() {
               {r.cpf_cnpj && <span className="num block">{docFormat(r.cpf_cnpj)}</span>}</>}
             selos={<>
               <SeloAssinatura f={situacaoFicha.get(r.id)} />
+              <SeloUsada r={r} maquinas={maquinas.get(r.id) ?? []} />
               {crm && <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-2xs font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
               <EtiquetasCliente c={r} tipos={tipos} naLista />
               <SelosRede redes={redes(r)} />
@@ -368,4 +391,13 @@ function SeloAssinatura({ f }: { f?: string }) {
   if (f === "assinado") return <span title="Ficha cadastral assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-1.5 py-0.5 text-2xs font-semibold text-emerald-800"><BadgeCheck size={12} aria-hidden /> assinada</span>;
   if (f === "pendente") return <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-2xs font-semibold text-sky-800"><Clock size={12} aria-hidden /> aguardando assinatura</span>;
   return <span title="Ficha cadastral ainda não assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-600"><FileX size={12} aria-hidden /> não assinada</span>;
+}
+
+/** Comprou máquina usada (etiqueta, marcador do Tiny ou máquina usada registrada): selo forte, para ver de longe. Inativo: selo cinza. */
+function SeloUsada({ r, maquinas }: { r: Cliente; maquinas: { usada?: boolean | null }[] }) {
+  const usada = tag(r, "compra_usada") || maquinas.some((m) => m.usada);
+  return (<>
+    {usada && <span title="Comprou máquina usada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-bold text-white shadow-sm"><Recycle size={13} aria-hidden /> USADA</span>}
+    {r.inativo_em && <span title={r.inativo_motivo ?? "Cliente inativo"} className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-slate-500 px-2 py-0.5 text-xs font-bold text-white"><EyeOff size={13} aria-hidden /> inativo</span>}
+  </>);
 }
