@@ -15,9 +15,10 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
 - Regras de frete (grátis, acréscimo, retirar na fábrica, peso e medidas padrão) e Peso e medidas dos produtos.
 - Gastos com frete por mês e por transportadora, com envio de XML dos CT-e; CT-e de 2025/2026 vindos do e-mail.
 - Cadastro: 12 transportadoras novas; repetidos do Mercado Envios unificados (filial).
+- Aba CT-e mais clara (26/10, b50d074): cartão do frete pago do mês, "O que fazer", faturas por transportadora, abas em 3 grupos.
 
 ## Em andamento
-- Aba CT-e mais clara (pedido de 26/10): pronta, esperando o "Pode publicar".
+- Nada sendo programado agora.
 
 ## Esperando a usuária
 - Mandar os 6 rascunhos do Gmail pedindo a tabela de frete atualizada (São Miguel, Rodonaves, Braspress, Aceville,
