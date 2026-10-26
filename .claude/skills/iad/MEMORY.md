@@ -1,5 +1,5 @@
 # MEMORY — IAD (ERP Line – IA do dia a dia (ideias))
-Atualizado em 25/10/2026.
+Atualizado em 26/10/2026.
 
 ## Estado agora
 As cinco frentes de IA nos cadastros e nas vendas estão no ar, e também a fila das ideias da pesquisa (resumo, busca nos
@@ -7,7 +7,8 @@ documentos, títulos a pagar, regras da IA analítica, ações com aprovação).
 Nenhuma das IAs novas foi testada com dado real ainda: falta a usuária usar e contar o que achou.
 
 ## No ar
-- Anotar por voz (🎤 em todas as telas), Anotações, pagamentos anotados na conciliação, ok do giga por voz.
+- Anotar por voz (🎤 em todas as telas), Anotações, pagamentos anotados na conciliação, ok do giga por voz;
+  imagem junto (📎 ou colar): a IA lê o comprovante/nota/foto e a imagem fica anexada no registro escolhido.
 - Perguntar à IA: perguntas na hora, dúvida de manutenção ("Virou dica"), ⚡ Pedir uma ação (baixa de conta e mensagem),
   regras: login de quem pergunta, unidade SC/SP, MF × My Frost nas máquinas, sem dado pessoal, até 50 resultados.
 - Cadastro de cliente: "Preencher com IA" (conversa do WhatsApp ou foto do cartão, aviso de repetido).

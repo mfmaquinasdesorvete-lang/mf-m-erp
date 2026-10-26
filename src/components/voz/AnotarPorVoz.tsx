@@ -4,10 +4,12 @@
 // Sem a IA (chave não cadastrada ou fora do ar) dá para anotar do mesmo jeito, escolhendo o tipo e escrevendo.
 // Pergunta rápida falada ("o que foi vendido hoje?", "tem frete demorando?") responde na hora, sem anotar.
 // iPhone pelo ícone da tela inicial: a Apple não deixa o ERP ouvir; a janela abre no campo com a dica do 🎤 do teclado.
+// Imagem junto (📎 ou colar): comprovante, nota, etiqueta ou foto da máquina; a IA lê os dados dela e, ao confirmar, a
+// imagem fica anexada no registro escolhido (OS, compra, cliente) ou nos documentos da empresa.
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, Mic, RotateCcw, Sparkles } from "lucide-react";
+import { Check, ImagePlus, Loader2, Mic, RotateCcw, Sparkles, X } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { callFunction, supabase } from "@/lib/supabase";
 import { useVisivel } from "@/lib/menu";
@@ -21,9 +23,19 @@ import { ehPergunta, reconhecer, type Pronta } from "@/lib/respostasProntas";
 import { PerguntarIA } from "@/components/PerguntarIA";
 import { MascoteIA } from "./MascoteIA";
 import { RespostaPronta } from "@/components/RespostaPronta";
+import { reduzir } from "@/lib/fotos";
 
 type Etapa = "ouvindo" | "texto" | "entendendo" | "confirmar" | "gravando" | "resposta";
 const SEM_REGISTRO = "";
+type Imagem = { blob: Blob; base64: string; url: string; nome: string };
+// onde a imagem fica anexada, pelo registro escolhido (o resto vai para os documentos da empresa)
+const ANEXO_DE: Record<string, string> = { ordens_servico: "os", pedidos_compra: "pedido_compra", clientes: "cliente" };
+
+async function lerImagem(f: File): Promise<Imagem> {
+  const blob = await reduzir(f);
+  const url = await new Promise<string>((ok, falhou) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = () => falhou(r.error); r.readAsDataURL(blob); });
+  return { blob, base64: url.split(",")[1] ?? "", url, nome: f.name || "imagem.jpg" };
+}
 
 export function AnotarPorVoz() {
   const { papel } = usePerfil();
@@ -66,6 +78,7 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
   const [resumo, setResumo] = useState("");
   const [registro, setRegistro] = useState<string>(SEM_REGISTRO);
   const [para, setPara] = useState<string>("");
+  const [imagem, setImagem] = useState<Imagem | null>(null);
   const microfone = useRef<{ parar: () => void; cancelar: () => void } | null>(null);
 
   function comecar() {
@@ -91,22 +104,27 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
     setEtapa("confirmar");
   }
 
+  async function pegarImagem(f: File | undefined) {
+    if (!f || !f.type.startsWith("image/")) return;
+    try { setImagem(await lerImagem(f)); setErro(null); } catch { setErro("Não deu para abrir a imagem: tente outra."); }
+  }
+
   async function entender() {
     microfone.current?.parar();
     const texto = fala.trim();
-    if (texto.length < 4) { setErro("Fale ou escreva o que quer anotar."); return; }
+    if (texto.length < 4 && !imagem) { setErro("Fale, escreva ou mande uma imagem do que quer anotar."); return; }
     // pergunta rápida: responde na hora, sem a IA e sem anotar
-    const pergunta = reconhecer(texto);
+    const pergunta = imagem ? null : reconhecer(texto);
     if (pergunta) { setErro(null); setPronta(pergunta); setEtapa("resposta"); return; }
     // outra pergunta ("o que entrou nas contas destes pedidos?"): vai para o Perguntar à IA, não vira anotação
-    if (ehPergunta(texto)) { setErro(null); setPerguntaLivre(texto); return; }
+    if (!imagem && ehPergunta(texto)) { setErro(null); setPerguntaLivre(texto); return; }
     setErro(null); setEtapa("entendendo");
     try {
-      aplicar(await callFunction<RespostaVoz>("ia-voz", { fala: texto }));
+      aplicar(await callFunction<RespostaVoz>("ia-voz", { fala: texto, imagem: imagem ? { tipo: "image/jpeg", base64: imagem.base64 } : null }));
     } catch (e) {
       // sem a IA: anota à mão (tipo e texto), sem ligar a um registro
       setSemIa(true); setErro((e as Error).message); setResp(null); setTipo(permitidos.includes("outro") ? "outro" : permitidos[0]);
-      setResumo(texto); setRegistro(SEM_REGISTRO); setPara(""); setEtapa("confirmar");
+      setResumo(texto || "Imagem anexada"); setRegistro(SEM_REGISTRO); setPara(""); setEtapa("confirmar");
     }
   }
 
@@ -115,14 +133,29 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
     if (!resumo.trim()) { setErro("Escreva o resumo da anotação."); return; }
     setEtapa("gravando");
     const { error } = await supabase.rpc("anotar_por_voz", {
-      p_fala: fala.trim() || resumo.trim(), p_tipo: tipo, p_resumo: resumo.trim(),
+      p_fala: `${fala.trim() || resumo.trim()}${imagem ? " [📎 com imagem anexada]" : ""}`, p_tipo: tipo, p_resumo: resumo.trim(),
       p_ref_tabela: escolhido?.tabela ?? null, p_ref_id: escolhido?.id ?? null, p_ref_rotulo: escolhido?.rotulo ?? null,
       p_link: escolhido?.link ?? TIPOS[tipo].link, p_valor: resp?.entendido.valor ?? (tipo === "pagamento_video" ? escolhido?.valor ?? null : null), p_para: tipo === "lembrete" && para ? para : null,
     });
     if (error) { notifyError(error); setEtapa("confirmar"); return; }
+    if (imagem) await anexarImagem(imagem);
     qc.invalidateQueries({ queryKey: ["anotacoes_voz"] });
     notify(tipo === "lembrete" && para ? "Anotado: o lembrete foi para a pessoa" : "Anotado: foi para quem confere");
     onClose();
+  }
+
+  // a anotação já foi gravada: se a imagem não subir, avisa e segue (não grava a anotação de novo)
+  async function anexarImagem(img: Imagem) {
+    const entidade = (escolhido && ANEXO_DE[escolhido.tabela]) || "geral";
+    const entidadeId = entidade === "geral" ? null : escolhido!.id;
+    const caminho = `${entidade}/${entidadeId ?? "geral"}/${crypto.randomUUID()}-anotacao.jpg`;
+    const { error } = await supabase.storage.from("documentos").upload(caminho, img.blob, { contentType: "image/jpeg" });
+    const { error: e2 } = error ? { error } : await supabase.from("documentos").insert({
+      entidade, entidade_id: entidadeId, nome: img.nome.replace(/\.[^.]+$/, "") + ".jpg", caminho, tamanho: img.blob.size, tipo: "image/jpeg",
+      descricao: `Anotação: ${resumo.trim().slice(0, 200)}`,
+    });
+    if (e2) { if (!error) await supabase.storage.from("documentos").remove([caminho]); notify("A anotação foi gravada, mas a imagem não subiu: anexe pelo registro", "erro"); }
+    else qc.invalidateQueries({ queryKey: ["documentos"] });
   }
 
   // pergunta livre: a janela vira o Perguntar à IA com o que foi dito
@@ -153,12 +186,26 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
             {ouvindo ? "Ouvindo… toque para parar" : usarVoz ? "Toque para falar de novo, ou corrija o texto" : bloqueada ? "" : "Este navegador não ouve a fala: escreva aqui (ou use o 🎤 do teclado)"}
           </p>
           <Field label="O que foi dito">
-            <textarea className="input min-h-[88px]" value={fala} onChange={(e) => setFala(e.target.value)} placeholder={usarVoz ? "A fala aparece aqui…" : "Toque aqui e dite pelo 🎤 do teclado…"} autoFocus={!usarVoz} />
+            <textarea className="input min-h-[88px]" value={fala} onChange={(e) => setFala(e.target.value)} placeholder={usarVoz ? "A fala aparece aqui…" : "Toque aqui e dite pelo 🎤 do teclado…"} autoFocus={!usarVoz}
+              onPaste={(e) => { const f = [...e.clipboardData.files].find((x) => x.type.startsWith("image/")); if (f) { e.preventDefault(); pegarImagem(f); } }} />
           </Field>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-sky-700">
+              <ImagePlus className="h-4 w-4" /> {imagem ? "Trocar a imagem" : "Foto ou imagem (comprovante, nota, máquina)"}
+              <input type="file" accept="image/*" className="sr-only" onChange={(e) => { pegarImagem(e.target.files?.[0]); e.target.value = ""; }} />
+            </label>
+            {imagem && (
+              <span className="inline-flex items-center gap-1">
+                <img src={imagem.url} alt="Imagem da anotação" className="h-12 rounded border border-slate-200" />
+                <button type="button" className="botao-icone" aria-label="Tirar a imagem" onClick={() => setImagem(null)}><X className="h-4 w-4" /></button>
+              </span>
+            )}
+          </div>
+          {!imagem && <p className="-mt-2 text-xs text-slate-500">No computador dá para colar a imagem (Ctrl+V) no campo acima.</p>}
           {erro && <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{erro}</p>}
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button onClick={entender} disabled={etapa === "entendendo" || fala.trim().length < 4}>
+            <Button onClick={entender} disabled={etapa === "entendendo" || (fala.trim().length < 4 && !imagem)}>
               {etapa === "entendendo" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Entender
             </Button>
           </div>
@@ -190,6 +237,12 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
             <textarea className="input min-h-[72px]" value={resumo} onChange={(e) => setResumo(e.target.value)} />
           </Field>
           {resp?.entendido.valor ? <p className="text-sm text-slate-600">Valor falado: <b>{brl(resp.entendido.valor)}</b></p> : null}
+          {imagem && (
+            <p className="flex items-center gap-2 text-sm text-slate-600">
+              <img src={imagem.url} alt="" className="h-10 rounded border border-slate-200" />
+              A imagem fica anexada {escolhido && ANEXO_DE[escolhido.tabela] ? `em ${escolhido.rotulo}` : "nos documentos da empresa"}.
+            </p>
+          )}
 
           {tipo === "lembrete" && resp && (
             <Field label="Para quem">

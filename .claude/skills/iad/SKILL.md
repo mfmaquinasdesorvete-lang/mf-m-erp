@@ -81,3 +81,7 @@ Recebo as ideias da usuária para a IA no trabalho do dia a dia e cuido das IAs 
   (teste em `iaBusca.test.ts`). Exportar baixa só o que está na tela (até 50).
 - IA que prepara ação nunca grava: só acha a conta/cliente com o login de quem pediu e abre a tela de sempre preenchida;
   ação nova entra em `ACOES` e reaproveita a tela que já tem as regras (permissão, aprovação, histórico).
+- Anotar por voz com imagem: a imagem é reduzida no aparelho (`reduzir` de `src/lib/fotos.ts`) antes de ir à IA (limite 5 MB)
+  e é anexada só depois de a anotação gravar; se falhar, avisa e não grava a anotação de novo.
+- "Sem internet para entender a fala" no Chrome do computador: o reconhecimento de fala do navegador usa a internet do
+  Google; com rede instável, escreva ou cole o texto (o resto funciona igual).

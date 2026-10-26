@@ -3,13 +3,16 @@
 // coleta, OP, compra, cliente, teste do giga, pessoa da equipe). Só entende: quem falou escolhe o registro e confirma,
 // e a anotação é gravada pelo banco (anotar_por_voz). A busca roda com o login de quem falou: cada pessoa só vê o que
 // já pode ver nas telas. A chave fica no secret ANTHROPIC_API_KEY do Supabase.
-// POST { fala } -> { entendido, candidatos: Candidato[], pessoas: { id, nome }[], modelo }
+// Pode vir uma imagem junto (comprovante, nota, etiqueta, foto da máquina): a IA lê os dados dela como se fossem falados.
+// POST { fala, imagem?: { tipo, base64 } } -> { entendido, candidatos: Candidato[], pessoas: { id, nome }[], modelo }
 import Anthropic from "npm:@anthropic-ai/sdk@0.130.0";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { conferirIaLigada, registrarIa, mensagemPedidoRecusado } from "../_shared/ia-controle.ts";
-import { ESQUEMA_VOZ, INSTRUCOES_VOZ, LIMITE_FALA, montarPedidoVoz, normalizarVoz, termosBusca, type EntendidoVoz } from "../_shared/ia-voz.ts";
+import {
+  ESQUEMA_VOZ, INSTRUCOES_VOZ, LIMITE_FALA, LIMITE_IMAGEM_VOZ, montarPedidoVoz, normalizarVoz, termosBusca, TIPOS_IMAGEM_VOZ, type EntendidoVoz,
+} from "../_shared/ia-voz.ts";
 
 const MODELO = "claude-opus-5-5";
 type Db = SupabaseClient;
@@ -138,8 +141,11 @@ Deno.serve(async (req) => {
     if (!chave) throw new HttpError(503, "IA não configurada: cadastre o secret ANTHROPIC_API_KEY no Supabase (Edge Functions → Secrets).");
     await conferirIaLigada(db);
     const fala = String(body.fala ?? "").replace(/\s+/g, " ").trim().slice(0, LIMITE_FALA);
-    if (fala.length < 4) throw new HttpError(400, "Não deu para ouvir: fale de novo.");
-    uso = { acao: "entender_fala", resumo: fala };
+    const img = body.imagem && typeof body.imagem.base64 === "string" ? body.imagem as { tipo: string; base64: string } : null;
+    if (img && !(TIPOS_IMAGEM_VOZ as readonly string[]).includes(img.tipo)) throw new HttpError(400, "A imagem precisa ser JPG, PNG, WEBP ou GIF.");
+    if (img && img.base64.length * 0.75 > LIMITE_IMAGEM_VOZ) throw new HttpError(400, "Imagem maior que 5 MB: mande uma menor.");
+    if (fala.length < 4 && !img) throw new HttpError(400, "Não deu para ouvir: fale de novo.");
+    uso = { acao: img ? "entender_imagem" : "entender_fala", resumo: fala || "(só a imagem)" };
 
     const hoje = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
     const client = new Anthropic({ apiKey: chave });
@@ -152,7 +158,10 @@ Deno.serve(async (req) => {
         fallbacks: "default",
         output_config: { effort: "low", format: { type: "json_schema", schema: ESQUEMA_VOZ as unknown as Record<string, unknown> } },
         system: [{ type: "text", text: INSTRUCOES_VOZ, cache_control: { type: "ephemeral" } }],
-        messages: [{ role: "user", content: montarPedidoVoz(fala, hoje) }],
+        messages: [{ role: "user", content: [
+          ...(img ? [{ type: "image" as const, source: { type: "base64" as const, media_type: img.tipo as "image/jpeg", data: img.base64 } }] : []),
+          { type: "text" as const, text: montarPedidoVoz(fala, hoje, !!img) },
+        ] }],
       });
     } catch (e) {
       if (e instanceof Anthropic.AuthenticationError) throw new HttpError(503, "A chave da IA (ANTHROPIC_API_KEY) foi recusada: confira o secret no Supabase.");
@@ -176,7 +185,7 @@ Deno.serve(async (req) => {
     // lembrete: a pessoa da equipe citada (as outras ficam para escolher na tela)
     const { data: equipe } = await db.from("usuarios_erp").select("user_id, nome").eq("ativo", true).neq("papel", "representante").order("nome");
     const pessoas = (equipe ?? []).map((u: { user_id: string; nome: string }) => ({ id: u.user_id, nome: u.nome }));
-    await registrarIa(db, userId, { funcao: "ia-voz", ...uso, resumo: `${entendido.tipo}: ${fala}`, modelo: resposta.model, ok: true });
+    await registrarIa(db, userId, { funcao: "ia-voz", ...uso, resumo: `${entendido.tipo}: ${fala || "(só a imagem)"}${img ? " [com imagem]" : ""}`, modelo: resposta.model, ok: true });
     return json({ entendido, candidatos: lista, pessoas, modelo: resposta.model });
   } catch (e) {
     if (uso) await registrarIa(db, userId, { funcao: "ia-voz", ...uso, ok: false, erro: (e as Error).message });

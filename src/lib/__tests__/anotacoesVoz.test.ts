@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizarVoz, termosBusca } from "../../../supabase/functions/_shared/ia-voz";
+import { montarPedidoVoz, normalizarVoz, termosBusca } from "../../../supabase/functions/_shared/ia-voz";
 import { acharPessoa, parada, tiposPermitidos, vozBloqueadaEm } from "../anotacoesVoz";
 
 describe("normalizarVoz", () => {
@@ -66,5 +66,13 @@ describe("vozBloqueadaEm", () => {
     expect(vozBloqueadaEm({ ua: iphone, standalone: false, toque: 5 })).toBe(false);
     expect(vozBloqueadaEm({ ua: "Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile", standalone: true, toque: 5 })).toBe(false);
     expect(vozBloqueadaEm({ ua: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/130", standalone: true, toque: 0 })).toBe(false);
+  });
+});
+
+describe("anotar com imagem", () => {
+  it("pedido avisa que veio imagem e aceita sem fala", () => {
+    expect(montarPedidoVoz("comprovante da vídeo", "hoje", true)).toContain("Veio uma imagem");
+    expect(montarPedidoVoz("", "hoje", true)).toContain("Sem fala: entenda pela imagem.");
+    expect(montarPedidoVoz("coletou", "hoje")).not.toContain("imagem");
   });
 });
