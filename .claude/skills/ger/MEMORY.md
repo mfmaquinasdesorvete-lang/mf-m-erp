@@ -32,6 +32,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Pagamentos de um prestador esperam a planilha do Tiny (TIN).
 
 ## Decisões da usuária
+- Aprovações: o que é de antes da semana e já foi pago ou cancelado sai da fila (só conciliar); conta em aberto antiga fica na fila para ela olhar; cancelada não aparece na fila (26/10).
 - Contas a pagar e a receber: lista com 4 cartões no topo (vencidas, hoje, esta semana, para decidir), lista em aberto/pagas/todas com o período, um botão (Nova conta) e o resto no "Mais"; saiu o quadro com colunas (26/10).
 - Venda de máquina é "Proposta Comercial": PDF no layout da antiga do Tiny (foto, ficha técnica, preço de lista e desconto, assinatura do vendedor) (26/10).
 - Custo do produto só pela compra à vista; a compra a prazo fica no histórico e não muda o custo (25/10).

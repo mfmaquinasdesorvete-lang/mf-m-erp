@@ -79,7 +79,9 @@ export default function Aprovacoes() {
   const mes = hoje().slice(0, 7);
 
   const linhas = useMemo<Linha[]>(() => {
-    const pagar = filtrar(pagarT), receber = filtrar(receberT);
+    // conta cancelada não tem o que decidir: sai da fila de revisão (pedido de 26/10, a fila estava confusa)
+    const naFila = <T extends ContaRevisao>(l: T[]) => l.filter((c) => !(c.revisao === "em_revisao" && (c as { status?: string }).status === "cancelado"));
+    const pagar = naFila(filtrar(pagarT)), receber = naFila(filtrar(receberT));
     const anexosP = new Set(docs.filter((d) => d.entidade === "conta_pagar").map((d) => d.entidade_id));
     const anexosR = new Set(docs.filter((d) => d.entidade === "conta_receber").map((d) => d.entidade_id));
     const calc = (tipo: TipoConta, c: ContaRevisao, todas: ContaRevisao[]) =>
