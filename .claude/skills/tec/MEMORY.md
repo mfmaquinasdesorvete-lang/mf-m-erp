@@ -1,5 +1,5 @@
 # MEMORY — TEC (ERP Line – Técnicos)
-Atualizado em 26/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 Cadastros → Técnicos virou um guia de cartões enxutos, com foto, estado, Instagram e WhatsApp.
@@ -18,7 +18,10 @@ Os parceiros Dr. Frost têm a foto do anúncio. Não há pedido de técnicos em 
 - Nada.
 
 ## Esperando a usuária
-- Nada (as fotos ficaram centralizadas, ela aprovou pelo print).
+- Conferir no ERP no ar (computador e celular), em Cadastros → Técnicos:
+  1. os ícones de Instagram e WhatsApp do cartão estão menores;
+  2. no botão Lista, cada técnico mostra a etiqueta "desde" e as siglas dos estados em destaque.
+  Os dois pedidos estão como "precisa de você" no Sobre e viram "feito" quando ela confirmar.
 
 ## Decisões da usuária
 - O cartão mostra só o necessário: nome, estado, WhatsApp (só o ícone), Instagram (só o ícone) e quantos clientes
