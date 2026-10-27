@@ -22,6 +22,8 @@ com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 - /estoque e /produtos/pecas abrem Peças à venda de propósito (pedido da usuária, segundo o PRD): achado 12 fechado, não é para juntar.
 - DSG fez (27/10, commit 92c3b57): App.tsx usa a peça Carregando de ui.tsx.
 - Os nove chats responderam. 27/10: publicado pelo REV o site com os consertos de SEG, CLI, TRA, MKT, PRD e DSG (index-BF--YF30.js, conferido na Hostinger). O GER ainda está fazendo a Auditoria financeira e as listas dele.
+- MKT apagou ligarAnuncio e separarCompatibilidade com o ok da usuária (a5ba412, foi na publicação index-BF--YF30).
+- PRD: PainelProdutos e PainelMaquinas com SELECT_LISTA_PRODUTOS (da7570c), espera a próxima publicação.
 - Ainda não enviados: PRD (2 e 6), FIS, TRA e MKT (9), DSG (16).
 
 ## Esperando a usuária
