@@ -16,6 +16,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - "Agradecer pagamento" fica em Vendas (não em Cobrança). Painéis: só cobra de quem deve e ignora "não pagar".
 
 ## Em andamento
+- PRIORIDADE (ELO, 27/10): plano da virada do Tiny em `.claude/skills/ger/virada-tiny.md` (data proposta 09/11; TIN importa os recebimentos dos pedidos do Tiny sem conta a receber). Rodada de fechamento: função nova só se ela pedir; "feito" só depois de testar no ar.
 - Base comum de Configurações (pedido do ELO, a partir de `.claude/configuravel/README.md`):
   catálogo em `supabase/functions/_shared/ajustes.ts` (3 prazos e 12 mensagens de WhatsApp, padrão = texto de hoje)
   e migração `20261101000156_config_ajustes.sql`, já no repositório. Faltam: aplicar no banco, criar as páginas
