@@ -6,7 +6,7 @@ import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
   Truck, UserCog, Users, Wallet, IceCreamCone, Lock, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search, Gauge,
   Store, PackageSearch, CreditCard, Package, ScanBarcode, Scale, IdCard, Plus,
-  ScanFace, Sparkles,
+  ScanFace, Sparkles, Eye,
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
 import { sairDoErp } from "@/lib/sair";
@@ -23,6 +23,7 @@ import { corDoDegrade, IconeArea } from "@/components/IconeArea";
 import { Button, Field, Modal, useFecharComEsc } from "./ui";
 import { MeusAvisos } from "./Avisos";
 import { MeuRosto } from "./Rosto";
+import { EscolherVerComo } from "./VerComo";
 import { usaRosto } from "@/lib/rosto";
 import { ResultadosBusca } from "./BuscaGeral";
 import { parecePergunta } from "@/lib/pergunta";
@@ -144,6 +145,7 @@ export function Layout() {
   const [meusAvisos, setMeusAvisos] = useState(false);
   const [cotarFrete, setCotarFrete] = useState(false);
   const [meuRosto, setMeuRosto] = useState(false);
+  const [verComo, setVerComo] = useState(false);
   const iniciais = perfil.nome.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   // foto do usuário (Configurações → Usuários); cada um lê a própria
   const { data: minhaFoto } = useQuery({
@@ -406,6 +408,8 @@ export function Layout() {
               ...(engrenagem ? [["Configurações", Settings, () => { setAberto(false); navigate(engrenagem); }] as const] : []),
               // cadeado: Retaguarda (carteira pessoal, My Frost, usuários, configurações), só a conta master
               ...(perfil.master ? [["Retaguarda", Lock, () => { setAberto(false); navigate("/retaguarda"); }] as const] : []),
+              // olho: usar o ERP como outro papel ou pessoa vê (só a conta master; só para ver)
+              ...(perfil.master ? [["Ver como outra pessoa", Eye, () => setVerComo(true)] as const] : []),
               ...(perfil.tem("vendas", "financeiro", "expedicao") ? [["Cotação rápida de frete", Truck, () => setCotarFrete(true)] as const] : []),
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
               ["Aparência", Palette, () => setAparencia(true)],
@@ -503,6 +507,7 @@ export function Layout() {
         </Modal>
       )}
       {meuRosto && <MeuRosto onClose={() => setMeuRosto(false)} />}
+      {verComo && <Modal open onClose={() => setVerComo(false)} title="Ver como outra pessoa"><EscolherVerComo /></Modal>}
       <Suspense fallback={null}>
         {(perfil.tem("financeiro") || perfil.papel === "contador") && <AlertaObrigacoes />}
         {perfil.master && <AlertaContasDoMes />}

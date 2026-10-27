@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { criarClienteDemo } from "./demo";
+import { guardaVerComo } from "./verComo";
 
 /** Modo demonstração: dados de exemplo em memória, sem Supabase (npm run build:demo). */
 export const DEMO = import.meta.env.VITE_DEMO === "1";
@@ -11,7 +12,10 @@ if (!DEMO && (!url || !key)) {
   console.error("Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env");
 }
 
-export const supabase = (DEMO ? criarClienteDemo() : createClient(url ?? "http://localhost", key ?? "anon")) as SupabaseClient<any, "public", any>;
+export const supabase = (DEMO ? criarClienteDemo() : createClient(url ?? "http://localhost", key ?? "anon", {
+  // "Ver como" da conta master: enquanto simula outro papel, o que grava é recusado (só para ver)
+  global: { fetch: guardaVerComo((entrada, init) => fetch(entrada, init)) },
+})) as SupabaseClient<any, "public", any>;
 
 /** Chama uma Edge Function e devolve o JSON, lançando a mensagem de erro amigável. */
 export async function callFunction<T = any>(name: string, body: Record<string, unknown>): Promise<T> {

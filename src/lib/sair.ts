@@ -3,8 +3,10 @@
 import { useEffect } from "react";
 import { notify } from "./notify";
 import { supabase } from "./supabase";
+import { sairVerComo } from "./verComo";
 
 export async function sairDoErp() {
+  sairVerComo(false);
   await Promise.race([supabase.rpc("registrar_saida").then(() => {}, () => {}), new Promise((r) => setTimeout(r, 2000))]);
   await supabase.auth.signOut();
 }

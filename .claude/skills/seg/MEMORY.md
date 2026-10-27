@@ -1,5 +1,5 @@
 # MEMORY — SEG (ERP Line – Segurança)
-Atualizado em 25/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 A auditoria de segurança está em Sobre → Segurança, com 33 itens em 7 áreas, e o vigia confere o banco todo dia.
@@ -24,7 +24,8 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
 - Dados cadastrais reais da empresa fora do repositório; a demonstração e os testes usam fictícios (55a64e4).
 
 ## Em andamento
-- Nada parado no meio.
+- "Ver como" da conta master (Retaguarda e olho no menu): usa o ERP com o menu e os botões de um papel ou pessoa;
+  só aparência, gravações travadas pelo fetch do Supabase (`src/lib/verComo.ts`). Pronto, esperando o "Pode publicar".
 
 ## Esperando a usuária
 - Login com o rosto: um passo de configuração dela e o cadastro do rosto. Depois, marcar a data (+7 dias).

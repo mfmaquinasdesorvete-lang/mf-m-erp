@@ -16,6 +16,8 @@ import { Button, Card } from "@/components/ui";
 import Login, { NovaSenha } from "@/pages/Login";
 import { PortaoRosto } from "@/components/Rosto";
 import { useSessaoDerrubada } from "@/lib/sair";
+import { lerVerComo, sairVerComo } from "@/lib/verComo";
+import { FaixaVerComo } from "@/components/VerComo";
 import { abrirNoApp, CHAVE_APP } from "@/lib/appFinanceiro";
 import { abrirAppCelular, abrirAppVendas, CHAVE_APP_VENDAS } from "@/lib/appVendas";
 import { CHAVE_APP_ASSISTENCIA, CHAVE_APP_EXPEDICAO, CHAVE_APP_PRODUCAO } from "@/lib/appCelular";
@@ -241,6 +243,8 @@ export default function App() {
     });
   }, [userId, tentativa]); // eslint-disable-line react-hooks/exhaustive-deps
   useSessaoDerrubada(!!userId);
+  // "Ver como" só vale para a conta master; em outra conta a marca esquecida na aba é apagada
+  useEffect(() => { if (perfil && !perfil.master && lerVerComo()) sairVerComo(false); }, [perfil]);
 
   // Vitrine pública: abre sem login (é o link dos produtos no catálogo do WhatsApp)
   // Apresentação do ERP Line para empresas e contadores (venda por indicação), sem login
@@ -298,8 +302,9 @@ export default function App() {
       ) : (
         // administrador e financeiro confirmam a entrada com o rosto (pedido #103)
         <PortaoRosto papel={perfil.papel} extras={perfil.papeis_extras}>
-        <PerfilProvider perfil={perfil}>
-          <UnidadeProvider inicial={perfil.unidade_id ?? null}>
+        <FaixaVerComo />
+        <PerfilProvider perfil={comoVisto(perfil)}>
+          <UnidadeProvider inicial={comoVisto(perfil).unidade_id ?? null}>
           <Suspense fallback={<Carregando />}>
             <RotasERP />
           </Suspense>
@@ -309,6 +314,16 @@ export default function App() {
       )}
     </>
   );
+}
+
+/** Perfil que as telas enxergam: o da conta, ou o papel/pessoa que a conta master escolheu em "Ver como". */
+function comoVisto(perfil: Perfil): Perfil {
+  const v = perfil.master ? lerVerComo() : null;
+  if (!v) return perfil;
+  return {
+    ...perfil, papel: v.papel, papeis_extras: v.extras, master: false,
+    ...(v.user_id ? { user_id: v.user_id, nome: v.nome, unidade_id: v.unidade_id ?? null } : {}),
+  };
 }
 
 /**
