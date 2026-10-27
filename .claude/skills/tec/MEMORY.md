@@ -12,18 +12,19 @@ Os parceiros Dr. Frost têm a foto do anúncio. Não há pedido de técnicos em 
   ele já atendeu, contados por `clientes.tecnico_id`. O resto aparece ao abrir o técnico (25304a8).
 - Foto do anúncio Dr. Frost gravada em `tecnicos.logo_url` nos 108 parceiros; o cartão aproxima no círculo do
   banner. Ícone do Instagram com link (f1d6fb1); ícones de Instagram e WhatsApp menores, 32 px, a pedido dela.
+- Visão simplificada do técnico (fd6fd92, no ar no site 63df953): papel "tecnico" só com Ordens de serviço filtradas
+  nas dele e o app com "Minhas OS" e "Meu cadastro"; o teste do giga ficou com o papel "giga".
 - Linha do chat em `chats_claude` (ordem 34, cor laranja).
 
 ## Em andamento
-- Visão simplificada do técnico (pedido de 27/10): o papel "tecnico" vê só "Ordens de serviço" (filtradas nas dele)
-  e o app da assistência com "Minhas OS" e "Meu cadastro"; preços, compras, estoque, produção, clientes e o teste do
-  giga saíram do papel. O SEG foi chamado para fechar o mesmo no banco (RLS).
+- Banco (RLS) da visão do técnico: com o SEG (o técnico ler só as OS dele, sem preços, compras e clientes de fora).
 
 ## Esperando a usuária
 - Conferir no ERP no ar (computador e celular), em Cadastros → Técnicos:
   1. os ícones de Instagram e WhatsApp do cartão estão menores;
   2. no botão Lista, cada técnico mostra a etiqueta "desde" e as siglas dos estados em destaque.
   Os dois pedidos estão como "precisa de você" no Sobre e viram "feito" quando ela confirmar.
+- Testar a visão do técnico no ar: "Ver como" Técnico → só "Minhas OS" e "Meu cadastro" (pedido "precisa de você").
 - Visão do técnico: dos 2 usuários técnicos, 1 não tem cadastro em Técnicos com o mesmo nome (cadastrar para o
   "Meu cadastro" aparecer); quem for fazer o teste do giga precisa do papel "Giga".
 
