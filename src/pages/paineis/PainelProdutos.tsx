@@ -14,6 +14,7 @@ import {
   type Cartao, type ItemAtencao,
 } from "@/components/painel/Painel";
 import { useRows } from "@/lib/data";
+import { SELECT_LISTA_PRODUTOS } from "@/lib/produtosLista";
 import { useUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, somarDias, pl } from "@/lib/format";
 import { curvaABC, resumoABC, vendasDaEmpresa } from "@/lib/gerencial";
@@ -41,7 +42,7 @@ export default function PainelProdutos() {
   const { filtrar, atual: unidade } = useUnidade();
   const { data: pedidos = [], isLoading } = useRows<any>("pedidos", { select: SELECT_PEDIDOS_VENDAS, key: ["gerencial"] });
   const { data: notas = [] } = useRows<any>("notas_fiscais", { select: SELECT_NOTAS_VENDAS, key: ["gerencial"] });
-  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  const { data: produtos = [] } = useRows<Produto>("produtos", { select: SELECT_LISTA_PRODUTOS, order: "descricao", ascending: true });
   const { data: saldos = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade", { order: "produto_id" });
   const [periodo, setPeriodo] = usePeriodo("produtos");
   const [tipo, setTipo] = useState("todos");

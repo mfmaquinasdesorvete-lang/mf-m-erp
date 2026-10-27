@@ -21,7 +21,7 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   passadas para insumo.
 
 - Listas leves (achado do REV de 27/10): Preços, Kits, Catálogo e Importar baixam só as colunas que usam
-  (`SELECT_LISTA_PRODUTOS` em src/lib/produtosLista.ts). O cadastro segue com "*" porque abre o formulário pela lista.
+  e os painéis Produtos e Máquinas (`SELECT_LISTA_PRODUTOS` em src/lib/produtosLista.ts, no ar em index-D4bgblTr). O cadastro segue com "*" porque abre o formulário pela lista.
 
 ## Em andamento
 - Variações (produto pai e variações): tela no ar (3b69c49) e campos no banco (20261025021635 e 20261025021646).
