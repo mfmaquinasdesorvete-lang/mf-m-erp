@@ -18,8 +18,8 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
   (miniaturas, zoom, tela cheia) e para os anúncios (até o máximo da categoria); botão "Mandar fotos para os anúncios".
 
 ## Em andamento
-- Nada parado no meio. Último lote: 45 anúncios novos publicados em 24/10; ao reler, 41 ativos, 11 em análise
-  do Mercado Livre e 7 pausados pelo Mercado Livre (o ERP ainda não lê o motivo da pausa).
+- Rodada de fechamento (27/10): os 10 pedidos "feito" testados com dados reais e com o teste escrito no detalhe.
+  Anúncios em 27/10: 43 ativos, 9 em análise e 7 pausados pelo Mercado Livre (o ERP ainda não lê o motivo da pausa).
 
 ## Esperando a usuária
 - EAN do compressor 1/5 (a categoria exige); a Condensadora Arame precisa de outra categoria (caiu em peça de carro).
