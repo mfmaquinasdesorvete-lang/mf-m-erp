@@ -1,5 +1,5 @@
 # MEMORY — CLI (ERP Line – Cadastro de clientes)
-Atualizado em 26/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 Cadastro de clientes limpo nas IEs (nenhum cliente ativo como contribuinte com IE baixada ou não encontrada).
@@ -16,13 +16,18 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
   "My Frost (histórico)" e "Dono de máquina My Frost" (8162211).
 - Redes de clientes: fundo fraquinho no cartão e na linha, selo da rede e, na ficha, os outros clientes da mesma
   rede (c5a5300).
+- Dados fiscais: clientes-receita preenche regime tributário e data de abertura vazios (5aee418); 1.142 PJ
+  preenchidos (27/10).
+- Inativar/Reativar clientes, botão Inativos, selo USADA, selo da ficha assinada, anexos em link do Gmail/Drive
+  (207 em 153 clientes), lista mais leve (bb9615a) e agendamentos leves (20261101000174).
 - Repetidos pelo nome unificados com o ok dela: 58 grupos (pessoa CPF + empresa CNPJ, ou um sem documento), fica o
   cadastro com CNPJ (dados, 26/10). "Compra da máquina" preenchida com a data da máquina mais recente onde estava
   vazia (dados, 26/10).
 
 ## Em andamento
-- Dados fiscais: a função clientes-receita (5aee418, no ar) preenche regime e data de abertura vazios; os CNPJs
-  foram postos na fila (receita_em antigo) e a consulta passa sozinha, cerca de 1 por minuto.
+- Nada novo (rodada de fechamento: função nova só se ela pedir).
+- Falta gravar em Sobre → Pedidos o "feito" do pedido dos dados fiscais (id 23cf9fcf…): o Supabase pediu
+  confirmação e a chamada caiu por tempo em 27/10. Testado: fila zerada, 1.142 PJ com regime e abertura.
 
 ## Esperando a usuária
 - Anexos sem dono (~50 do ZapSign e ~40 arquivos genéricos do Drive): ligar à mão se ela quiser.
