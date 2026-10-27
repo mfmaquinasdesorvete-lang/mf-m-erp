@@ -68,6 +68,9 @@
     chats parados e mostra o painel. Quando ele cobrar, responder a ele com send_message (o que deu certo, o que falta).
   - DOC "ERP Line – Documentos (.md)": documentos em Markdown na pasta docs/ (módulos, processos, guias), gerados a partir
     do código e sem dados da empresa (o repositório é público).
+  - REV "ERP Line – Revisão (velocidade, links e repetidos)": audita o ERP todo: o que está lento (site e banco),
+    links, botões, telas e código mortos, e telas, menus e funções repetidas. Leva cada conserto ao chat dono; clientes
+    e produtos repetidos (dados) ficam no CLI e no PRD.
   - ELO "ERP Line – chat principal": o CEO dos chats; organiza os outros e escreve as skills deles (agente em
     `.claude/agents/elo.md`).
   - Cada chat tem um nome de 3 letras (a sigla, na frente de cada linha acima) e a sua skill em

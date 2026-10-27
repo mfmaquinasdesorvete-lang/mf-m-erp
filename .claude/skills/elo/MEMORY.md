@@ -2,7 +2,7 @@
 Atualizado em 27/10/2026.
 
 ## Estado agora
-São 19 chats ativos, cada um com sigla, skill e memória. Desde 24/10 a fila de publicação confere a Hostinger
+São 20 chats ativos (REV, o mais novo, em 27/10), cada um com sigla, skill e memória. Desde 24/10 a fila de publicação confere a Hostinger
 antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dependente do código.
 
 ## No ar

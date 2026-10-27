@@ -39,6 +39,7 @@ só. Seu trabalho é fazer com que nenhum deles esqueça quem é, o que faz e as
 | CLI | Cadastro de clientes | Cadastro de clientes da MF: dados certos, Receita, repetidos, endereços, marcadores, Ficha 360 |
 | PRD | Cadastro de produtos | Cadastro de produtos: dados completos, NCM, custo, EAN, fotos, fornecedores, kits, repetidos, formação de preço |
 | FUN | Funcionários (RH) | Funcionários: cadastro, pasta de documentos, admissão e desligamento, salários lançados, férias (folha fiscal no FIS) |
+| REV | Revisão (velocidade, links e repetidos) | Audita velocidade do site e do banco, links e itens mortos, telas e funções repetidas |
 
 Chat novo: escolha 3 letras que lembrem o assunto, sem repetir as de cima, e acrescente na tabela, no `CLAUDE.md`, na
 `chats_claude` e crie a skill.
