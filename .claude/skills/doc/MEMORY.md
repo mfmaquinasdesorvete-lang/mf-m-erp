@@ -18,7 +18,10 @@ Nada fica esperando: os documentos `.md` não vão para o site, então não há 
 - Nada.
 
 ## Esperando a usuária
-- Nada. Já foi oferecido publicar algum documento como página (Artifact) para mostrar a alguém de fora; ela ainda não pediu.
+- Aprovar a gravação no Supabase: falta escrever no detalhe dos 5 pedidos (Sobre → Pedidos) o teste de 27/10
+  (gerado de novo do código atual, links e dados sensíveis conferidos → passou). A gravação pediu confirmação duas vezes
+  e ninguém respondeu.
+- Já foi oferecido publicar algum documento como página (Artifact) para mostrar a alguém de fora; ela ainda não pediu.
 
 ## Decisões da usuária
 - Quis todos os documentos sugeridos, feitos em sequência e sem pressa (23/10).
