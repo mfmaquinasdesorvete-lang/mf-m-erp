@@ -50,6 +50,8 @@ Cuido de tudo o que vem do Tiny da MF (API, planilhas e backups) e entra no ERP 
 - `supabase/migrations/20261101000108_cadastros_unificar_sem_perder.sql` (importar produtos sem perder o que foi arrumado).
 
 ## Cuidados conhecidos
+- O relatório de itens das notas do Tiny não serve para dizer que uma nota falta: confira pela chave no XML. Notas de
+  entrada emitidas pela MF usam a mesma numeração das de saída.
 - O Tiny da MF não é usado desde 28/09/2026: o que aparece nele depois disso (contas em aberto, baixas, contas novas)
   não entra; desde então vale o ERP. Transferências da MF para ela mesma (matriz e filial) não são conta a pagar.
 - Conta a receber em aberto criada para pedido antigo dispara a régua de cobrança (e-mail e WhatsApp ao cliente): só
