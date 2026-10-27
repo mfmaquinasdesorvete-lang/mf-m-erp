@@ -26,6 +26,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
   entram depois).
 
 ## Esperando a usuária
+- Virada do Tiny: confirmar a data (proposta 09/11), passar as taxas das formas de pagamento e a lista do que a equipe ainda faz no Tiny.
 - Rodar no SQL Editor a criação da tabela `config_ajustes` (o MCP pede confirmação e expira). Depois eu crio as funções.
 - Apagar a tabela `tmp_oc_plano_2310` no SQL Editor (ela disse que vai apagar, 27/10).
 - Fazer a contagem do estoque com o que existe (o estoque foi zerado).
