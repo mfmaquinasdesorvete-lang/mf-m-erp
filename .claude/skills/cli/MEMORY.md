@@ -29,6 +29,15 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
 - Falta gravar em Sobre → Pedidos o "feito" do pedido dos dados fiscais (id 23cf9fcf…): o Supabase pediu
   confirmação e a chamada caiu por tempo em 27/10. Testado: fila zerada, 1.142 PJ com regime e abertura.
 
+- Pedido do CNF (27/10): os 19 "feito" sem teste no detalhe. Testados em 27/10 (todos passaram): dados por select
+  (unificação 63 de 26/10 sem pedido/máquina no arquivado e 17 grupos deixados separados; IE baixada contribuinte 0;
+  marcadores do Tiny 8; Deiviti em clientes e fornecedores; compra da máquina 0 vazias; 44 inativos e 0 "vendeu" ativos;
+  207 anexos em link; agendamentos com tem_pendente; Yozzy Natal 837 unificado, 838 com 4 máquinas com série) e telas
+  no modo demonstração com o código no ar (ec5fd29): lista (só WhatsApp, e-mail ícone, selos USADA/assinatura, rede
+  com fundo), botão Inativos e ação Inativar, Ficha 360 e abas coloridas, Tudo do cliente com "Imprimir tudo (PDF)",
+  Área do cliente clara com "Imprimir tudo". Falta GRAVAR o detalhe em pedidos_checklist (o Supabase pediu confirmação
+  e caiu por tempo). a681f43c (licença/comodato Yozzy Natal) é do SOR.
+
 ## Esperando a usuária
 - Anexos sem dono (~50 do ZapSign e ~40 arquivos genéricos do Drive): ligar à mão se ela quiser.
 - Levantamento da qualidade do cadastro (sem CPF/CNPJ, sem cidade/UF, sem telefone, repetidos): só com números,
