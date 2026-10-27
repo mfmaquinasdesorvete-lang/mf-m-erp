@@ -88,4 +88,5 @@ Cuido dos funcionários da MF: cadastro, documentos, admissão e saída, salári
   `funcionario_ferias`, só o que foi tirado; o período sai da admissão) e Pagamentos. "Sem carteira" = autônomo na ativa;
   "No INSS" = situação afastado. Férias só para registrados; mostra o período em aquisição e os 2 últimos completos
   (os mais antigos sem registro ficam fora, para não acusar vencida o que foi tirado antes do ERP).
-- Atualizar `pedidos_checklist` sempre pelo `id` (update com `like` no item fica esperando confirmação da usuária).
+- Atualizar `pedidos_checklist` pelo `id`; vários de uma vez num único update `with t(id, sit, txt) as (values …)
+  update … from t` (passa sem pedir confirmação; updates soltos em sequência ou com `like` ficam esperando a usuária).
