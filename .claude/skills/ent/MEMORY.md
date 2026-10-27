@@ -1,5 +1,5 @@
 # MEMORY — ENT (ERP Line – Entradas nas contas da MF)
-Atualizado em 25/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 Auditoria a fundo das entradas feita em 23 e 24/10. Cerca de 300 entradas saíram de "pendente"
@@ -7,6 +7,7 @@ Auditoria a fundo das entradas feita em 23 e 24/10. Cerca de 300 entradas saíra
 pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliquem a entrada.
 
 ## No ar
+- Banco Inter SC: saldo inicial corrigido; extrato, ERP e banco batem (26/10).
 - Sem mudança de código nem de banco neste chat; só dados (conciliações) e esta skill (commit 5cc1dfd).
 - Tela "Entradas acima de R$ 5 mil" (já existia): anotação na própria linha do extrato.
 
@@ -33,6 +34,7 @@ pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliqu
 - Cliente que paga Soft Premium pelo cartão da MF: é da Soft (Entre contas).
 - Desconto dado ao cliente: ajustar a venda e ligar o valor recebido.
 - Venda cancelada sem nota não é cobrança do cliente.
+- Telas com período abrem no filtro "Esta semana" (ela troca quando quiser).
 - Nome padrão da família no ERP: o que ela definiu (está no banco); não mudar o texto do extrato.
 
 ## Onde está
