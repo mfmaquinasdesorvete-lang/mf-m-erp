@@ -213,6 +213,8 @@ export async function processarNota(db: SupabaseClient, nfe: any, cfg: Config) {
 
     const lido = await carregarItens(db, nfe);
     if (!lido) return await marcar("aguardando_xml", "A SEFAZ ainda não liberou o XML. Nova tentativa automática em alguns minutos.");
+    // guarda o XML baixado: o banco lê dele "à vista / a prazo" (condicao_compra) e não precisa baixar de novo
+    if (!nfe.xml) await db.from("nfe_recebidas").update({ xml: lido.xml }).eq("id", nfe.id).is("xml", null);
 
     const naoCompra = [...new Set(lido.itens.map((i) => i.cfop ?? "").filter((c) => !CFOP_COMPRA.test(c)))];
     if (naoCompra.length && lido.itens.length && lido.itens.every((i) => CFOP_DEVOLUCAO.test(i.cfop ?? ""))) {
