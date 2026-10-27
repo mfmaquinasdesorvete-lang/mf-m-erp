@@ -71,5 +71,5 @@ Cuido de tudo da My Frost Máquinas, a empresa anterior, e de manter a MF separa
 - Documentos da My Frost (contabilidade, guias) ficam na aba Documentos da mesma tela, entidade `my_frost`, só master.
 - Fretes e protestos da My Frost ficam em `my_frost_fretes` e `my_frost_protestos` (só master; aba Fretes e protestos).
   CT-e não repete pela chave; fatura e CT-e do mesmo frete têm o mesmo valor, então a soma usa o CT-e.
-- No checklist (`pedidos_checklist`), gravar uma coisa por chamada: `update ... where id = '<id>'` sozinho passa;
-  várias instruções juntas ou `update` com outro filtro ficam esperando uma confirmação que não chega à usuária.
+- Gravação no banco às vezes pede a confirmação da usuária: deixar pedir e esperar, nunca contornar. Para várias linhas
+  do checklist, um único `with t(id, txt) as (values ...) update ... from t`, para ela aprovar uma vez só.
