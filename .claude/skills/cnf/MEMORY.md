@@ -1,11 +1,12 @@
 # MEMORY — CNF (ERP Line – Conferência dos pedidos)
-Atualizado em 25/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
-Desde 23/10 faço rodadas de conferência do checklist (Sobre → Pedidos) e cobro os chats.
-Na última rodada nenhum pedido feito estava sem conferir e nenhum estava parado.
-Depois das quedas da Hostinger e do Supabase (24/10), conferi os 140 commits dos pedidos feitos: todos estão no
-código do site reenviado.
+Rodada de fechamento (desde 27/10): "feito" só vale depois de teste com tarefa real, descrito no detalhe.
+Em 27/10 havia 450 "feito", só 12 com o teste descrito e nenhum conferido pela usuária. Cobrei os 19 chats donos
+dos 438 sem teste, cada um com a lista de ids dele. Ainda espero as respostas.
+A lista curta de 20 para ela conferir primeiro (dinheiro, nota, cliente) foi para o FAZ.
+Todos os 22 chats têm MEMORY.md (conferido em 27/10).
 
 ## No ar
 - Painel "Conferência dos pedidos" (artifact): números no alto, um cartão por chat, a lista do que foi cobrado e as
@@ -14,14 +15,17 @@ código do site reenviado.
   da `site`, conferir cada commit de `versao` com `git merge-base --is-ancestor` e cobrar o chat dono com send_message.
 
 ## Em andamento
-- Conferir quais chats criaram a própria `MEMORY.md` (pedido de 25/10) e mandar a lista ao ELO.
+- Respostas dos chats sobre o teste dos "feito" (cobrados em 27/10). Conferir no detalhe se ficou
+  "Testado em dd/mm: …" e quantos voltaram para "fazendo".
 
 ## Esperando a usuária
-- Os itens em "precisa de você" dos outros chats (perto de 57 em 24/10). Eu aviso uma vez por dia pelo aviso_claude,
-  sem cobrar item por item.
+- Conferir os 20 da lista curta (com o FAZ) e marcar conferido em Sobre → Pedidos.
+- Os 76 em "precisa de você" (27/10) agora vão no resumo da manhã do FAZ. Eu não aviso mais.
 
 ## Decisões da usuária
 - Este chat só confere: não muda a situação nem os dados dos pedidos dos outros chats. Quem muda é o chat dono.
+- 27/10: não mando aviso diário. Quem cobra a usuária é o FAZ: passo para ele o que espera por ela e o que ficou pronto.
+- 27/10: rodada de fechamento: "feito" só com teste de tarefa real descrito no detalhe.
 - Cobrança do cliente: não entra conta sem pagamento, de pedido cancelado, sem NF de venda, nem parcela no cartão.
 - Compras de peças sempre com ordem de compra. Quando o valor diverge, a OC fica concluída, com o marcador
   "Comprado por valor divergente" e mostrando o preço da ordem e o preço comprado.
