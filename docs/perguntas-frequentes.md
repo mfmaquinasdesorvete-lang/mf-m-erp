@@ -3,7 +3,7 @@
 > Documento gerado a partir do código do ERP com o comando `npx tsx scripts/gerar-docs.mjs`. Não edite à mão: mude o texto
 > na fonte (a lista de perguntas fica em scripts/docs/perguntas-frequentes.mjs; as respostas vêm de src/lib/esquemas.ts e src/lib/modulosDetalhe.ts) e gere de novo.
 
-**Atualizado em:** 23/10/2026 · **37 perguntas**.
+**Atualizado em:** 27/10/2026 · **37 perguntas**.
 
 As dúvidas mais comuns do dia a dia, com a resposta curta: o passo a passo, quem faz cada passo e em qual tela. Toque no nome de uma tela para ver tudo o que ela faz no documento [Módulos do ERP Line](modulos.md).
 
@@ -324,7 +324,7 @@ Da necessidade (venda ou estoque) à máquina testada e pronta no estoque. Passo
 - **Peças necessárias:** para cada peça, quanto precisa, quanto há no estoque, o reservado em outras OPs, o que está a caminho e quanto falta.
 - **Pedir as peças que faltam:** cria uma ordem de compra em cotação por fornecedor preferido, já com as quantidades.
 
-_Tela [Produção](modulos.md#produção): menu Assistência → Produção. Quem pode abrir: Administrador, Vendas, Financeiro e Técnico._
+_Tela [Produção](modulos.md#produção): menu Fábrica e estoque → Produção. Quem pode abrir: Administrador, Vendas, Financeiro e Técnico._
 
 ### Como registro o teste do giga de uma máquina?
 
@@ -533,8 +533,9 @@ Telas que não estão na lista do menu e por onde se chega nelas. Todas também 
 - **[PDV (venda de balcão)](modulos.md#pdv-venda-de-balcão):** Cartão rosa "PDV" no alto do menu (abre em outra aba)
 - **[Painel das máquinas](modulos.md#painel-das-máquinas):** Botão "Painel das máquinas" na tela Máquinas
 - **[Painel dos produtos](modulos.md#painel-dos-produtos):** Botão "Painel dos produtos" em Produtos e estoque
-- **[Peças de reposição](modulos.md#peças-de-reposição):** Cartão "Peças de reposição" em Produtos e estoque
-- **[Componentes de produção](modulos.md#componentes-de-produção):** Cartão "Componentes de produção" em Produtos e estoque
+- **[Peças à venda](modulos.md#peças-à-venda):** Cartão "Peças à venda" em Produtos e estoque
+- **[Insumos](modulos.md#insumos):** Cartão "Insumos" em Produtos e estoque
+- **[Tornearia (usinadas)](modulos.md#tornearia-usinadas):** Cartão "Tornearia (usinadas)" em Produtos e estoque
 - **[Formas de pagamento](modulos.md#formas-de-pagamento):** Engrenagem no fim do menu → Configurações
 - **[Usuários e permissões](modulos.md#usuários-e-permissões):** Engrenagem no fim do menu → Configurações
 - **[Importar dados](modulos.md#importar-dados):** Engrenagem no fim do menu → Configurações

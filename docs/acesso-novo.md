@@ -3,7 +3,7 @@
 > Documento gerado a partir do código do ERP com o comando `npx tsx scripts/gerar-docs.mjs`. Não edite à mão: mude o texto
 > na fonte (src/lib/permissoes.ts, o processo "acesso" de src/lib/esquemas.ts e a tela Usuários de src/lib/modulosDetalhe.ts) e gere de novo.
 
-**Atualizado em:** 23/10/2026.
+**Atualizado em:** 27/10/2026.
 
 Como uma pessoa nova da equipe ganha acesso só ao que precisa. Este documento mostra quem cria o acesso, qual perfil escolher, como é o primeiro acesso e o que fazer quando a pessoa esquece a senha ou sai da empresa.
 
@@ -45,13 +45,13 @@ Na tela, cada passo é assim:
 Escolha o perfil pela função da pessoa. Quanto menos telas, mais simples fica o ERP para ela. Toque no perfil para ver as telas e os processos dele no [Guia rápido por perfil](guia-por-perfil.md).
 
 - **[Administrador](guia-por-perfil.md#administrador):** Acesso total, usuários e configurações. _(todas as telas; faz tudo)_
-- **[Vendas](guia-por-perfil.md#vendas):** Pedidos, PDV, clientes, cobranças e NF-e das vendas. _(45 telas; 8 tipos de ação)_
-- **[Financeiro](guia-por-perfil.md#financeiro):** Contas a pagar/receber, notas fiscais, estoque, compras e fornecedores. _(58 telas; 15 tipos de ação)_
-- **[Técnico](guia-por-perfil.md#técnico):** Assistência técnica, garantias, produção e compras de peças. _(23 telas; 5 tipos de ação)_
+- **[Vendas](guia-por-perfil.md#vendas):** Pedidos, PDV, clientes, cobranças e NF-e das vendas. _(47 telas; 8 tipos de ação)_
+- **[Financeiro](guia-por-perfil.md#financeiro):** Contas a pagar/receber, notas fiscais, estoque, compras e fornecedores. _(65 telas; 15 tipos de ação)_
+- **[Técnico](guia-por-perfil.md#técnico):** Assistência técnica, garantias, produção e compras de peças. _(25 telas; 5 tipos de ação)_
 - **[Contador](guia-por-perfil.md#contador):** Só consulta: notas fiscais, financeiro e o fechamento mensal (XML e planilhas). _(15 telas; só consulta)_
 - **[Expedição](guia-por-perfil.md#expedição):** Separar, conferir, embalar e despachar os pedidos; etiquetas e DANFE. _(4 telas; 1 tipo de ação)_
-- **[Marketplaces](guia-por-perfil.md#marketplaces):** Ajusta os cadastros dos produtos para os anúncios: título, descrição, fotos, EAN, categorias e medidas (sem preço, custo nem estoque). _(11 telas; 1 tipo de ação)_
-- **[Compras](guia-por-perfil.md#compras):** Ordens de compra, cotações, necessidades, notas de fornecedor (custo, preço para aprovação, vínculo com a OC), fornecedores e estoque. _(15 telas; 4 tipos de ação)_
+- **[Marketplaces](guia-por-perfil.md#marketplaces):** Ajusta os cadastros dos produtos para os anúncios: título, descrição, fotos, EAN, categorias e medidas (sem preço, custo nem estoque). _(12 telas; 1 tipo de ação)_
+- **[Compras](guia-por-perfil.md#compras):** Ordens de compra, cotações, necessidades, notas de fornecedor (custo, preço para aprovação, vínculo com a OC), fornecedores e estoque. _(17 telas; 4 tipos de ação)_
 - **[Só o giga](guia-por-perfil.md#só-o-giga):** Só a tela do Teste do giga (REG-006): lança e anula os testes das máquinas, sem ver o resto do ERP. _(1 tela; 1 tipo de ação)_
 
 **Administrador** é para quem cuida da empresa: vê e faz tudo. Mesmo assim, Usuários e as Configurações da empresa abrem só para a conta master.

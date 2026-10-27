@@ -53,12 +53,21 @@ export const grupoDaRota = (path) =>
   ?? AREA_FORA.find(([r]) => path === r || path.startsWith(r.endsWith("/") ? r : r + "/"))?.[1] ?? null;
 export const soDaMaster = (tela, to) => tela === "usuarios" || (tela === "configuracoes" && !LIVRES.includes(to));
 
+/**
+ * Telas que ficam fora dos documentos, mesmo estando no menu: o texto delas fala de dados sensíveis da empresa
+ * (o repositório é público). Na dúvida, a tela entra aqui.
+ */
+export const TELAS_FORA_DOS_DOCS = [
+  "/funcionarios-crown", // histórico de pagamentos de ex-funcionários de outra empresa
+];
+const nosDocs = (i) => !TELAS_FORA_DOS_DOCS.includes(i.to);
+
 /** Áreas na ordem da tela Módulos: as do menu e, no fim, Configurações (a engrenagem). */
 export const AREAS = [
   ...grupos.map((g) => ({ id: g.id, titulo: g.titulo || "Início", texto: SOBRE_AREAS[g.id] ?? "", itens: [...g.itens, ...itensForaDoMenu.filter((i) => (grupoDaRota(i.to) ?? "admin") === g.id)] })),
   { id: "admin", titulo: "Configurações", texto: "Pela engrenagem no fim do menu: empresa e marca, usuários e permissões, importação de dados e categorias.",
     itens: itensForaDoMenu.filter((i) => (grupoDaRota(i.to) ?? "admin") === "admin") },
-];
+].map((a) => ({ ...a, itens: a.itens.filter(nosDocs) }));
 const areaDoItem = (to) => AREAS.find((a) => a.itens.some((i) => i.to === to));
 
 // ---------- telas ----------

@@ -55,3 +55,5 @@ Cuido dos documentos em Markdown da pasta `docs/`, gerados a partir do código e
 - Perguntas frequentes, acesso novo e glossário citam telas, partes e processos pelo nome: se um deles mudar ou sumir
   no código, o gerador para com erro e a pergunta ou o termo precisa ser revisto (não é para tirar a conferência).
 - Conferir os links entre os documentos depois de gerar (âncora no jeito do GitHub; título repetido ganha -1).
+- O menu muda sempre (outros chats): ao gerar de novo, ler os títulos novos no diff de `docs/modulos.md`. Tela com texto
+  sensível (pagamentos de pessoas, "por fora", nome de outra empresa) vai para `TELAS_FORA_DOS_DOCS` em `scripts/docs/base.mjs`.

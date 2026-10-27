@@ -3,7 +3,7 @@
 > Documento gerado a partir do código do ERP com o comando `npx tsx scripts/gerar-docs.mjs`. Não edite à mão: mude o texto
 > na fonte (src/lib/modulos.ts, src/lib/modulosDetalhe.ts e src/lib/esquemas.ts) e gere de novo.
 
-**Atualizado em:** 23/10/2026 · **10 áreas**, **62 telas** e **32 processos**.
+**Atualizado em:** 27/10/2026 · **11 áreas**, **69 telas** e **32 processos**.
 
 Este documento explica, em português simples, o que cada tela do ERP Line faz, na mesma ordem do menu, e quem pode abrir cada uma. No fim estão os principais processos da empresa, passo a passo, com quem faz cada passo e em qual tela.
 
@@ -15,11 +15,12 @@ Este documento explica, em português simples, o que cada tela do ERP Line faz, 
   - [Vendas](#vendas) (6 telas)
   - [Cadastros](#cadastros) (6 telas)
   - [Logística](#logística) (6 telas)
-  - [Assistência](#assistência) (6 telas)
-  - [Fábrica e estoque](#fábrica-e-estoque) (8 telas)
+  - [Assistência](#assistência) (5 telas)
+  - [Fábrica e estoque](#fábrica-e-estoque) (11 telas)
   - [Financeiro](#financeiro) (8 telas)
   - [Fiscal](#fiscal) (8 telas)
-  - [Gestão](#gestão) (4 telas)
+  - [Gestão](#gestão) (3 telas)
+  - [Funcionários](#funcionários) (6 telas)
   - [Configurações](#configurações) (8 telas)
 - [Páginas abertas por link](#páginas-abertas-por-link)
 - [Processos passo a passo](#processos-passo-a-passo)
@@ -643,7 +644,7 @@ O que a tela faz:
 
 Ordens de serviço, garantias e preventivas das máquinas dos clientes.
 
-Telas: [Painel da assistência](#painel-da-assistência) · [Ordens de serviço](#ordens-de-serviço) · [Garantias e preventivas](#garantias-e-preventivas) · [Máquinas](#máquinas) · [Teste do giga (REG-006)](#teste-do-giga-reg-006) · [Produção](#produção)
+Telas: [Painel da assistência](#painel-da-assistência) · [Ordens de serviço](#ordens-de-serviço) · [Garantias e preventivas](#garantias-e-preventivas) · [Máquinas](#máquinas) · [Teste do giga (REG-006)](#teste-do-giga-reg-006)
 
 ### Painel da assistência
 
@@ -793,40 +794,11 @@ O que a tela faz:
 - **Atalhos:** Máquinas e Painel das máquinas no topo.
 - **Quem usa:** técnico e administrador lançam e anulam; o financeiro vê o painel e os registros.
 
-### Produção
-
-**Monte as máquinas no prazo, sem parar por falta de peça.**
-
-Ordens de produção planejadas, em produção, prontas e atrasadas, com as peças que faltam.
-
-- **Tags:** OP · PRODUÇÃO · FICHA TÉCNICA
-- **Quem pode abrir:** Administrador, Vendas, Financeiro e Técnico
-
-O que a tela faz:
-
-- **OP - Ordem de Produção:** três abas, Máquinas, Tornearia (eixo, bucha, pá) e Mecânica (redutor, cilindro, subconjuntos), com quantas estão abertas; na OP da peça, o desenho técnico (PDF ou foto) fica à vista e pode ser anexado ali.
-- **Cartões:** planejadas, em produção, ordens com peça faltando e máquinas (ou peças) prontas no mês.
-- **Quadro:** colunas Planejadas → Em produção → Prontas no mês, com "faltam peças" ou "peças ok", prazo, atraso em vermelho e responsável.
-- **Lista:** a mesma informação em tabela, com a opção de mostrar concluídas e canceladas.
-- **Nova OP:** máquina ou subconjunto, quantidade, previsão, responsável, números de série, venda ligada e observações (o texto padrão já vem).
-- **Peças necessárias:** para cada peça, quanto precisa, quanto há no estoque, o reservado em outras OPs, o que está a caminho e quanto falta.
-- **Pedir as peças que faltam:** cria uma ordem de compra em cotação por fornecedor preferido, já com as quantidades.
-- **Criar OP de subconjuntos:** o subconjunto com estoque próprio que falta ganha a sua OP, para ficar pronto antes da máquina.
-- **Etapas de produção:** checklist da montagem da máquina; marcar a etapa grava quem fez e quando.
-- **Iniciar e concluir:** concluir baixa as peças do estoque e põe as máquinas prontas no estoque; sem todas as peças não conclui.
-- **Quanto custou montar cada unidade:** na OP aberta, a previsão pela ficha técnica; ao concluir, o ERP guarda o custo de cada peça naquele dia e mostra o custo de cada unidade (e de cada nº de série), o da OP inteira e as peças que mais pesam; o valor aparece também no quadro e na lista.
-- **Teste do giga na OP:** mostra o teste de cada número de série e o botão para lançar o teste ou o reteste; avisa se falta ao concluir.
-- **Venda de máquina:** a OP pode ser ligada ao pedido (proposta → pedido → OP → nota).
-- **Aba Ficha técnica:** peças por grupo com o custo, etapas dentro e fora da fábrica e como cada item chega (comprado, fabricado ou terceirizado).
-- **Estrutura em vários níveis:** subconjuntos dentro da máquina, montados junto ou com estoque próprio; as peças da OP já somam tudo.
-- **Marcadores, cancelar e excluir:** etiquetas coloridas, cancelar a OP e excluir com motivo (fica em "Excluídas"; OP concluída não sai).
-- **Quem usa:** financeiro, técnico e administrador criam e mexem; vendas consulta; o perfil Compras não vê esta tela.
-
 ## Fábrica e estoque
 
 Produtos e estoque das duas unidades, máquinas, produção, compras, teste do giga e transferências entre SC e SP.
 
-Telas: [Painel da fábrica](#painel-da-fábrica) · [Produtos e estoque](#produtos-e-estoque) · [Compras e cotações](#compras-e-cotações) · [Transferências SC ↔ SP](#transferências-sc--sp) · [Painel das máquinas](#painel-das-máquinas) · [Painel dos produtos](#painel-dos-produtos) · [Peças de reposição](#peças-de-reposição) · [Componentes de produção](#componentes-de-produção)
+Telas: [Painel da fábrica](#painel-da-fábrica) · [Produtos e estoque](#produtos-e-estoque) · [Produção](#produção) · [Compras e cotações](#compras-e-cotações) · [Acompanhamento de compras](#acompanhamento-de-compras) · [Transferências SC ↔ SP](#transferências-sc--sp) · [Painel das máquinas](#painel-das-máquinas) · [Painel dos produtos](#painel-dos-produtos) · [Peças à venda](#peças-à-venda) · [Tornearia (usinadas)](#tornearia-usinadas) · [Insumos](#insumos)
 
 ### Painel da fábrica
 
@@ -894,6 +866,35 @@ O que a tela faz:
 - **Sugestão de separação:** peças marcadas "não vende" aparecem para conferir e mover para Componentes de produção.
 - **Quem vê:** vendas, financeiro, técnico, compras, marketplaces e administrador; o perfil Marketplaces mexe só no anúncio, sem preço, custo nem estoque.
 
+### Produção
+
+**Monte as máquinas no prazo, sem parar por falta de peça.**
+
+Ordens de produção planejadas, em produção, prontas e atrasadas, com as peças que faltam.
+
+- **Tags:** OP · PRODUÇÃO · FICHA TÉCNICA
+- **Quem pode abrir:** Administrador, Vendas, Financeiro e Técnico
+
+O que a tela faz:
+
+- **OP - Ordem de Produção:** três abas, Máquinas, Tornearia (eixo, bucha, pá) e Mecânica (redutor, cilindro, subconjuntos), com quantas estão abertas; na OP da peça, o desenho técnico (PDF ou foto) fica à vista e pode ser anexado ali.
+- **Cartões:** planejadas, em produção, ordens com peça faltando e máquinas (ou peças) prontas no mês.
+- **Quadro:** colunas Planejadas → Em produção → Prontas no mês, com "faltam peças" ou "peças ok", prazo, atraso em vermelho e responsável.
+- **Lista:** a mesma informação em tabela, com a opção de mostrar concluídas e canceladas.
+- **Nova OP:** máquina ou subconjunto, quantidade, previsão, responsável, números de série, venda ligada e observações (o texto padrão já vem).
+- **Peças necessárias:** para cada peça, quanto precisa, quanto há no estoque, o reservado em outras OPs, o que está a caminho e quanto falta.
+- **Pedir as peças que faltam:** cria uma ordem de compra em cotação por fornecedor preferido, já com as quantidades.
+- **Criar OP de subconjuntos:** o subconjunto com estoque próprio que falta ganha a sua OP, para ficar pronto antes da máquina.
+- **Etapas de produção:** checklist da montagem da máquina; marcar a etapa grava quem fez e quando.
+- **Iniciar e concluir:** concluir baixa as peças do estoque e põe as máquinas prontas no estoque; sem todas as peças não conclui.
+- **Quanto custou montar cada unidade:** na OP aberta, a previsão pela ficha técnica; ao concluir, o ERP guarda o custo de cada peça naquele dia e mostra o custo de cada unidade (e de cada nº de série), o da OP inteira e as peças que mais pesam; o valor aparece também no quadro e na lista.
+- **Teste do giga na OP:** mostra o teste de cada número de série e o botão para lançar o teste ou o reteste; avisa se falta ao concluir.
+- **Venda de máquina:** a OP pode ser ligada ao pedido (proposta → pedido → OP → nota).
+- **Aba Ficha técnica:** peças por grupo com o custo, etapas dentro e fora da fábrica e como cada item chega (comprado, fabricado ou terceirizado).
+- **Estrutura em vários níveis:** subconjuntos dentro da máquina, montados junto ou com estoque próprio; as peças da OP já somam tudo.
+- **Marcadores, cancelar e excluir:** etiquetas coloridas, cancelar a OP e excluir com motivo (fica em "Excluídas"; OP concluída não sai).
+- **Quem usa:** financeiro, técnico e administrador criam e mexem; vendas consulta; o perfil Compras não vê esta tela.
+
 ### Compras e cotações
 
 **Compre certo, no preço certo, para SC ou SP.**
@@ -926,6 +927,24 @@ O que a tela faz:
 - **Cada aba explicada:** o texto no alto diz o que a aba faz, e os títulos das colunas explicam a conta ao passar o mouse.
 - **Marcadores, histórico e excluir:** etiquetas coloridas, histórico de alterações e excluir com motivo (OC com mercadoria recebida não sai).
 - **Quem usa:** o perfil Compras abre direto aqui; financeiro e administrador também; o técnico pede peças; receber: Compras e financeiro.
+
+### Acompanhamento de compras
+
+**Cada peça pedida: ordem de compra, nota, transporte e chegada.**
+
+Onde está cada peça pedida: ordem de compra, nota do fornecedor, transporte e chegada.
+
+- **Tags:** COMPRAS · OC · NF-E · TRANSPORTE
+- **Quem pode abrir:** Administrador, Vendas, Financeiro, Técnico e Compras
+
+O que a tela faz:
+
+- **Uma linha por peça pedida, com as etapas lado a lado:** ordem de compra, nota fiscal, transporte e chegada (verde = feito, amarelo = agora, vermelho = atrasado).
+- **Cartões no topo que filtram a lista:** em cotação, pedidas sem nota, nota emitida, em transporte, atrasadas e as que chegaram nos últimos 30 dias.
+- Transporte pelo CT-e da transportadora (ocorrência e previsão de entrega) ou pela nota marcada a caminho; sem CT-e, vale a previsão da OC.
+- Aviso quando o fornecedor já emitiu uma nota que ainda não foi ligada à OC.
+- Tocar na linha abre a ordem de compra em Compras.
+- Busca por peça, código, fornecedor, número da OC ou da nota; quem é técnico vê a lista sem os valores.
 
 ### Transferências SC ↔ SP
 
@@ -1014,15 +1033,15 @@ O que a tela faz:
 - **Atalhos:** todos os produtos, peças, componentes, reposição, margem e painel gerencial.
 - **Onde abre:** botão "Painel dos produtos" em Produtos e estoque.
 
-### Peças de reposição
+### Peças à venda
 
 **As peças que o cliente compra, prontas para vender em todo canal.**
 
-Peças de reposição: o que o cliente compra. Vão para o catálogo, os pedidos, o PDV e os anúncios, com preço, estoque em SC e SP, foto, código do fabricante e NCM.
+Peças à venda (a tela que abre em Produtos e estoque): o que o cliente compra. Vão para o catálogo, os pedidos, o PDV e os anúncios, com preço, estoque em SC e SP, foto, código do fabricante e NCM.
 
 - **Tags:** PEÇAS · CATÁLOGO · REPOSIÇÃO
 - **Quem pode abrir:** Administrador, Vendas, Financeiro, Técnico, Marketplaces e Compras
-- **Onde fica:** fora da lista do menu; abre por Cartão "Peças de reposição" em Produtos e estoque (ou pela busca do menu)
+- **Onde fica:** fora da lista do menu; abre por Cartão "Peças à venda" em Produtos e estoque (ou pela busca do menu)
 
 O que a tela faz:
 
@@ -1041,15 +1060,34 @@ O que a tela faz:
 - **Sugestão de separação:** peças marcadas "não vende" são sugeridas para mover para Componentes de produção.
 - **Onde abre:** cartão "Peças de reposição" em Produtos e estoque.
 
-### Componentes de produção
+### Tornearia (usinadas)
+
+**As peças usinadas na tornearia, numa lista só.**
+
+Tornearia: as peças usinadas, com o marcador "Tornearia". A usinada que também vende aparece aqui e em Peças à venda.
+
+- **Tags:** TORNEARIA · USINADAS · FÁBRICA
+- **Quem pode abrir:** Administrador, Vendas, Financeiro, Técnico, Marketplaces e Compras
+- **Onde fica:** fora da lista do menu; abre por Cartão "Tornearia (usinadas)" em Produtos e estoque (ou pela busca do menu)
+
+O que a tela faz:
+
+- **Quem entra:** os produtos com o marcador "Tornearia" (cubos, eixos, flanges, separadores, peças da chave extratora, cilindros…).
+- **Marcar ou tirar:** pelo marcador no cadastro do produto ou pela ação em lote; o marcador é da usuária e nunca some sozinho.
+- **Também vende:** a usinada que o cliente compra aparece aqui e em Peças à venda.
+- **Lista:** nome, códigos (nosso SKU e o de cada fornecedor), custo, estoque em SC e SP, vendidos em 3 meses e NCM.
+- **Botões da linha:** ficha do produto, movimentar estoque e histórico, como nas outras abas.
+- **Onde abre:** cartão "Tornearia (usinadas)" em Produtos e estoque.
+
+### Insumos
 
 **O que vai dentro das máquinas, separado do que se vende.**
 
-Componentes de produção: o que vai dentro das máquinas e não se vende avulso. Entram na ficha técnica, nas ordens de produção e nas necessidades de compra; a peça de reposição que também é usada na fábrica aparece com a etiqueta "também vende".
+Insumos: o que vai dentro das máquinas e não se vende avulso. Entram na ficha técnica, nas ordens de produção e nas necessidades de compra; a peça de reposição que também é usada na fábrica aparece com a etiqueta "também vende".
 
-- **Tags:** COMPONENTES · FICHA TÉCNICA · FÁBRICA
+- **Tags:** INSUMOS · COMPONENTES · FICHA TÉCNICA · FÁBRICA
 - **Quem pode abrir:** Administrador, Vendas, Financeiro, Técnico, Marketplaces e Compras
-- **Onde fica:** fora da lista do menu; abre por Cartão "Componentes de produção" em Produtos e estoque (ou pela busca do menu)
+- **Onde fica:** fora da lista do menu; abre por Cartão "Insumos" em Produtos e estoque (ou pela busca do menu)
 
 O que a tela faz:
 
@@ -1064,7 +1102,7 @@ O que a tela faz:
 - **Ações em lote:** mover para Peças ou Máquinas, ativar, inativar, unificar repetidos e exportar.
 - **Abas:** Qualidade, Anúncios, Categorias, Preços, Tabelas de preço e Contagem, como em Produtos e estoque.
 - **Botões da linha:** ficha do produto, movimentar estoque (com baixa fiscal) e histórico de alterações e movimentações.
-- **Onde abre:** cartão "Componentes de produção" em Produtos e estoque.
+- **Onde abre:** cartão "Insumos" em Produtos e estoque.
 
 ## Financeiro
 
@@ -1550,9 +1588,9 @@ O que a tela faz:
 
 ## Gestão
 
-Decisões e organização: painel gerencial, relatórios, margem, troca do Tiny e funcionários.
+Decisões e organização: painel gerencial, relatórios, margem e troca do Tiny.
 
-Telas: [Painel gerencial](#painel-gerencial) · [Comissões](#comissões) · [Metas de vendas](#metas-de-vendas) · [Funcionários](#funcionários)
+Telas: [Painel gerencial](#painel-gerencial) · [Comissões](#comissões) · [Metas de vendas](#metas-de-vendas)
 
 ### Painel gerencial
 
@@ -1637,7 +1675,13 @@ O que a tela faz:
 - **Visão do vendedor:** vê só a própria meta, o realizado, a projeção, quanto falta por dia útil e a evolução mês a mês.
 - **Quem vê:** vendas (só a própria meta), financeiro e administrador (todas, e cadastram).
 
-### Funcionários
+## Funcionários
+
+Funcionários da MF: equipe, pasta de documentos de cada um e pagamentos.
+
+Telas: [Equipe](#equipe) · [Pasta de documentos](#pasta-de-documentos) · [Admissão e saída](#admissão-e-saída) · [Férias e ponto](#férias-e-ponto) · [Recibos da equipe](#recibos-da-equipe) · [Pagamentos da equipe](#pagamentos-da-equipe)
+
+### Equipe
 
 **A equipe organizada, com contratos, salários e documentos.**
 
@@ -1648,7 +1692,7 @@ Funcionários: dados pessoais, contrato, salário, documentos e ligação com o 
 
 O que a tela faz:
 
-- **Na equipe:** quantas pessoas, quantos técnicos e quantos estão em férias.
+- **Cartões de abertura:** Funcionários (na ativa, com técnicos e férias), Ex-funcionários, Prestadores de serviço (PJ/MEI), Sem carteira (autônomos) e No INSS (afastados); tocar no cartão filtra a lista.
 - **Salários:** soma dos salários brutos da equipe por mês.
 - **Aniversariantes do mês:** quem faz aniversário e em que dia.
 - **Experiência vencendo:** avisa o fim dos 45 e dos 90 dias de experiência que caem nos próximos 15 dias.
@@ -1658,13 +1702,108 @@ O que a tela faz:
 - **Assistência técnica:** marca quem faz assistência para aparecer como técnico na OS, com a CNH e a validade.
 - **Ligações:** ao usuário do ERP e ao cadastro de vendedor, para as comissões.
 - **Desligamento:** data e motivo; a pessoa sai da equipe ativa e o histórico fica.
-- **Documentos:** anexar contratos e documentos na ficha da pessoa.
+- **Pasta de documentos:** no fim da ficha, cada documento numa divisão (contrato, exames, férias, holerites, atestados, outros).
 - **Busca, filtros e ordem:** por situação, setor, vínculo e técnicos; ordenar por nome, tempo de casa ou maior salário.
 - **Marcadores:** etiquetas coloridas em uma ou em várias pessoas, com filtro.
 - **Exportar:** planilha da equipe com o tempo de casa de cada um.
 - **Lançar salários:** cria as contas a pagar do mês, uma por pessoa, pelo valor bruto e sem repetir; depois ajustar ao líquido da folha.
 - **Contato rápido:** WhatsApp, telefone e e-mail direto da lista.
 - **Quem vê:** administrador e financeiro (salário e CPF são dados sensíveis); excluir, só o administrador.
+
+### Pasta de documentos
+
+**A pasta de cada funcionário, com tudo guardado e separado.**
+
+Pasta de documentos de cada funcionário: contrato, exames, férias, holerites, atestados e outros.
+
+- **Tags:** RH · DOCUMENTOS · PASTA
+- **Quem pode abrir:** Administrador e Financeiro
+
+O que a tela faz:
+
+- **Quadro da equipe:** cada pessoa numa linha e quantos documentos ela tem em cada divisão.
+- **Divisões:** contrato, exames, férias, holerites, atestados, ponto e outros.
+- **Sem contrato:** avisa quantas pessoas da equipe ainda não têm o contrato guardado.
+- **Abrir a pasta:** clicar na pessoa mostra as divisões dela para guardar, abrir ou apagar arquivos.
+- **Guardar:** arrastar o arquivo para a divisão ou usar Guardar (PDF, fotos, planilhas; até 20 MB cada).
+- **Mudar de divisão:** trocar a divisão de um arquivo guardado no lugar errado.
+- **Importar pasta:** escolher no computador uma pasta com uma subpasta por pessoa e, dentro, uma por divisão; mostra o resumo e guarda tudo de uma vez, sem repetir o que já está guardado.
+- **Desligados:** a pasta de quem saiu continua guardada; marque Mostrar desligados para ver.
+- **Quem vê:** administrador e financeiro; os arquivos ficam num lugar privado e abrem por link temporário.
+
+### Admissão e saída
+
+**O que falta na admissão e na saída de cada funcionário.**
+
+Admissão e saída: o que falta no cadastro e na pasta de cada funcionário.
+
+- **Tags:** RH · ADMISSÃO · SAÍDA
+- **Quem pode abrir:** Administrador e Financeiro
+
+O que a tela faz:
+
+- **Admissão (na ativa):** CPF, cargo, data de admissão, Pix ou conta, contato de emergência e contrato na pasta.
+- Registrados (CLT, experiência, estágio, aprendiz, temporário): também PIS, CTPS e ASO na pasta.
+- **PJ, autônomo e sócio:** sem PIS, CTPS nem ASO.
+- **Saída (desligados):** data de saída, motivo e documentos de saída na pasta.
+- **Só quem tem pendência:** mostra primeiro quem tem mais coisas faltando; desmarque para ver todos.
+- **Completar:** na ficha da pessoa (Equipe) ou guardando o documento na Pasta de documentos.
+
+### Férias e ponto
+
+**As férias de cada um em dia e a folha de ponto guardada.**
+
+Férias e ponto: períodos de férias de cada funcionário registrado, o que já tirou e a folha de ponto na pasta.
+
+- **Tags:** RH · FÉRIAS · PONTO
+- **Quem pode abrir:** Administrador e Financeiro
+
+O que a tela faz:
+
+- **Quem aparece:** quem tem carteira assinada (CLT, experiência, estágio, aprendiz, temporário); desligados com Mostrar desligados.
+- **Períodos:** a cada 12 meses de casa, 30 dias de férias para tirar nos 12 meses seguintes.
+- **Situação de cada período:** em aquisição, a tirar, vence logo (até 60 dias do limite), vencida ou tirada.
+- **Primeiro da lista:** quem tem o limite mais perto.
+- **Lançar férias:** período, início, dias de férias e dias vendidos (até 10), sem passar do saldo; mostra a volta ao trabalho.
+- **Apagar:** tira as férias lançadas por engano, depois de confirmar.
+- **Ponto:** a folha de ponto do mês fica na divisão Ponto da Pasta de documentos.
+
+### Recibos da equipe
+
+**Os recibos dos funcionários, separados do Financeiro.**
+
+Recibos de pagamento aos funcionários (fora do Financeiro), com PDF um a um ou em lote.
+
+- **Tags:** RH · RECIBOS · PAGAMENTOS
+- **Quem pode abrir:** Administrador e Financeiro
+
+O que a tela faz:
+
+- **Quais aparecem:** recibos de pagamento de conta da folha ou pró-labore, ou com o recebedor no cadastro de funcionários.
+- **Fora do Financeiro:** esses recibos saem de Financeiro → Recibos e ficam só aqui.
+- **Quem vê:** administrador e financeiro (o banco não mostra a outros papéis).
+- **Busca e filtros:** número, nome, referência, tipo e mês.
+- **PDF:** um a um ou todos da lista num arquivo só, para assinar de uma vez.
+- **Cancelar ou excluir:** com motivo; a exclusão fica na auditoria.
+
+### Pagamentos da equipe
+
+**O que foi pago a cada funcionário, em todas as contas.**
+
+Pagamentos aos funcionários em todas as contas, reconhecidos pelo nome como aparece no Pix.
+
+- **Tags:** RH · PAGAMENTOS · EXTRATOS
+- **Quem pode abrir:** Administrador e Financeiro
+
+O que a tela faz:
+
+- **Pagamentos nos extratos:** Pix e transferências para a equipe em todas as contas da MF.
+- **Reconhecimento pelo nome:** liga o pagamento à pessoa pelo nome do cadastro como aparece no Pix.
+- **Por pessoa e por mês:** quem recebeu mais no período primeiro e o total de cada mês.
+- **Filtros:** conta, período, pessoa e busca na descrição.
+- **Exportar:** planilha dos pagamentos do período.
+- **Sem cadastro:** se ninguém estiver em Equipe, avisa para cadastrar com o nome como aparece no Pix.
+- **Quem vê:** administrador e financeiro.
 
 ## Configurações
 

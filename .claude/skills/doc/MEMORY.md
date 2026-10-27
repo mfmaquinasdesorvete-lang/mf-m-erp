@@ -1,5 +1,5 @@
 # MEMORY — DOC (ERP Line – Documentos (.md))
-Atualizado em 25/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 Os 5 documentos pedidos estão prontos em `docs/`, todos gerados do código por um comando só.
@@ -24,6 +24,10 @@ Nada fica esperando: os documentos `.md` não vão para o site, então não há 
 - Quis todos os documentos sugeridos, feitos em sequência e sem pressa (23/10).
 - Os documentos ficam em `docs/`, em português simples e sem dados da empresa (o repositório é público).
 - Telas e processos só da conta master (Retaguarda, carteira pessoal, lojas licenciadas) ficam fora dos documentos.
+- Tela cujo texto fala de dado sensível da empresa fica fora (lista `TELAS_FORA_DOS_DOCS` em `scripts/docs/base.mjs`);
+  em 27/10 entrou a do histórico de ex-funcionários de antes da MF.
+- Rodada de fechamento (27/10): nada novo sem ela pedir; "feito" só depois de testar (aqui: gerar de novo do código atual,
+  conferir links e dados sensíveis).
 
 ## Onde está
 - Gerador: `scripts/gerar-docs.mjs` (rodar na raiz: `npx tsx scripts/gerar-docs.mjs`).

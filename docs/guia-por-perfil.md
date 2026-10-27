@@ -3,7 +3,7 @@
 > Documento gerado a partir do código do ERP com o comando `npx tsx scripts/gerar-docs.mjs`. Não edite à mão: mude o texto
 > na fonte (src/lib/permissoes.ts, src/lib/menu.ts, src/lib/modulosDetalhe.ts e src/lib/esquemas.ts) e gere de novo.
 
-**Atualizado em:** 23/10/2026 · **9 perfis**.
+**Atualizado em:** 27/10/2026 · **9 perfis**.
 
 Um guia curto para cada função da empresa: as telas que a pessoa abre, o que ela pode criar ou alterar, os atalhos do celular e os processos em que ela entra. Para saber tudo o que uma tela faz, toque no nome dela: abre o documento [Módulos do ERP Line](modulos.md).
 
@@ -60,7 +60,7 @@ _Pedidos, PDV, clientes, cobranças e NF-e das vendas._
   - Cotar e aprovar frete
   - Separar, conferir, embalar e despachar pedidos
 
-### Telas que abre (45)
+### Telas que abre (47)
 
 **Início**
 
@@ -100,18 +100,20 @@ _Pedidos, PDV, clientes, cobranças e NF-e das vendas._
 - [Ordens de serviço](modulos.md#ordens-de-serviço): Da recepção à entrega, cada conserto registrado e cobrado.
 - [Garantias e preventivas](modulos.md#garantias-e-preventivas): Nenhuma garantia ou preventiva esquecida: o cliente é lembrado.
 - [Máquinas](modulos.md#máquinas): Cada modelo de máquina completo: peças, custo, manuais e clientes.
-- [Produção](modulos.md#produção): Monte as máquinas no prazo, sem parar por falta de peça.
 
 **Fábrica e estoque**
 
 - [Painel da fábrica](modulos.md#painel-da-fábrica): Veja a fábrica de relance: o que monta, o que falta e o que comprar.
 - [Produtos e estoque](modulos.md#produtos-e-estoque): Cadastro limpo, estoque certo em SC e SP e preço com margem.
+- [Produção](modulos.md#produção): Monte as máquinas no prazo, sem parar por falta de peça.
 - [Compras e cotações](modulos.md#compras-e-cotações): Compre certo, no preço certo, para SC ou SP.
+- [Acompanhamento de compras](modulos.md#acompanhamento-de-compras): Cada peça pedida: ordem de compra, nota, transporte e chegada.
 - [Transferências SC ↔ SP](modulos.md#transferências-sc--sp): Mande máquinas e peças entre SC e SP com nota e estoque certos.
 - [Painel das máquinas](modulos.md#painel-das-máquinas): Saiba quais máquinas produzir antes de faltar para vender.
 - [Painel dos produtos](modulos.md#painel-dos-produtos): Descubra o que vende, o que dá lucro e o que vai faltar.
-- [Peças de reposição](modulos.md#peças-de-reposição): As peças que o cliente compra, prontas para vender em todo canal.
-- [Componentes de produção](modulos.md#componentes-de-produção): O que vai dentro das máquinas, separado do que se vende.
+- [Peças à venda](modulos.md#peças-à-venda): As peças que o cliente compra, prontas para vender em todo canal.
+- [Tornearia (usinadas)](modulos.md#tornearia-usinadas): As peças usinadas na tornearia, numa lista só.
+- [Insumos](modulos.md#insumos): O que vai dentro das máquinas, separado do que se vende.
 
 **Financeiro**
 
@@ -174,7 +176,7 @@ _Contas a pagar/receber, notas fiscais, estoque, compras e fornecedores._
   - Configurar a NFS-e
   - Separar, conferir, embalar e despachar pedidos
 
-### Telas que abre (58)
+### Telas que abre (65)
 
 **Início**
 
@@ -215,18 +217,20 @@ _Contas a pagar/receber, notas fiscais, estoque, compras e fornecedores._
 - [Garantias e preventivas](modulos.md#garantias-e-preventivas): Nenhuma garantia ou preventiva esquecida: o cliente é lembrado.
 - [Máquinas](modulos.md#máquinas): Cada modelo de máquina completo: peças, custo, manuais e clientes.
 - [Teste do giga (REG-006)](modulos.md#teste-do-giga-reg-006): Toda máquina testada e registrada antes de sair da fábrica.
-- [Produção](modulos.md#produção): Monte as máquinas no prazo, sem parar por falta de peça.
 
 **Fábrica e estoque**
 
 - [Painel da fábrica](modulos.md#painel-da-fábrica): Veja a fábrica de relance: o que monta, o que falta e o que comprar.
 - [Produtos e estoque](modulos.md#produtos-e-estoque): Cadastro limpo, estoque certo em SC e SP e preço com margem.
+- [Produção](modulos.md#produção): Monte as máquinas no prazo, sem parar por falta de peça.
 - [Compras e cotações](modulos.md#compras-e-cotações): Compre certo, no preço certo, para SC ou SP.
+- [Acompanhamento de compras](modulos.md#acompanhamento-de-compras): Cada peça pedida: ordem de compra, nota, transporte e chegada.
 - [Transferências SC ↔ SP](modulos.md#transferências-sc--sp): Mande máquinas e peças entre SC e SP com nota e estoque certos.
 - [Painel das máquinas](modulos.md#painel-das-máquinas): Saiba quais máquinas produzir antes de faltar para vender.
 - [Painel dos produtos](modulos.md#painel-dos-produtos): Descubra o que vende, o que dá lucro e o que vai faltar.
-- [Peças de reposição](modulos.md#peças-de-reposição): As peças que o cliente compra, prontas para vender em todo canal.
-- [Componentes de produção](modulos.md#componentes-de-produção): O que vai dentro das máquinas, separado do que se vende.
+- [Peças à venda](modulos.md#peças-à-venda): As peças que o cliente compra, prontas para vender em todo canal.
+- [Tornearia (usinadas)](modulos.md#tornearia-usinadas): As peças usinadas na tornearia, numa lista só.
+- [Insumos](modulos.md#insumos): O que vai dentro das máquinas, separado do que se vende.
 
 **Financeiro**
 
@@ -255,7 +259,15 @@ _Contas a pagar/receber, notas fiscais, estoque, compras e fornecedores._
 - [Painel gerencial](modulos.md#painel-gerencial): Veja onde a empresa cresce, onde trava e o que fazer.
 - [Comissões](modulos.md#comissões): Comissão certa, calculada sozinha e paga sem planilha.
 - [Metas de vendas](modulos.md#metas-de-vendas): Saber cedo se a meta do mês vai ser batida e quanto falta.
-- [Funcionários](modulos.md#funcionários): A equipe organizada, com contratos, salários e documentos.
+
+**Funcionários**
+
+- [Equipe](modulos.md#equipe): A equipe organizada, com contratos, salários e documentos.
+- [Pasta de documentos](modulos.md#pasta-de-documentos): A pasta de cada funcionário, com tudo guardado e separado.
+- [Admissão e saída](modulos.md#admissão-e-saída): O que falta na admissão e na saída de cada funcionário.
+- [Férias e ponto](modulos.md#férias-e-ponto): As férias de cada um em dia e a folha de ponto guardada.
+- [Recibos da equipe](modulos.md#recibos-da-equipe): Os recibos dos funcionários, separados do Financeiro.
+- [Pagamentos da equipe](modulos.md#pagamentos-da-equipe): O que foi pago a cada funcionário, em todas as contas.
 
 **Configurações**
 
@@ -303,7 +315,7 @@ _Assistência técnica, garantias, produção e compras de peças._
   - Produção, compras de peças e cotações
   - Lançar e anular testes do giga (REG-006)
 
-### Telas que abre (23)
+### Telas que abre (25)
 
 **Início**
 
@@ -328,18 +340,20 @@ _Assistência técnica, garantias, produção e compras de peças._
 - [Garantias e preventivas](modulos.md#garantias-e-preventivas): Nenhuma garantia ou preventiva esquecida: o cliente é lembrado.
 - [Máquinas](modulos.md#máquinas): Cada modelo de máquina completo: peças, custo, manuais e clientes.
 - [Teste do giga (REG-006)](modulos.md#teste-do-giga-reg-006): Toda máquina testada e registrada antes de sair da fábrica.
-- [Produção](modulos.md#produção): Monte as máquinas no prazo, sem parar por falta de peça.
 
 **Fábrica e estoque**
 
 - [Painel da fábrica](modulos.md#painel-da-fábrica): Veja a fábrica de relance: o que monta, o que falta e o que comprar.
 - [Produtos e estoque](modulos.md#produtos-e-estoque): Cadastro limpo, estoque certo em SC e SP e preço com margem.
+- [Produção](modulos.md#produção): Monte as máquinas no prazo, sem parar por falta de peça.
 - [Compras e cotações](modulos.md#compras-e-cotações): Compre certo, no preço certo, para SC ou SP.
+- [Acompanhamento de compras](modulos.md#acompanhamento-de-compras): Cada peça pedida: ordem de compra, nota, transporte e chegada.
 - [Transferências SC ↔ SP](modulos.md#transferências-sc--sp): Mande máquinas e peças entre SC e SP com nota e estoque certos.
 - [Painel das máquinas](modulos.md#painel-das-máquinas): Saiba quais máquinas produzir antes de faltar para vender.
 - [Painel dos produtos](modulos.md#painel-dos-produtos): Descubra o que vende, o que dá lucro e o que vai faltar.
-- [Peças de reposição](modulos.md#peças-de-reposição): As peças que o cliente compra, prontas para vender em todo canal.
-- [Componentes de produção](modulos.md#componentes-de-produção): O que vai dentro das máquinas, separado do que se vende.
+- [Peças à venda](modulos.md#peças-à-venda): As peças que o cliente compra, prontas para vender em todo canal.
+- [Tornearia (usinadas)](modulos.md#tornearia-usinadas): As peças usinadas na tornearia, numa lista só.
+- [Insumos](modulos.md#insumos): O que vai dentro das máquinas, separado do que se vende.
 
 **Configurações**
 
@@ -437,11 +451,11 @@ Nos esquemas, este perfil é **Expedição** e **Logística**. Os passos dele em
 
 _Ajusta os cadastros dos produtos para os anúncios: título, descrição, fotos, EAN, categorias e medidas (sem preço, custo nem estoque)._
 
-- **Atalhos na barra do celular:** Produtos e estoque · Peças de reposição · Máquinas · Documentos
+- **Atalhos na barra do celular:** Produtos e estoque · Peças à venda · Máquinas · Documentos
 - **O que pode criar ou alterar:**
   - Cadastrar e editar produtos e preços
 
-### Telas que abre (11)
+### Telas que abre (12)
 
 **Vendas**
 
@@ -461,8 +475,9 @@ _Ajusta os cadastros dos produtos para os anúncios: título, descrição, fotos
 - [Produtos e estoque](modulos.md#produtos-e-estoque): Cadastro limpo, estoque certo em SC e SP e preço com margem.
 - [Painel das máquinas](modulos.md#painel-das-máquinas): Saiba quais máquinas produzir antes de faltar para vender.
 - [Painel dos produtos](modulos.md#painel-dos-produtos): Descubra o que vende, o que dá lucro e o que vai faltar.
-- [Peças de reposição](modulos.md#peças-de-reposição): As peças que o cliente compra, prontas para vender em todo canal.
-- [Componentes de produção](modulos.md#componentes-de-produção): O que vai dentro das máquinas, separado do que se vende.
+- [Peças à venda](modulos.md#peças-à-venda): As peças que o cliente compra, prontas para vender em todo canal.
+- [Tornearia (usinadas)](modulos.md#tornearia-usinadas): As peças usinadas na tornearia, numa lista só.
+- [Insumos](modulos.md#insumos): O que vai dentro das máquinas, separado do que se vende.
 
 **Configurações**
 
@@ -484,7 +499,7 @@ _Ordens de compra, cotações, necessidades, notas de fornecedor (custo, preço 
   - NF-e de fornecedores (entrada)
   - Cadastrar e editar fornecedores
 
-### Telas que abre (15)
+### Telas que abre (17)
 
 **Vendas**
 
@@ -508,10 +523,12 @@ _Ordens de compra, cotações, necessidades, notas de fornecedor (custo, preço 
 - [Painel da fábrica](modulos.md#painel-da-fábrica): Veja a fábrica de relance: o que monta, o que falta e o que comprar.
 - [Produtos e estoque](modulos.md#produtos-e-estoque): Cadastro limpo, estoque certo em SC e SP e preço com margem.
 - [Compras e cotações](modulos.md#compras-e-cotações): Compre certo, no preço certo, para SC ou SP.
+- [Acompanhamento de compras](modulos.md#acompanhamento-de-compras): Cada peça pedida: ordem de compra, nota, transporte e chegada.
 - [Painel das máquinas](modulos.md#painel-das-máquinas): Saiba quais máquinas produzir antes de faltar para vender.
 - [Painel dos produtos](modulos.md#painel-dos-produtos): Descubra o que vende, o que dá lucro e o que vai faltar.
-- [Peças de reposição](modulos.md#peças-de-reposição): As peças que o cliente compra, prontas para vender em todo canal.
-- [Componentes de produção](modulos.md#componentes-de-produção): O que vai dentro das máquinas, separado do que se vende.
+- [Peças à venda](modulos.md#peças-à-venda): As peças que o cliente compra, prontas para vender em todo canal.
+- [Tornearia (usinadas)](modulos.md#tornearia-usinadas): As peças usinadas na tornearia, numa lista só.
+- [Insumos](modulos.md#insumos): O que vai dentro das máquinas, separado do que se vende.
 
 **Fiscal**
 

@@ -3,7 +3,7 @@
 > Documento gerado a partir do código do ERP com o comando `npx tsx scripts/gerar-docs.mjs`. Não edite à mão: mude o texto
 > na fonte (as definições ficam em scripts/docs/glossario.mjs; o "Aparece em" sai de src/lib/modulos.ts e src/lib/modulosDetalhe.ts) e gere de novo.
 
-**Atualizado em:** 23/10/2026 · **53 termos**.
+**Atualizado em:** 27/10/2026 · **53 termos**.
 
 As siglas e palavras que aparecem no ERP, explicadas em palavras simples. Em cada termo, "Aparece em" mostra as telas que usam a palavra (toque para ver a tela no documento [Módulos do ERP Line](modulos.md)).
 
@@ -49,7 +49,7 @@ _Aparece em: [Produtos e estoque](modulos.md#produtos-e-estoque) · [Transferên
 
 A parte da venda que vai para o vendedor ou o representante, calculada pela regra de cada um.
 
-_Aparece em: [Venda de Peças](modulos.md#venda-de-peças) · [Produtos e estoque](modulos.md#produtos-e-estoque) · [Peças de reposição](modulos.md#peças-de-reposição) · [Contas a pagar e receber](modulos.md#contas-a-pagar-e-receber) · [Margem de contribuição](modulos.md#margem-de-contribuição) · [Comissões](modulos.md#comissões)._
+_Aparece em: [Venda de Peças](modulos.md#venda-de-peças) · [Produtos e estoque](modulos.md#produtos-e-estoque) · [Peças à venda](modulos.md#peças-à-venda) · [Contas a pagar e receber](modulos.md#contas-a-pagar-e-receber) · [Margem de contribuição](modulos.md#margem-de-contribuição) · [Comissões](modulos.md#comissões)._
 
 ### Conciliação
 
@@ -67,7 +67,7 @@ _Aparece em: [Automações](modulos.md#automações)._
 
 Pedido de preço a um ou mais fornecedores (ou transportadoras) antes de comprar, para comparar e escolher.
 
-_Aparece em: [Início](modulos.md#início-1) · [Venda de Peças](modulos.md#venda-de-peças) · [Fretes e envios](modulos.md#fretes-e-envios) · [Transportadoras](modulos.md#transportadoras) · [Embalagens](modulos.md#embalagens) · [Produção](modulos.md#produção) e mais 2._
+_Aparece em: [Início](modulos.md#início-1) · [Venda de Peças](modulos.md#venda-de-peças) · [Fretes e envios](modulos.md#fretes-e-envios) · [Transportadoras](modulos.md#transportadoras) · [Embalagens](modulos.md#embalagens) · [Painel da fábrica](modulos.md#painel-da-fábrica) e mais 3._
 
 ### CST
 
@@ -79,7 +79,7 @@ _Aparece em: [Produtos e estoque](modulos.md#produtos-e-estoque)._
 
 Conhecimento de Transporte eletrônico: a nota fiscal do frete, emitida pela transportadora.
 
-_Aparece em: [Tudo do cliente](modulos.md#tudo-do-cliente) · [Fretes e envios](modulos.md#fretes-e-envios) · [Transportadoras](modulos.md#transportadoras) · [Transferências SC ↔ SP](modulos.md#transferências-sc--sp) · [Analista fiscal](modulos.md#analista-fiscal)._
+_Aparece em: [Tudo do cliente](modulos.md#tudo-do-cliente) · [Fretes e envios](modulos.md#fretes-e-envios) · [Transportadoras](modulos.md#transportadoras) · [Acompanhamento de compras](modulos.md#acompanhamento-de-compras) · [Transferências SC ↔ SP](modulos.md#transferências-sc--sp) · [Analista fiscal](modulos.md#analista-fiscal)._
 
 ### Curva ABC
 
@@ -113,7 +113,7 @@ _Aparece em: [Painel do financeiro](modulos.md#painel-do-financeiro) · [Contas 
 
 O número do código de barras do produto, usado no leitor e nos marketplaces.
 
-_Aparece em: [Loja online e marketplace](modulos.md#loja-online-e-marketplace) · [Produtos e estoque](modulos.md#produtos-e-estoque) · [Peças de reposição](modulos.md#peças-de-reposição)._
+_Aparece em: [Loja online e marketplace](modulos.md#loja-online-e-marketplace) · [Produtos e estoque](modulos.md#produtos-e-estoque) · [Peças à venda](modulos.md#peças-à-venda)._
 
 ### Extrato
 
@@ -127,7 +127,7 @@ _Aparece em: [Caixa de e-mail](modulos.md#caixa-de-e-mail) · [Venda de Peças](
 
 A lista das peças, das quantidades e das etapas para montar uma máquina. A ordem de produção usa a ficha técnica.
 
-_Aparece em: [Máquinas](modulos.md#máquinas) · [Produção](modulos.md#produção) · [Painel da fábrica](modulos.md#painel-da-fábrica) · [Peças de reposição](modulos.md#peças-de-reposição) · [Componentes de produção](modulos.md#componentes-de-produção)._
+_Aparece em: [Máquinas](modulos.md#máquinas) · [Painel da fábrica](modulos.md#painel-da-fábrica) · [Produção](modulos.md#produção) · [Peças à venda](modulos.md#peças-à-venda) · [Insumos](modulos.md#insumos)._
 
 ### Fluxo de caixa
 
@@ -187,7 +187,7 @@ _Aparece em: [Venda de Peças](modulos.md#venda-de-peças) · [Venda de Máquina
 
 Um produto formado por outros produtos, vendido junto. Ao vender o kit, o estoque de cada item baixa.
 
-_Aparece em: [Venda de Peças](modulos.md#venda-de-peças) · [Loja online e marketplace](modulos.md#loja-online-e-marketplace) · [Separação e embalagem](modulos.md#separação-e-embalagem) · [Produtos e estoque](modulos.md#produtos-e-estoque) · [Peças de reposição](modulos.md#peças-de-reposição) · [Importar dados](modulos.md#importar-dados)._
+_Aparece em: [Venda de Peças](modulos.md#venda-de-peças) · [Loja online e marketplace](modulos.md#loja-online-e-marketplace) · [Separação e embalagem](modulos.md#separação-e-embalagem) · [Produtos e estoque](modulos.md#produtos-e-estoque) · [Peças à venda](modulos.md#peças-à-venda) · [Importar dados](modulos.md#importar-dados)._
 
 ## L
 
@@ -203,7 +203,7 @@ _Aparece em: [Painel do financeiro](modulos.md#painel-do-financeiro) · [Painel 
 
 Etiqueta colorida para organizar cadastros, vendas, OS e contas. Marcadores só somam: importações e correções não tiram os que já existem.
 
-_Aparece em: [Venda de Peças](modulos.md#venda-de-peças) · [Venda de Máquinas](modulos.md#venda-de-máquinas) · [Clientes](modulos.md#clientes) · [Fornecedores](modulos.md#fornecedores) · [Serviços](modulos.md#serviços) · [Transportadoras](modulos.md#transportadoras) e mais 10._
+_Aparece em: [Venda de Peças](modulos.md#venda-de-peças) · [Venda de Máquinas](modulos.md#venda-de-máquinas) · [Clientes](modulos.md#clientes) · [Fornecedores](modulos.md#fornecedores) · [Serviços](modulos.md#serviços) · [Transportadoras](modulos.md#transportadoras) e mais 11._
 
 ### Margem de contribuição
 
@@ -223,7 +223,7 @@ _Aparece em: [Início](modulos.md#início-1) · [Painel de vendas](modulos.md#pa
 
 Código de 8 números que classifica o produto. É dele que saem as regras de imposto do item.
 
-_Aparece em: [Painel dos clientes](modulos.md#painel-dos-clientes) · [Máquinas](modulos.md#máquinas) · [Produtos e estoque](modulos.md#produtos-e-estoque) · [Painel dos produtos](modulos.md#painel-dos-produtos) · [Peças de reposição](modulos.md#peças-de-reposição) · [Componentes de produção](modulos.md#componentes-de-produção) e mais 4._
+_Aparece em: [Painel dos clientes](modulos.md#painel-dos-clientes) · [Máquinas](modulos.md#máquinas) · [Produtos e estoque](modulos.md#produtos-e-estoque) · [Painel dos produtos](modulos.md#painel-dos-produtos) · [Peças à venda](modulos.md#peças-à-venda) · [Tornearia (usinadas)](modulos.md#tornearia-usinadas) e mais 5._
 
 ### NF-e
 
@@ -243,7 +243,7 @@ _Aparece em: [Tudo do cliente](modulos.md#tudo-do-cliente) · [Ordens de serviç
 
 Ordem de compra: o pedido feito ao fornecedor, com itens, preço, prazo e pagamento.
 
-_Aparece em: [Produção](modulos.md#produção) · [Painel da fábrica](modulos.md#painel-da-fábrica) · [Compras e cotações](modulos.md#compras-e-cotações) · [Contas a pagar e receber](modulos.md#contas-a-pagar-e-receber) · [Notas fiscais](modulos.md#notas-fiscais) · [Configurações](modulos.md#configurações-1)._
+_Aparece em: [Painel da fábrica](modulos.md#painel-da-fábrica) · [Produção](modulos.md#produção) · [Compras e cotações](modulos.md#compras-e-cotações) · [Acompanhamento de compras](modulos.md#acompanhamento-de-compras) · [Contas a pagar e receber](modulos.md#contas-a-pagar-e-receber) · [Notas fiscais](modulos.md#notas-fiscais) e mais 1._
 
 ### OFX
 
@@ -255,7 +255,7 @@ _Aparece em: [Caixa de e-mail](modulos.md#caixa-de-e-mail) · [Bancos e concilia
 
 Ordem de produção: o pedido para a fábrica montar uma ou mais máquinas, com as peças e as etapas.
 
-_Aparece em: [Início](modulos.md#início-1) · [Venda de Máquinas](modulos.md#venda-de-máquinas) · [Máquinas](modulos.md#máquinas) · [Teste do giga (REG-006)](modulos.md#teste-do-giga-reg-006) · [Produção](modulos.md#produção) · [Painel da fábrica](modulos.md#painel-da-fábrica) e mais 3._
+_Aparece em: [Início](modulos.md#início-1) · [Venda de Máquinas](modulos.md#venda-de-máquinas) · [Máquinas](modulos.md#máquinas) · [Teste do giga (REG-006)](modulos.md#teste-do-giga-reg-006) · [Painel da fábrica](modulos.md#painel-da-fábrica) · [Produção](modulos.md#produção) e mais 3._
 
 ### Open Finance
 
@@ -275,25 +275,25 @@ _Aparece em: [Início](modulos.md#início-1) · [Venda de Peças](modulos.md#ven
 
 Ponto de venda: o caixa da venda de balcão, numa tela própria, com leitor de código de barras.
 
-_Aparece em: [Painel de vendas](modulos.md#painel-de-vendas) · [Fluxo de pedidos](modulos.md#fluxo-de-pedidos) · [Peças de reposição](modulos.md#peças-de-reposição) · [Formas de pagamento](modulos.md#formas-de-pagamento) · [Configurações](modulos.md#configurações-1)._
+_Aparece em: [Painel de vendas](modulos.md#painel-de-vendas) · [Fluxo de pedidos](modulos.md#fluxo-de-pedidos) · [Peças à venda](modulos.md#peças-à-venda) · [Formas de pagamento](modulos.md#formas-de-pagamento) · [Configurações](modulos.md#configurações-1)._
 
 ### Perfil
 
 O tipo de acesso de cada pessoa no ERP (vendas, financeiro, técnico…). O perfil decide as telas que ela abre e o que pode fazer.
 
-_Aparece em: [PDV (venda de balcão)](modulos.md#pdv-venda-de-balcão) · [Separação e embalagem](modulos.md#separação-e-embalagem) · [Produção](modulos.md#produção) · [Produtos e estoque](modulos.md#produtos-e-estoque) · [Compras e cotações](modulos.md#compras-e-cotações) · [Painel do financeiro](modulos.md#painel-do-financeiro) e mais 3._
+_Aparece em: [PDV (venda de balcão)](modulos.md#pdv-venda-de-balcão) · [Separação e embalagem](modulos.md#separação-e-embalagem) · [Produtos e estoque](modulos.md#produtos-e-estoque) · [Produção](modulos.md#produção) · [Compras e cotações](modulos.md#compras-e-cotações) · [Painel do financeiro](modulos.md#painel-do-financeiro) e mais 3._
 
 ### PIS e COFINS
 
 Contribuições federais sobre o faturamento. No Lucro Real, as compras geram crédito que abate o que se paga.
 
-_Aparece em: [Transferências SC ↔ SP](modulos.md#transferências-sc--sp) · [Painel fiscal](modulos.md#painel-fiscal) · [Notas fiscais](modulos.md#notas-fiscais) · [Painel do contador](modulos.md#painel-do-contador) · [Analista fiscal](modulos.md#analista-fiscal)._
+_Aparece em: [Transferências SC ↔ SP](modulos.md#transferências-sc--sp) · [Painel fiscal](modulos.md#painel-fiscal) · [Notas fiscais](modulos.md#notas-fiscais) · [Painel do contador](modulos.md#painel-do-contador) · [Analista fiscal](modulos.md#analista-fiscal) · [Admissão e saída](modulos.md#admissão-e-saída)._
 
 ### Pix
 
 Pagamento instantâneo pelo banco, a qualquer hora, por chave, QR Code ou copia e cola.
 
-_Aparece em: [Venda de Peças](modulos.md#venda-de-peças) · [Venda de Máquinas](modulos.md#venda-de-máquinas) · [Gestão de preços](modulos.md#gestão-de-preços) · [PDV (venda de balcão)](modulos.md#pdv-venda-de-balcão) · [Tudo do cliente](modulos.md#tudo-do-cliente) · [Fornecedores](modulos.md#fornecedores) e mais 11._
+_Aparece em: [Venda de Peças](modulos.md#venda-de-peças) · [Venda de Máquinas](modulos.md#venda-de-máquinas) · [Gestão de preços](modulos.md#gestão-de-preços) · [PDV (venda de balcão)](modulos.md#pdv-venda-de-balcão) · [Tudo do cliente](modulos.md#tudo-do-cliente) · [Fornecedores](modulos.md#fornecedores) e mais 13._
 
 ### Preventiva
 
