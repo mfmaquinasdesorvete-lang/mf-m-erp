@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { itemVisivel, pode, podeVer, temPapel } from "../permissoes";
+import { itemVisivel, pode, podeVer, soTecnico, temPapel } from "../permissoes";
 
 describe("perfil Marketplaces", () => {
   it("vê só os cadastros dos produtos e os documentos", () => {
@@ -64,9 +64,11 @@ describe("financeiro vê só financeiro (27/10)", () => {
 });
 
 describe("cada papel só com o que é dele (27/10)", () => {
-  it("técnico: só assistência, garantias e teste do giga", () => {
-    for (const t of ["assistencia", "garantias", "testegiga"] as const) expect(podeVer("tecnico", t)).toBe(true);
-    for (const t of ["estoque", "producao", "clientes", "painel", "pedidos"] as const) expect(podeVer("tecnico", t)).toBe(false);
+  it("técnico: só as OS dele (assistência) e o próprio cadastro, no app — escolha da usuária em 27/10", () => {
+    expect(podeVer("tecnico", "assistencia")).toBe(true);
+    for (const t of ["garantias", "testegiga", "estoque", "producao", "clientes", "painel", "pedidos"] as const) expect(podeVer("tecnico", t)).toBe(false);
+    expect(soTecnico("tecnico", [])).toBe(true);
+    expect(soTecnico("tecnico", ["vendas"])).toBe(false);
   });
   it("vendas: sem produção e compras, fornecedores, assistência, garantias e financeiro", () => {
     for (const t of ["pedidos", "clientes", "estoque", "notas", "metas"] as const) expect(podeVer("vendas", t)).toBe(true);
