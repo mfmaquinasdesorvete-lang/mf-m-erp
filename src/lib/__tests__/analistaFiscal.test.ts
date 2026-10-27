@@ -24,3 +24,16 @@ describe("partesDaSaida", () => {
     expect(partesDaSaida(nota(["5101"], { transferencia_id: "x" }))).toEqual({ venda: 0, transferencia: 1000, outras: 0 });
   });
 });
+
+describe("partesDaSaida para outra unidade", () => {
+  it("nota antiga para a filial com CFOP de venda conta como transferência", () => {
+    expect(partesDaSaida(nota(["6102"]), { paraOutraUnidade: true })).toEqual({ venda: 0, transferencia: 1000, outras: 0 });
+  });
+});
+
+describe("partesDaSaida com CFOP de transferência para terceiro", () => {
+  it("não conta como transferência nem como venda", () => {
+    expect(partesDaSaida(nota(["6151"]), { paraOutraUnidade: false })).toEqual({ venda: 0, transferencia: 0, outras: 1000 });
+    expect(partesDaSaida(nota(["6151"]), { paraOutraUnidade: null })).toEqual({ venda: 0, transferencia: 1000, outras: 0 });
+  });
+});

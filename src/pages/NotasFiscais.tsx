@@ -6,7 +6,7 @@ import { ArrowLeft, Ban, CalendarClock, FileDown, FlaskConical, Lightbulb, ListC
 import { AcoesNoTopo, Button, CelulaAbrir, chip, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
-import { brl, dataBR, docFormat, hoje, pl } from "@/lib/format";
+import { brl, dataBR, digitos, docFormat, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { baixarPlanilha } from "@/lib/exportar";
 import { callFunction, supabase } from "@/lib/supabase";
@@ -194,7 +194,9 @@ export default function NotasFiscais() {
 }
 
 function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto, filtroInicial, destaque, onLimparDestaque }: { leitura?: boolean; irPara?: (a: "config" | "regras" | "compliance") => void; emitirAgora?: boolean; onEmitirAberto?: () => void; filtroInicial?: string; destaque?: Destaque | null; onLimparDestaque?: () => void }) {
-  const { filtrar } = useUnidade();
+  const { filtrar, unidades } = useUnidade();
+  // raiz do CNPJ das unidades da MF: nota para outra unidade é transferência
+  const raizesUnidades = useMemo(() => new Set(unidades.map((u) => digitos(u.cnpj).slice(0, 8)).filter((r) => r.length === 8)), [unidades]);
   const { data: dataTodos = [], isLoading } = useRows<NotaEmitida & { excluida_em?: string | null }>("notas_fiscais", { select: "*, pedido:pedidos(numero, cliente:clientes(nome, nome_fantasia)), transferencia:transferencias(numero, destino_id)" });
   // tentativas recusadas do mesmo pedido viram uma linha só (a mais recente, com o número de tentativas);
   // se o pedido já tem nota autorizada/em processamento depois, as recusas antigas somem da lista
@@ -288,7 +290,7 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
         </AcoesNoTopo>
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
-      <CartoesNotas tipo="emitidas" ativo={aba !== "excluidas"} periodo={filtros.f} notas={filtrada.map((n) => { const p = partesDaSaida(n); return { valor: Number(n.valor_total ?? 0), situacao: situacaoEmitida(n).chave, venda: p.venda, transferencia: p.transferencia }; })} />
+      <CartoesNotas tipo="emitidas" ativo={aba !== "excluidas"} periodo={filtros.f} notas={filtrada.map((n) => { const p = partesDaSaida(n, { paraOutraUnidade: n.destinatario_doc ? raizesUnidades.has(digitos(n.destinatario_doc).slice(0, 8)) : null }); return { valor: Number(n.valor_total ?? 0), situacao: situacaoEmitida(n).chave, venda: p.venda, transferencia: p.transferencia }; })} />
       <div className="mb-2"><LegendaEvolucao tipo="emitidas" /></div>
       {data.some((n) => n.status === "contingencia") && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">

@@ -94,14 +94,16 @@ export function valorDeVenda(n: Pick<NotaSaida, "valor_total" | "transferencia_i
 
 /** A nota emitida dividida em venda, transferência entre as unidades (x15x) e o resto (remessa, comodato,
  *  demonstração, conserto, garantia, devolução a fornecedor), para o cartão "Vendas" não misturar nada. */
-export function partesDaSaida(n: Pick<NotaSaida, "valor_total" | "transferencia_id" | "tipo_operacao" | "payload">) {
+export function partesDaSaida(n: Pick<NotaSaida, "valor_total" | "transferencia_id" | "tipo_operacao" | "payload">, opc: { paraOutraUnidade?: boolean | null } = {}) {
   const total = Number(n.valor_total ?? 0);
   if ((n.tipo_operacao ?? "saida") === "entrada") return { venda: 0, transferencia: 0, outras: total };
-  if (n.transferencia_id) return { venda: 0, transferencia: total, outras: 0 };
+  // para outra unidade da própria MF é transferência, mesmo que a nota antiga tenha saído com CFOP de venda
+  if (n.transferencia_id || opc.paraOutraUnidade) return { venda: 0, transferencia: total, outras: 0 };
   const venda = valorDeVenda(n);
   const itens = n.payload?.items ?? [];
   const valorItem = (i: (typeof itens)[number]) => Number(i.valor_bruto ?? i.valor_total ?? 0) - Number(i.valor_desconto ?? 0);
-  const transf = itens.length && itens.every((i) => transferencia(i.cfop)) ? total - venda
+  // CFOP de transferência para quem não é da MF (paraOutraUnidade === false) não é transferência: fica em "outras"
+  const transf = opc.paraOutraUnidade === false ? 0 : itens.length && itens.every((i) => transferencia(i.cfop)) ? total - venda
     : r2(itens.filter((i) => transferencia(i.cfop)).reduce((s, i) => s + valorItem(i), 0));
   return { venda, transferencia: transf, outras: r2(Math.max(0, total - venda - transf)) };
 }
