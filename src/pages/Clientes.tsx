@@ -27,6 +27,7 @@ import { notifyError } from "@/lib/notify";
 import { cnpjValido } from "@/lib/compliance";
 import { ehLicenciado, tagsComLicenciado } from "@/components/clientes/Licenciado";
 import { SelosRede, useRedes } from "@/components/clientes/RedeCliente";
+import { SELECT_LISTA_CLIENTES } from "@/lib/clientesLista";
 import { fundoRede, nomeRede } from "@/lib/redesClientes";
 
 const tag = (r: Cliente, t: string) => (r.tags ?? []).includes(t);
@@ -143,7 +144,7 @@ export default function Clientes() {
   const redes = useRedes();
   const invalidar = useInvalidate();
   // mesma consulta da lista (fica em cache): para os repetidos e para unificar
-  const { data: todos = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
+  const { data: todos = [] } = useRows<Cliente>("clientes", { select: SELECT_LISTA_CLIENTES, order: "nome", ascending: true });
   // quem tem histórico ganha o botão da ficha colorido
   const { data: comHistorico } = useQuery({
     queryKey: ["clientes_com_historico"],
@@ -271,6 +272,7 @@ export default function Clientes() {
       anexos="cliente"
       title="Clientes"
       table="clientes"
+      select={SELECT_LISTA_CLIENTES}
       marcadores={["cliente", "clientes"]}
       filtroBase={verInativos ? (r) => !!r.inativo_em : (r) => !r.inativo_em}
       fundoLinha={(r) => { const rede = redes(r)[0]; return rede ? fundoRede(rede.familia) : undefined; }}

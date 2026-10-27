@@ -19,6 +19,7 @@ import { dataBR, digitos, somarDias, pl } from "@/lib/format";
 import type { Cliente, Produto } from "@/lib/types";
 import { vendasDaEmpresa } from "@/lib/gerencial";
 import { SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } from "@/lib/paineisProdutos";
+import { SELECT_LISTA_CLIENTES } from "@/lib/clientesLista";
 import { FONTE_DESDE, desdeReal, type ClienteDesde } from "@/lib/clienteDesde";
 
 const CORES = ["var(--serie-1)", "var(--serie-3)", "var(--serie-2)", "var(--kpi-roxo)", "var(--kpi-rosa)", "var(--kpi-ciano)", "var(--eixo-texto)"];
@@ -30,7 +31,7 @@ export default function PainelCadastros() {
   const navigate = useNavigate();
   const { podeVer } = usePerfil();
   // mesmos selects das telas de clientes, produtos e fornecedores: o que já foi carregado serve aos dois
-  const { data: clientes = [], isLoading } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
+  const { data: clientes = [], isLoading } = useRows<Cliente>("clientes", { select: SELECT_LISTA_CLIENTES, order: "nome", ascending: true });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: fornecedores = [] } = useRows<{ id: string; ativo?: boolean }>("fornecedores", { order: "nome", ascending: true });
   const { data: pedidos = [] } = useRows<{ cliente_id: string; created_at: string; status: string }>("pedidos", { select: "cliente_id, created_at, status" });

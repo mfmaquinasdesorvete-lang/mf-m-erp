@@ -110,6 +110,8 @@ type Props<T> = {
   ocultarMarcadorNoCartao?: (row: T, nome: string) => boolean;
   /** Cor de fundo da linha e do cartão (ex.: clientes de uma rede, com uma cor fraquinha). */
   fundoLinha?: (row: T) => string | undefined;
+  /** Colunas que a lista baixa (padrão: todas). Para tabela larga, só o que a tela usa. */
+  select?: string;
   /** Os cartões também no computador (em colunas, como um guia), no lugar da tabela; sem o rodapé de Editar (tocar abre). */
   cartoesNoPc?: boolean;
   /** Cadastro novo passo a passo (onboarding): cada seção do formulário vira um passo, com Voltar/Próximo e o
@@ -135,7 +137,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   const [marcandoLote, setMarcandoLote] = useState(false);
   const tags = (row: T) => marcadores ? <ChipsMarcadores ids={(row as { marcadores?: string[] | null }).marcadores} todos={todosMarcadores} pequeno /> : null;
   const selecionavel = podeExcluir || acoesLote.length > 0 || !!marcadores;
-  const { data: todos = [], isLoading, error: erroLista, refetch } = useRows<T>(table, { order, ascending: order !== "created_at" });
+  const { data: todos = [], isLoading, error: erroLista, refetch } = useRows<T>(table, { select: props.select, order, ascending: order !== "created_at" });
   const filtroBase = props.filtroBase;
   // aberto por outra tela só com alguns registros (ex.: Analista fiscal → produtos sem NCM): mostra só eles,
   // mesmo fora do recorte da página, até clicar em "Ver todos"

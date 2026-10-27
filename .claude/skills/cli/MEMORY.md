@@ -49,6 +49,9 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
 - Telas: `src/pages/Clientes.tsx`, `src/components/FichaCliente.tsx`, `src/components/clientes/`
   (`BlocoFicha`, `MaquinasCliente` com `EtiquetaMaquina`, `RedeCliente`, `QualidadeClientes`, `PainelFicha`).
 - Contato da lista: `src/components/Contato.tsx` (`enxuto`). Fundo da linha: `CrudPage` (`fundoLinha`).
+- Colunas da lista: `src/lib/clientesLista.ts` (sem `receita` e `dados_arquivados`); coluna nova usada na tela entra ali.
+- Agendamentos: erp-clientes-receita (1 min) e erp-clientes-redes (5 min) checam com `receita_tem_pendente()` e
+  `redes_tem_pendente()` (migração 20261101000174).
 - Regras: `src/lib/redesClientes.ts` (teste em `src/lib/__tests__/redesClientes.test.ts`).
 - Banco: `clientes` (tags, marcadores, ie_situacao, contribuinte_icms), `marcadores`, `tipos_contato`,
   `fornecedores`, `pedidos_checklist`.
