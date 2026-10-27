@@ -11,7 +11,8 @@ import { AlertTriangle, Bell, BellRing, Bot, Check, CheckCheck, ChevronLeft, Che
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { notify, notifyError } from "@/lib/notify";
-import { rotuloPapel } from "@/lib/permissoes";
+import { rotuloPapel, type Papel } from "@/lib/permissoes";
+import { lerVerComo } from "@/lib/verComo";
 import { Button, Field, Modal, chip, useFecharComEsc } from "@/components/ui";
 import { guardarVoz, melhorVoz, nomeVozEscolhida, pontuarVoz, vozesPortugues } from "@/lib/voz";
 
@@ -185,7 +186,13 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
     },
     refetchInterval: 60_000, // segurança caso a conexão em tempo real caia
   });
-  const minhas = useMemo(() => todas.filter((n) => paraMim(n) || meu(n)), [todas, eu]); // eslint-disable-line react-hooks/exhaustive-deps
+  // "Ver como": o banco lê com o login da dona, então aqui fica só o que a pessoa simulada receberia (pedido de 27/10):
+  // as mensagens para ela e os avisos do papel dela; nada dos chats do Claude nem de Segurança
+  const verComo = lerVerComo();
+  const daPessoa = (n: Notificacao) => !verComo || (n.destinatarios?.length
+    ? !!verComo.user_id && n.destinatarios.includes(verComo.user_id)
+    : !ehClaude(n) && !n.titulo.startsWith("Segurança:") && (!n.papeis?.length || perfil.tem(...(n.papeis as Papel[]))));
+  const minhas = useMemo(() => todas.filter((n) => (paraMim(n) || meu(n)) && daPessoa(n)), [todas, eu]); // eslint-disable-line react-hooks/exhaustive-deps
   // o sino é só a conversa com a equipe e os avisos do trabalho: os dos chats do Claude e os de Segurança aparecem só no
   // meio da tela de quem os recebe (pedido de 27/10), não na lista
   const lista = useMemo(() => minhas.filter((n) => !ehClaude(n) && !n.titulo.startsWith("Segurança:")).slice(0, 40), [minhas]);
