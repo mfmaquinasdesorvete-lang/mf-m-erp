@@ -42,6 +42,8 @@ Atualizado em 25/10/2026 pelo ELO.
   - `aviso_claude()`: aviso no meio da tela do ERP.
 
 ## Decisões da usuária que valem para todos
+- 27/10: rodada de fechamento (terminar, consertar e testar antes de função nova), prioridade para o fiscal pendente e
+  a data de virada do Tiny, um resumo só de manhã pelo FAZ, e a `main` atualizada (SEG avalia repositório privado).
 - Marcadores são da usuária: importação, unificação e correção só somam, nunca tiram.
 - Importação e correção automática só preenchem campo vazio. Quando o cadastro foi unificado, gravam no que ficou
   (`coalesce(unificado_em, id)`). Proposta ou pedido antigo não se apaga: fecha com a situação e fica no histórico.

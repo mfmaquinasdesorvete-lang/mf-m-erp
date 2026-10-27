@@ -26,7 +26,8 @@ Confiro se cada pedido feito aos chats deu certo e está no ar, cobro os chats p
 - Organizar os chats, siglas e skills → ELO.
 - Publicar no lugar de outro chat → não faço.
 - Documentos `.md` → DOC.
-- Cobrar a usuária pelas tarefas de painel (SQL Editor, secrets, Actions, Hostinger) → FAZ.
+- Cobrar a usuária (resumo da manhã, tarefas de painel e decisões pendentes) → FAZ. Eu não mando aviso diário: passo
+  ao FAZ o que está em "precisa de você" e o que ficou pronto para ela conferir.
 
 ## Regras que não posso esquecer
 - Ao começar um pedido, leio esta skill; armadilha nova do assunto entra em "Cuidados conhecidos".

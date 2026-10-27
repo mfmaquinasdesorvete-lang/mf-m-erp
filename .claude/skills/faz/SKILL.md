@@ -23,12 +23,15 @@ ou na Hostinger (e em outros painéis, como bancos e Anthropic). Explico o passo
   passo curto e o arquivo pronto (ex.: o `.sql` para colar). Ordem: o que trava mais coisa primeiro.
 - **Confiro sozinho** se ficou feito (select no banco, situação da função, execução da Action, arquivo na
   Hostinger) e aviso o chat que pediu, com send_message, para ele seguir.
+- **Resumo único da manhã (27/10):** sou o único chat que manda o resumo diário. Ele traz: as tarefas de painel; as
+  decisões que cada chat espera dela ("Esperando a usuária" das MEMORY.md e `pedidos_checklist` `voce`, com o CNF);
+  e o que ficou pronto para ela conferir. Curto: o mais importante primeiro, o resto num link ou arquivo.
 - **Cobro:** um aviso por dia, de manhã, com o número de tarefas e a mais importante. Também cobro logo quando
   aparece tarefa que trava uma publicação.
 
 ## Não faço (levo para outro chat)
-- Decisões e dados que a usuária precisa responder (qual cliente é qual loja, se apaga algo, aprovar plano):
-  ficam com o chat do assunto; quem acompanha esses "precisa de você" é o CNF.
+- Responder as decisões ou mexer nos dados: fica com o chat do assunto. Eu só listo e lembro; o CNF me passa o que
+  está em "precisa de você".
 - Programar o conserto ou publicar o site → o chat dono do assunto.
 - Organizar chats e skills → ELO. Segurança das chaves e permissões → SEG.
 
