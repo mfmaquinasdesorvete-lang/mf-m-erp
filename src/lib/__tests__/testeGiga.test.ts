@@ -254,10 +254,9 @@ describe("permissões do teste do giga", () => {
     expect(pode("vendas", "lancar_teste_giga")).toBe(false);
     expect(acoesDoPapel("tecnico")).toContain("lancar_teste_giga");
   });
-  it("vê o painel: técnico, financeiro e administrador", () => {
+  it("vê o painel: técnico e administrador (o financeiro vê só financeiro desde 27/10)", () => {
     expect(podeVer("tecnico", "testegiga")).toBe(true);
-    expect(podeVer("financeiro", "testegiga")).toBe(true);
     expect(podeVer("admin", "testegiga")).toBe(true);
-    for (const p of ["vendas", "contador", "expedicao", "marketplace"] as const) expect(podeVer(p, "testegiga")).toBe(false);
+    for (const p of ["vendas", "financeiro", "contador", "expedicao", "marketplace"] as const) expect(podeVer(p, "testegiga")).toBe(false);
   });
 });

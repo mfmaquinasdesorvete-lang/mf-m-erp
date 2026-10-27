@@ -19,7 +19,7 @@ describe("perfil Marketplaces", () => {
   it("não vê as transferências de estoque", () => {
     expect(itemVisivel("marketplace", [], "estoque", "/transferencias", {})).toBe(false);
     expect(itemVisivel("marketplace", [], "estoque", "/estoque", {})).toBe(true);
-    expect(itemVisivel("financeiro", ["marketplace"], "estoque", "/transferencias", {})).toBe(true);
+    expect(itemVisivel("vendas", ["marketplace"], "estoque", "/transferencias", {})).toBe(true);
   });
   it("pode ser papel adicional de outro perfil", () => {
     expect(podeVer("vendas", "estoque", ["marketplace"])).toBe(true);
@@ -49,5 +49,16 @@ describe("perfil Compras", () => {
   it("pode ser papel adicional", () => {
     expect(podeVer("tecnico", "notas", ["compras"])).toBe(true);
     expect(pode("vendas", "receber_compras", ["compras"])).toBe(true);
+  });
+});
+
+describe("financeiro vê só financeiro (27/10)", () => {
+  it("abre a área Financeiro, notas, fornecedores, relatórios, margem e funcionários", () => {
+    for (const t of ["financeiro", "conciliacao", "auditoria", "notas", "fornecedores", "relatorios", "margem", "funcionarios"] as const)
+      expect(podeVer("financeiro", t)).toBe(true);
+  });
+  it("não abre vendas, clientes, logística, fábrica e estoque nem o início geral", () => {
+    for (const t of ["painel", "pedidos", "clientes", "expedicao", "fretes", "estoque", "producao", "assistencia", "importar"] as const)
+      expect(podeVer("financeiro", t)).toBe(false);
   });
 });

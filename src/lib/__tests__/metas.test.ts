@@ -189,9 +189,9 @@ describe("linhas da apuração", () => {
 });
 
 describe("tela de metas por perfil", () => {
-  it("vendas e financeiro abrem a tela; técnico e contador não", () => {
+  it("vendas abre a tela; financeiro (só financeiro desde 27/10), técnico e contador não", () => {
     expect(podeVer("vendas", "metas")).toBe(true);
-    expect(podeVer("financeiro", "metas")).toBe(true);
+    expect(podeVer("financeiro", "metas")).toBe(false);
     expect(podeVer("admin", "metas")).toBe(true);
     expect(podeVer("tecnico", "metas")).toBe(false);
     expect(podeVer("contador", "metas")).toBe(false);

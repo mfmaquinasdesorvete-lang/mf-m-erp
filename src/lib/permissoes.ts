@@ -3,7 +3,7 @@ export type Papel = "admin" | "vendas" | "financeiro" | "tecnico" | "contador" |
 export const PAPEIS: { value: Papel; label: string; descricao: string }[] = [
   { value: "admin", label: "Administrador", descricao: "Acesso total, usuários e configurações" },
   { value: "vendas", label: "Vendas", descricao: "Pedidos, PDV, clientes, cobranças e NF-e das vendas" },
-  { value: "financeiro", label: "Financeiro", descricao: "Contas a pagar/receber, notas fiscais, estoque, compras e fornecedores" },
+  { value: "financeiro", label: "Financeiro", descricao: "Contas a pagar/receber, bancos, notas fiscais, fornecedores, relatórios e salários" },
   { value: "tecnico", label: "Técnico", descricao: "Assistência técnica, garantias, produção e compras de peças" },
   { value: "contador", label: "Contador", descricao: "Só consulta: notas fiscais, financeiro e o fechamento mensal (XML e planilhas)" },
   { value: "expedicao", label: "Expedição", descricao: "Separar, conferir, embalar e despachar os pedidos; etiquetas e DANFE" },
@@ -37,8 +37,9 @@ export const TELAS_ROTULO: Record<Tela, string> = {
 const TELAS: Record<Exclude<Papel, "admin">, Tela[]> = {
   // metas: o vendedor vê só a própria (o banco filtra); administrador e financeiro veem e cadastram todas
   vendas: ["painel", "fluxo", "expedicao", "fretes", "email", "comissoes", "metas", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "clientes", "fornecedores", "scrum"],
-  // teste do giga (REG-006): o técnico lança; o financeiro só vê o painel e a lista
-  financeiro: ["painel", "implantacao", "importar", "contador", "conciliacao", "auditoria", "fluxo", "expedicao", "fretes", "margem", "email", "comissoes", "metas", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "testegiga", "estoque", "financeiro", "notas", "relatorios", "clientes", "fornecedores", "funcionarios", "scrum"],
+  // financeiro vê só o que é de financeiro (pedido de 27/10): a área Financeiro (contas, bancos e conciliação,
+  // aprovações, auditoria), as notas fiscais, os fornecedores, relatórios e margem, e os funcionários (salários)
+  financeiro: ["conciliacao", "auditoria", "margem", "financeiro", "notas", "relatorios", "fornecedores", "funcionarios"],
   contador: ["contador", "notas", "financeiro", "conciliacao", "auditoria", "documentos"],
   tecnico: ["painel", "documentos", "assistencia", "garantias", "producao", "testegiga", "estoque", "clientes", "scrum"],
   expedicao: ["expedicao", "fluxo", "documentos", "scrum"],
