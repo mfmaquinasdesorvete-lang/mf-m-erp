@@ -38,6 +38,10 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Secrets não dá para ler daqui (as funções pedem login): conferir pelo "Testar conexão" ou pelo uso (dados novos).
 
 ## Próximos passos
-0. A partir de 28/10 08:40: resumo único da manhã (a tarefa agendada já tem o roteiro).
+0. A partir de 28/10 08:40: resumo único da manhã (a tarefa agendada já tem o roteiro). Topo do resumo de 28/10
+   (pedido do ELO, lista do FIS em 5827327): 1) 14 pedidos entregues sem nota (9 de outubro já pagos e 5 do Tiny,
+   um de máquina): emitir a NF-e pelo pedido; 2) notas com valor menor que a venda; 3) parcelamento do Simples
+   antigo sem pagamento depois de 10/2025 (conferir no e-CAC); 4) certidões vencidas. Depois a virada do Tiny e as
+   tarefas de painel.
 1. Na cobrança da manhã: conferir item 1 no banco; o que estiver feito sai da lista e o chat dono recebe send_message.
 2. Depois do item 1: avisar GER, FUN, ELO, PRD e REV (send_message, sessao em `chats_claude`).
