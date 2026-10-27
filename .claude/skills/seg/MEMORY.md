@@ -23,12 +23,14 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
   (`scripts/backup/`; mudança também na `main`, porque o agendamento roda de lá).
 - "Ver como" da conta master (Retaguarda e olho no menu): o ERP com o menu e os botões de um papel ou pessoa; só
   aparência, gravações travadas pelo fetch do Supabase enquanto simula (`src/lib/verComo.ts`, bd917a8).
+- Permissões por papel no ar (27/10, site 63df953): Retaguarda só da master entre os administradores (auditoria,
+  bancos, importar), cada papel só com o seu e a tela única (Usuários → Perfis: coluna Master e Administrador editável).
 - Dados cadastrais reais da empresa fora do repositório; a demonstração e os testes usam fictícios (55a64e4).
 
 ## Em andamento
-- Esperando a Hostinger voltar para publicar (montado, não no ar): Retaguarda só da master entre os administradores
-  (auditoria, bancos, importar; 54ee0a5), cada papel só com o seu (financeiro 43c3fc8; técnico, vendas, expedição
-  bc04a72) e a tela única de permissões (coluna Master e Administrador editável em Usuários → Perfis).
+- Técnico só com o dele no banco: migração 20261101000178 (regra restrictive com so_tecnico) escrita e no código,
+  ainda NÃO aplicada; o teste numa transação parou esperando a aprovação dela no conector. Depois: ligar o login ao
+  cadastro de técnico (hoje a OS liga pelo nome) para filtrar só as OS dele e os clientes dessas OS.
 - Repositório privado (decisão dela, 27/10): CI já roda por lote (a cada 3 h, se mudou). Chave de leitura da Hostinger
   gerada; falta ela cadastrar como deploy key no GitHub. Depois: trocar para privado e o deploy da Hostinger passa a
   usar o endereço SSH do repositório (avisar todos os chats pelo ELO).
