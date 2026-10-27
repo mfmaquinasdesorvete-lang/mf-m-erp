@@ -15,6 +15,8 @@ import {
 import { DEMO, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, somarDias, whatsappLink } from "@/lib/format";
+import { GaleriaLoja } from "@/components/loja/GaleriaLoja";
+import { urlMidia } from "@/lib/midia";
 import { CalcularFrete, useFreteLigado, type EscolhaFrete } from "@/components/loja/CalcularFrete";
 import { buscarCep } from "@/lib/cep";
 import { buscarCnpj, preencherVazios } from "@/lib/cnpj";
@@ -191,7 +193,7 @@ function PaginaProduto({ p, empresa, carrinho }: { p: ProdutoLoja; empresa: Dado
     <article>
       <Link to="/loja" className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-brand"><ArrowLeft size={16} /> Todos os produtos</Link>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Foto p={p} grande />
+        <GaleriaLoja fotos={[...(p.foto ? [urlFotoProduto(p.foto)] : []), ...(p.galeria ?? []).map(urlMidia)]} nome={p.nome} />
         <div>
           <Disponivel p={p} />
           <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">{p.nome}</h1>
@@ -570,10 +572,10 @@ function PaginaPedidos({ sessao, empresa }: { sessao: Session | null | undefined
 }
 
 // ---------------------------------------------------------------------
-function Foto({ p, grande }: { p: ProdutoLoja; grande?: boolean }) {
+function Foto({ p }: { p: ProdutoLoja }) {
   return (
-    <div className={`grid aspect-square place-items-center overflow-hidden bg-white ${grande ? "rounded-2xl border border-slate-200" : ""}`}>
-      {p.foto ? <img src={urlFotoProduto(p.foto)} alt={p.nome} loading="lazy" className="h-full w-full object-contain" /> : <ImageOff size={grande ? 48 : 28} className="text-slate-300" />}
+    <div className="grid aspect-square place-items-center overflow-hidden bg-white">
+      {p.foto ? <img src={urlFotoProduto(p.foto)} alt={p.nome} loading="lazy" className="h-full w-full object-contain" /> : <ImageOff size={28} className="text-slate-300" />}
     </div>
   );
 }

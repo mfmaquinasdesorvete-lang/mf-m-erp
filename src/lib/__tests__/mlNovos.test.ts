@@ -90,3 +90,14 @@ describe("atributos da categoria pelo texto do produto", () => {
     expect(valorPeloTexto(volt, "compressor 1/5 hp 220 v r134a")?.id).toBe("y");
   });
 });
+
+describe("fotos do anúncio", () => {
+  it("principal primeiro, galeria depois, sem repetir e até o máximo da categoria", async () => {
+    const { fotosParaML } = await import("../../../supabase/functions/_shared/ml-novos");
+    const g = Array.from({ length: 14 }, (_, i) => `https://x/g${i}.jpg`);
+    expect(fotosParaML("https://x/p.jpg", ["https://x/p.jpg", "https://x/g0.jpg"]).map((f) => f.source)).toEqual(["https://x/p.jpg", "https://x/g0.jpg"]);
+    expect(fotosParaML("https://x/p.jpg", g)).toHaveLength(10);
+    expect(fotosParaML("https://x/p.jpg", g, 12)).toHaveLength(12);
+    expect(fotosParaML(null, ["caminho-sem-url.jpg", "https://x/a.jpg"]).map((f) => f.source)).toEqual(["https://x/a.jpg"]);
+  });
+});

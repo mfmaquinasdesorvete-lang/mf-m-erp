@@ -88,6 +88,7 @@ export function GaleriaProduto({ produtoId, podeEditar, fotoPrincipal, aoEscolhe
           })}
         </ul>
       ) : <p className="text-xs text-slate-500">Nenhuma foto ou vídeo ainda. Fotos de vários ângulos (e do código gravado na peça) evitam devolução.</p>}
+      <DicasFotos fotos={galeria.filter((m) => m.tipo === "foto").length + (fotoPrincipal ? 1 : 0)} />
       {podeEditar && (
         <div className="flex flex-wrap items-center gap-2">
           <input ref={fotos} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { enviar(e.target.files, "foto"); e.target.value = ""; }} />
@@ -100,6 +101,27 @@ export function GaleriaProduto({ produtoId, podeEditar, fotoPrincipal, aoEscolhe
       )}
       {aberta && <VerMidia m={aberta} onClose={() => setAberta(null)} />}
     </div>
+  );
+}
+
+/** O que o Mercado Livre pede nas fotos (vale também para a loja): as fotos da galeria vão para o anúncio e para a
+ *  página do produto depois da principal, na ordem daqui. */
+function DicasFotos({ fotos }: { fotos: number }) {
+  const poucas = fotos < 4;
+  return (
+    <details className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+      <summary className="cursor-pointer font-semibold text-fg">
+        Fotos como o Mercado Livre pede: <span className={poucas ? "text-amber-700" : "text-emerald-700"}>{fotos} de até 10</span>
+        {poucas ? " (o ideal é 4 ou mais)" : ""}
+      </summary>
+      <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
+        <li>A 1ª (a principal) é a miniatura do anúncio: só a peça, centralizada, em fundo branco ou claro, sem texto, logo, marca d&apos;água ou moldura.</li>
+        <li>Depois, as outras: vários lados, detalhes (rosca, encaixe, código gravado), a peça montada na máquina, medidas e o que vem no pacote.</li>
+        <li>Quadradas, de 1200 × 1200 px (mínimo 500 px). Acima de 800 px o Mercado Livre liga o zoom; o site já reduz para até 1600 px.</li>
+        <li>Só fotos nossas: foto copiada de outro anúncio pode derrubar o anúncio.</li>
+        <li>A ordem do anúncio e da loja é a ordem de envio: a 1ª enviada vem logo depois da principal.</li>
+      </ul>
+    </details>
   );
 }
 

@@ -163,3 +163,11 @@ export function semMyFrost(texto: string | null | undefined): string {
     .replace(/[ \t]+\n/g, "\n")
     .trim();
 }
+
+/** Fotos que vão para o anúncio, na ordem: a principal primeiro (vira a miniatura), depois as da galeria, sem
+ *  repetir, até o máximo da categoria (o Mercado Livre diz em settings.max_pictures_per_item; sem ele, 10). */
+export function fotosParaML(principal: string | null | undefined, galeria: string[], max?: number | null): { source: string }[] {
+  const limite = Number(max) > 0 ? Math.floor(Number(max)) : 10;
+  const urls = [principal, ...galeria].filter((u): u is string => !!u && /^https?:\/\//.test(u));
+  return [...new Set(urls)].slice(0, limite).map((source) => ({ source }));
+}

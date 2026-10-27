@@ -7,6 +7,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { chamarML, ErroML } from "../_shared/mercadolivre.ts";
 import { anunciosDoItem, estoqueDisponivel } from "../_shared/ml-anuncios.ts";
+import { fotosDoAnuncio, galerias } from "./fotos.ts";
 import { atributosDoProduto, FRETE_GRATIS_DESDE, medidasFrete, precoParaReceber, semMyFrost, tituloML, type AtributoCategoria, type ProdutoNovo } from "../_shared/ml-novos.ts";
 
 type Conta = { id: string; ml_user_id: number; estoque_seguranca?: unknown; estoque_maximo?: unknown; estoque_minimo?: unknown };
@@ -43,8 +44,6 @@ async function categoria(token: string, p: Produto, titulo: string) {
   return null;
 }
 
-const urlFoto = (caminho: string) =>
-  /^https?:\/\//.test(caminho) ? caminho : `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/produtos-fotos/${caminho}`;
 
 /** Produtos da loja (ativos, no catálogo, com foto e preço) que não têm anúncio no Mercado Livre, direto ou por kit. */
 async function produtosSemAnuncio(db: SupabaseClient, ids?: string[]) {
@@ -96,7 +95,7 @@ async function envioDaConta(db: SupabaseClient, conta: Conta, token: string) {
   return { modelo, diag };
 }
 
-async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Produto, estoque: number, modelo: ModeloEnvio = null) {
+async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Produto, estoque: number, modelo: ModeloEnvio = null, galeria: string[] = []) {
   const avisos: string[] = [];
   const faltando: string[] = [];
   const titulo = tituloML(semMyFrost(p.titulo_anuncio || p.descricao));
@@ -124,7 +123,7 @@ async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Pr
   const item: Record<string, unknown> = {
     title: titulo, family_name: titulo, category_id: cat.category_id, price: preco, currency_id: "BRL", available_quantity: Math.max(1, estoque),
     buying_mode: "buy_it_now", listing_type_id: TIPO_ANUNCIO, condition: "new",
-    pictures: [{ source: urlFoto(p.foto_caminho) }], attributes: atributos,
+    pictures: await fotosDoAnuncio(p.foto_caminho, galeria, cat.category_id, token), attributes: atributos,
     shipping: { mode: "me2", ...(modelo ?? {}), free_shipping: preco >= FRETE_GRATIS_DESDE, local_pick_up: false },
     sale_terms: p.garantia_meses
       ? [{ id: "WARRANTY_TYPE", value_name: "Garantia do vendedor" }, { id: "WARRANTY_TIME", value_name: `${p.garantia_meses} meses` }]
@@ -176,13 +175,14 @@ export async function prepararAnuncios(db: SupabaseClient, conta: Conta, token: 
   const comeco = Date.now();
   const produtos = await produtosSemAnuncio(db, ids);
   const estoque = await estoques(db, conta, produtos.map((p) => p.id));
+  const fotos = await galerias(db, produtos.map((p) => p.id));
   const { modelo, diag } = await envioDaConta(db, conta, token);
   const resumo = { produtos: produtos.length, preparados: 0, prontos: 0, com_pendencia: 0, erros: 0, faltam: 0, envio: diag };
   let i = 0;
   for (; i < produtos.length && Date.now() - comeco < LIMITE_MS; i += 3) {
     await Promise.all(produtos.slice(i, i + 3).map(async (p) => {
       try {
-        const l = await prepararUm(db, conta, token, p, estoque(p.id), modelo);
+        const l = await prepararUm(db, conta, token, p, estoque(p.id), modelo, fotos.get(p.id));
         resumo.preparados++;
         if (l.faltando.length) resumo.com_pendencia++; else resumo.prontos++;
       } catch (e) {

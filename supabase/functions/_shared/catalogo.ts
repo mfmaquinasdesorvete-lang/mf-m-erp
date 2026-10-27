@@ -7,6 +7,8 @@ export type ProdutoLoja = {
   foto?: string | null; disponibilidade: string; garantia_meses?: number | null; marca?: string | null;
   /** título do anúncio (cadastro → marketplace), código de barras, categoria, peso e prazo de envio de quem é sob encomenda */
   titulo?: string | null; gtin?: string | null; categoria?: string | null; peso_kg?: number | null; prazo_dias?: number | null;
+  /** fotos da galeria (bucket produtos-midia), na ordem da galeria; a principal é `foto` */
+  galeria?: string[] | null;
 };
 
 const COLUNAS = ["id", "title", "description", "availability", "condition", "price", "link", "image_link", "brand", "google_product_category"];

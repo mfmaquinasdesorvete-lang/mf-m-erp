@@ -1,40 +1,42 @@
 // Mercado Livre: atualiza os anúncios que já estão no ar com o cadastro do produto ligado: título (sem a marca
-// My Frost), foto principal e descrição. Título só muda em anúncio sem venda (regra do Mercado Livre); se a conta
+// My Frost), fotos (a principal e as da galeria) e descrição. Título só muda em anúncio sem venda (regra do Mercado Livre); se a conta
 // não deixar mudar o título, vai só a foto e a descrição. Preço e estoque continuam pelo envio de estoque e preço.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { chamarML, ErroML } from "../_shared/mercadolivre.ts";
 import { MARCA_PADRAO, semMyFrost, tituloML } from "../_shared/ml-novos.ts";
+import { fotosDoAnuncio, galerias } from "./fotos.ts";
 
 const pausa = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 300);
-const urlFoto = (c: string) =>
-  /^https?:\/\//.test(c) ? c : `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/produtos-fotos/${c}`;
 const json = { "Content-Type": "application/json" };
 
 type Linha = {
-  ml_item_id: string;
+  ml_item_id: string; produto_id: string;
   produtos: { descricao: string; titulo_anuncio: string | null; foto_caminho: string | null; descricao_anuncio: string | null;
     descricao_catalogo: string | null; garantia_meses: number | null } | null;
 };
 
 export async function atualizarAnuncios(db: SupabaseClient, token: string, itens?: unknown) {
   const filtro = (Array.isArray(itens) ? itens : []).map((x) => String(x ?? "").trim().toUpperCase()).filter((x) => /^[A-Z]{3}\d+$/.test(x));
-  let q = db.from("ml_anuncios").select("ml_item_id, produtos:produtos(descricao, titulo_anuncio, foto_caminho, descricao_anuncio, descricao_catalogo, garantia_meses)")
+  let q = db.from("ml_anuncios").select("ml_item_id, produto_id, produtos:produtos(descricao, titulo_anuncio, foto_caminho, descricao_anuncio, descricao_catalogo, garantia_meses)")
     .not("produto_id", "is", null).eq("variation_id", "");
   if (filtro.length) q = q.in("ml_item_id", filtro);
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   const r = { atualizados: 0, sem_titulo: [] as string[], erros: [] as { id: string; erro: string }[] };
   const comeco = Date.now();
-  for (const l of (data ?? []) as unknown as Linha[]) {
+  const linhas = (data ?? []) as unknown as Linha[];
+  const fotos = await galerias(db, [...new Set(linhas.map((l) => l.produto_id))]);
+  for (const l of linhas) {
     if (Date.now() - comeco > 100_000) break;
     const p = l.produtos;
     if (!p) continue;
     try {
       const titulo = tituloML(semMyFrost(p.titulo_anuncio || p.descricao));
       const corpo: Record<string, unknown> = {};
-      if (p.foto_caminho) corpo.pictures = [{ source: urlFoto(p.foto_caminho) }];
-      const atual = await chamarML<any>(`/items/${l.ml_item_id}?attributes=title,sold_quantity`, token);
+      const atual = await chamarML<any>(`/items/${l.ml_item_id}?attributes=title,sold_quantity,category_id`, token);
+      // a principal e as da galeria, até o máximo da categoria
+      if (p.foto_caminho) corpo.pictures = await fotosDoAnuncio(p.foto_caminho, fotos.get(l.produto_id) ?? [], atual?.category_id, token);
       const mudaTitulo = titulo && titulo !== atual?.title && !(Number(atual?.sold_quantity) > 0);
       try {
         await chamarML(`/items/${l.ml_item_id}`, token, { method: "PUT", body: JSON.stringify(mudaTitulo ? { ...corpo, title: titulo } : corpo), cabecalhos: json });

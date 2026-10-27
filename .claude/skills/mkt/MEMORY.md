@@ -14,6 +14,8 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
 - Atualizar e republicar anúncios (foto, descrição, título sem a marca My Frost) e copiar fotos de link (atualizar.ts).
 - Mercado Envios como transportadora das vendas do Mercado Livre (124).
 - Mínimo no anúncio (161): produto ativo sem estoque mostra o mínimo e não pausa.
+- Várias fotos (176, fotos.ts, GaleriaLoja.tsx): a principal + a galeria do cadastro (produtos_midia) vão para a loja
+  (miniaturas, zoom, tela cheia) e para os anúncios (até o máximo da categoria); botão "Mandar fotos para os anúncios".
 
 ## Em andamento
 - Nada parado no meio. Último lote: 45 anúncios novos publicados em 24/10; ao reler, 41 ativos, 11 em análise
