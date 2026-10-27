@@ -5,6 +5,7 @@ import { confirmar } from "@/components/Dialogos";
 import { Button, Modal } from "./ui";
 import { ProdutoBusca } from "./ProdutoBusca";
 import { useInvalidate, useRows } from "@/lib/data";
+import { SELECT_LISTA_PRODUTOS } from "@/lib/produtosLista";
 import { supabase } from "@/lib/supabase";
 import { notifyError } from "@/lib/notify";
 import { brl } from "@/lib/format";
@@ -13,7 +14,7 @@ import type { KitComponente, Produto } from "@/lib/types";
 
 export function KitComponentesModal({ kit, podeEditar, onClose }: { kit: Produto; podeEditar: boolean; onClose: () => void }) {
   const { data: todos = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
-  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  const { data: produtos = [] } = useRows<Produto>("produtos", { select: SELECT_LISTA_PRODUTOS, order: "descricao", ascending: true });
   const comps = todos.filter((c) => c.kit_id === kit.id);
   const invalidar = useInvalidate();
   const prod = (id: string) => produtos.find((p) => p.id === id);

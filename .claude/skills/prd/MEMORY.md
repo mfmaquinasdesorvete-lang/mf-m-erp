@@ -1,5 +1,5 @@
 # MEMORY — PRD (ERP Line – Cadastro de produtos)
-Atualizado em 25/10/2026 (variações no banco).
+Atualizado em 27/10/2026 (listas de produtos mais leves).
 
 ## Estado agora
 Cadastro limpo e no padrão do Google e dos marketplaces: sem repetidos conhecidos, sem "My Frost" nos textos, com
@@ -19,6 +19,9 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 - Kits de vedação 3, 5 e 7 Sabores conferidos com o catálogo do WhatsApp; preços do WhatsApp gravados.
 - Repetidos unificados em 23 e 24/10; produtos da base antiga da My Frost sem uso inativados; peças da produção
   passadas para insumo.
+
+- Listas leves (achado do REV de 27/10): Preços, Kits, Catálogo e Importar baixam só as colunas que usam
+  (`SELECT_LISTA_PRODUTOS` em src/lib/produtosLista.ts). O cadastro segue com "*" porque abre o formulário pela lista.
 
 ## Em andamento
 - Variações (produto pai e variações): tela no ar (3b69c49) e campos no banco (20261025021635 e 20261025021646).

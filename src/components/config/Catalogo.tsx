@@ -6,6 +6,7 @@ import { CheckCircle2, ExternalLink, ImageOff, PackageSearch, ShoppingBag, Store
 import { Card, Indicador, chip } from "@/components/ui";
 import { CatalogoConfig } from "@/components/CatalogoConfig";
 import { useRows } from "@/lib/data";
+import { SELECT_LISTA_PRODUTOS } from "@/lib/produtosLista";
 import { brl } from "@/lib/format";
 import { pendenciaCatalogo, urlFotoProduto, urlLoja } from "@/lib/catalogo";
 import { useUnidade } from "@/lib/unidade";
@@ -18,7 +19,7 @@ export function ConfigCatalogo() {
   const s = secaoPorId("catalogo")!;
   const { unidades } = useUnidade();
   const { cfg, set, mudar, salvar, salvando } = useCfgPagina(["catalogo_texto", "loja_unidade_id"]);
-  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  const { data: produtos = [] } = useRows<Produto>("produtos", { select: SELECT_LISTA_PRODUTOS, order: "descricao", ascending: true });
   const [filtro, setFiltro] = useState("todos");
   const marcados = useMemo(() => produtos.filter((p) => p.ativo && p.no_catalogo), [produtos]);
   const prontos = marcados.filter((p) => !pendenciaCatalogo({ foto: p.foto_caminho, preco: p.preco_venda }));

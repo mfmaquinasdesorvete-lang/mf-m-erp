@@ -6,6 +6,7 @@ import { TabelasPreco } from "@/components/produtos/TabelasPreco";
 import { useCategoriasProduto } from "@/components/CategoriasProdutos";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { useRows } from "@/lib/data";
+import { SELECT_LISTA_PRODUTOS } from "@/lib/produtosLista";
 import { usePerfil } from "@/lib/auth";
 import type { Produto } from "@/lib/types";
 
@@ -19,7 +20,7 @@ export default function GestaoPrecos() {
   const [aba, setAba] = useAbaUrl<Aba>(veRegras ? "precos" : "tabelas", veRegras ? ["precos", "tabelas"] : ["tabelas"]);
   const { data: pendentes = 0 } = usePrecosPendentes();
   const { data: categorias = [] } = useCategoriasProduto();
-  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  const { data: produtos = [] } = useRows<Produto>("produtos", { select: SELECT_LISTA_PRODUTOS, order: "descricao", ascending: true });
   const abas = [
     ...(veRegras ? [{ value: "precos" as const, label: pendentes ? `Revisar e regras (${pendentes})` : "Revisar e regras" }] : []),
     { value: "tabelas" as const, label: "Tabelas de preço" },

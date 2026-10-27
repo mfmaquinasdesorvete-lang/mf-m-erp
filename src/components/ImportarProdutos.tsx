@@ -21,7 +21,7 @@ export function ImportarProdutos({ onClose }: { onClose: () => void }) {
   const [ocupado, setOcupado] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [fotos, setFotos] = useState<{ copiadas: number; falharam: number } | null>(null);
-  const { data: existentes = [] } = useRows<{ id: string; id_externo: string | null; sku: string | null }>("produtos", { order: "descricao", ascending: true });
+  const { data: existentes = [] } = useRows<{ id: string; id_externo: string | null; sku: string | null }>("produtos", { select: "id, id_externo, sku", order: "descricao", ascending: true });
   const invalidar = useInvalidate();
 
   async function abrir(arquivo?: File) {

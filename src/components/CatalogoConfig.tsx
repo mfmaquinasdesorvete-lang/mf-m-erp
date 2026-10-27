@@ -6,12 +6,13 @@ import { Link } from "react-router-dom";
 import { Check, Copy, ExternalLink, ShoppingBag } from "lucide-react";
 import { Button } from "./ui";
 import { useRows } from "@/lib/data";
+import { SELECT_LISTA_PRODUTOS } from "@/lib/produtosLista";
 import { notify } from "@/lib/notify";
 import { pendenciaCatalogo, urlFeed, urlFeedGoogle, urlLoja } from "@/lib/catalogo";
 import type { Produto } from "@/lib/types";
 
 export function CatalogoConfig({ texto, onTexto }: { texto: string; onTexto: (v: string) => void }) {
-  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  const { data: produtos = [] } = useRows<Produto>("produtos", { select: SELECT_LISTA_PRODUTOS, order: "descricao", ascending: true });
   const [passos, setPassos] = useState(false);
   const [passosGoogle, setPassosGoogle] = useState(false);
   const marcados = produtos.filter((p) => p.ativo && p.no_catalogo);
