@@ -27,6 +27,10 @@ A base da My Frost (empresa anterior) passou para o MYF em 23/10.
   fim de setembro, contas a pagar até 20/10 e os recebimentos do Tiny nunca foram buscados.
 
 ## Esperando a usuária
+- Backup final do Tiny da MF antes de cancelar a assinatura (o Tiny não é usado desde 28/09): antes, rodar os botões
+  de recebimentos e cadastros (a API para quando a assinatura acaba); depois baixar contas a pagar e receber (todas as
+  situações), XML das NF-e emitidas e de entrada, NFS-e, pedidos com itens, OCs, OS, propostas, produtos com estoque e
+  os anexos. Mandar o zip aqui; eu confiro o que ainda não está no ERP.
 - Clicar em "Atualizar cadastros do Tiny" e em "Buscar recebimentos do Tiny" (esse último alimenta a aba "Decidir").
 - Planilha de contas a pagar do Tiny filtrada pelos contatos de um instalador de ar-condicionado e da empresa dele, para
   ligar os pagamentos aos fornecedores (pedido do GER).
