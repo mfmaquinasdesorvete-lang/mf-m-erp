@@ -1,19 +1,48 @@
 name: CI
 
+# Por lote, não a cada envio: os chats enviam dezenas de vezes por dia e cada rodada gasta ~6 minutos de Actions
+# (com o repositório privado, o plano grátis tem 2.000 por mês). Roda a cada 3 horas, só se a paineis-no-ar mudou nesse
+# tempo; e na hora pelo botão "Run workflow". Cada chat roda typecheck e testes antes de enviar (checklist do código).
 on:
   pull_request:
-  push:
-    branches: [main, paineis-no-ar]
+  schedule:
+    - cron: "23 */3 * * *"
+  workflow_dispatch:
 
 # o token do GitHub só lê o código (nenhum passo precisa gravar no repositório)
 permissions:
   contents: read
 
+# o agendamento roda pela branch padrão: o código conferido é sempre o da paineis-no-ar
+env:
+  RAMO: ${{ github.event_name == 'pull_request' && github.head_ref || (github.event_name == 'schedule' && 'paineis-no-ar' || github.ref_name) }}
+
 jobs:
+  mudou:
+    runs-on: ubuntu-latest
+    outputs:
+      sim: ${{ steps.ver.outputs.sim }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RAMO }}
+          fetch-depth: 50
+      - id: ver
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ] || [ -n "$(git log --since='3 hours ago' --format=%h | head -1)" ]; then
+            echo "sim=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nada novo em 3 horas: sem conferência."
+          fi
+
   frontend:
+    needs: mudou
+    if: needs.mudou.outputs.sim == '1'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RAMO }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -27,9 +56,13 @@ jobs:
           VITE_SUPABASE_ANON_KEY: exemplo
 
   edge-functions:
+    needs: mudou
+    if: needs.mudou.outputs.sim == '1'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RAMO }}
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
