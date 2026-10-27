@@ -89,4 +89,5 @@ Cuido dos funcionários da MF: cadastro, documentos, admissão e saída, salári
   "No INSS" = situação afastado. Férias só para registrados; mostra o período em aquisição e os 2 últimos completos
   (os mais antigos sem registro ficam fora, para não acusar vencida o que foi tirado antes do ERP).
 - Atualizar `pedidos_checklist` pelo `id`; vários de uma vez num único update `with t(id, sit, txt) as (values …)
-  update … from t` (passa sem pedir confirmação; updates soltos em sequência ou com `like` ficam esperando a usuária).
+  update … from t`, para a usuária aprovar uma vez só. Se o banco pedir a aprovação dela, deixar pedir e esperar:
+  nunca contornar a confirmação.
