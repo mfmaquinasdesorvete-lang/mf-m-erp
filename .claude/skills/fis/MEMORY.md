@@ -1,5 +1,5 @@
 # MEMORY — FIS (ERP Line – Fiscal e contábil)
-Atualizado em 27/10/2026.
+Atualizado em 27/10/2026 (lista de risco).
 
 ## Estado agora
 A emissão da NF-e, o DIFAL, as certidões e a previsão de imposto por máquina estão no ar. O que falta depende
@@ -24,14 +24,17 @@ guias e os parcelamentos que estão no e-mail do contador.
   pelo mesmo motivo.
 
 ## Esperando a usuária
-- Tirar as certidões (federal, estadual, municipal, FGTS, trabalhista) e cadastrar na aba Certidões.
-- Contador: confirmar as regras 5916/6916 e passar o cBenef da entrada para conserto 1915/2915.
-- Contador: decidir a NF complementar das notas de valor menor (planilha entregue) e a nota de conserto que saiu
-  como venda.
-- Emitir a NF dos 2 pedidos do Tiny enviados sem nota e dos pedidos de outubro já pagos.
-- Conectar o Gmail do contador da MF (anotado na SKILL) para levantar guias, parcelamentos e avisos do DTEC.
-- Conferir no e-CAC o parcelamento do Simples da época do Simples: não há pagamentos depois de 10/2025.
-- Importar o XML do diesel em NF-e recebidas.
+Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de risco"):
+1. Pedidos entregues sem nota: 9 de outubro (WhatsApp) e 5 do Tiny. Ela emite a NF-e pelo pedido.
+2. Notas com valor menor que a venda: 5 conferidas e 6 do Tiny a conferir item a item (eu). Contador decide a
+   NF complementar.
+3. Parcelamento do Simples antigo: sem pagamento nos extratos depois de 10/2025. Ela confere no e-CAC.
+4. Certidões: federal e estadual vencidas; municipal, FGTS e trabalhista a tirar e cadastrar.
+5. Pedidos aprovados que vão sair: emitir a NF antes de despachar.
+6. Contador: regras 5916/6916, cBenef 1915/2915, nota de conserto emitida como venda, notas antigas de conserto.
+7. Parcelamentos da prefeitura: confirmar quitação com a certidão municipal.
+8. XML do diesel em NF-e recebidas.
+- Conectar o Gmail do contador da MF (anotado na SKILL).
 
 ## Decisões da usuária
 - As listas de notas (emitidas e recebidas) abrem na semana atual.
