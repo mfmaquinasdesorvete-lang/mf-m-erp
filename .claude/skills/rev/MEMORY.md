@@ -16,6 +16,8 @@ com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 - SEG fez (27/10, commit e73163d): o Monitor atualiza a saúde do sistema a cada 5 min (vai na próxima publicação do site). As regras de acesso repetidas (51 tabelas) entram aos poucos, tabela por tabela, testando cada papel.
 - Os quatro chats responderam. 27/10: enviados também ao PRD (produtos sem select, SELECT_LISTA_PRODUTOS; rotas /estoque × /produtos/pecas), FIS (índice de certidoes, EmitirNfe e ComplianceFiscal), TRA (4 índices de frete, FreteVenda), MKT (índice de ml_historico, MercadoLivre.tsx, 2 funções sem uso) e DSG (Carregando do App.tsx); esperando as respostas.
 - FIS fez (27/10, commit 9167ec3): índice certidoes_unidade_id_idx, conferido no banco. EmitirNfe e ComplianceFiscal continuam com clientes e produtos inteiros, de propósito: as conferências da NF-e (_shared) leem muitos campos e a consulta já vem do cache. Decisão aceita pelo REV; se um dia for prioridade, o FIS faz SELECT_CLIENTE_NFE com teste.
+- TRA fez (27/10, commit dabb127): os 4 índices de frete (conferidos no banco) e o FreteVenda baixando só id, peso e medidas dos produtos do pedido (vai na próxima publicação do site).
+- Faltam responder: PRD, MKT e DSG.
 - Ainda não enviados: PRD (2 e 6), FIS, TRA e MKT (9), DSG (16).
 
 ## Esperando a usuária
