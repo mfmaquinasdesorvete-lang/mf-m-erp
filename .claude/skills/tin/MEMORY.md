@@ -1,5 +1,5 @@
 # MEMORY — TIN (ERP Line – Importações do Tiny)
-Atualizado em 25/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 Quase tudo do Tiny da MF já está no ERP: contatos, produtos, kits, pedidos, propostas, OCs, OS e os backups de 19 e 20/10.
@@ -23,7 +23,8 @@ A base da My Frost (empresa anterior) passou para o MYF em 23/10.
 - Propostas do Tiny em aberto: todas fechadas, como Concluído (virou venda) ou Não aprovado.
 
 ## Em andamento
-- Nada parado no meio.
+- Virada do Tiny (o GER propõe a data): mandei ao GER a lista do que falta trazer. No ERP, pedidos e NF-e do Tiny vão até o
+  fim de setembro, contas a pagar até 20/10 e os recebimentos do Tiny nunca foram buscados.
 
 ## Esperando a usuária
 - Clicar em "Atualizar cadastros do Tiny" e em "Buscar recebimentos do Tiny" (esse último alimenta a aba "Decidir").
@@ -50,6 +51,7 @@ A base da My Frost (empresa anterior) passou para o MYF em 23/10.
 - Funções do Supabase: `tiny-importar`, `tiny-historico` (token só no secret `TINY_API_TOKEN`).
 
 ## Próximos passos
+0. Na virada: a usuária clica em histórico, recebimentos e cadastros do Tiny; eu confiro as contagens com o Tiny.
 1. Quando ela rodar "Buscar recebimentos do Tiny": conferir a aba "Decidir" e cruzar com o ENT.
 2. Quando a planilha do instalador chegar: mostrar a lista, ligar aos dois fornecedores com o ok dela e avisar o GER.
 3. Se o TRA pedir transportador e forma de envio dos pedidos, gravar esses campos numa próxima busca do pedido.obter.
