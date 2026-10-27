@@ -2,19 +2,22 @@
 Atualizado em 27/10/2026.
 
 ## Estado agora
-Fase 1 programada (27/10): 6 conferências novas + histórico da tratativa, na Auditoria financeira. Falta publicar o site.
-Depois: fase 2 (chat do auditor).
+Fase 1 no ar desde 27/10 (site 19e62bf): 6 conferências novas + histórico da tratativa na Auditoria financeira.
+Rodada de fechamento (CLAUDE.md, 27/10): a fase 2 só começa quando a usuária aprovar de novo.
 
 ## No ar
-- Nada deste chat ainda (fase 1 montada na `paineis-no-ar`, esperando "Pode publicar").
+- Conferências novas na Auditoria financeira → Exceções (site 19e62bf). Conferido nos dados de 27/10: 5 entradas
+  ignoradas, 0 vendas sem recebimento, 89 contas pagas sem documento desde 01/10, 0 despesas fora do padrão, extrato
+  com buraco em OLIST, Mercado Pago, Nubank, Unicred e Inter (antes de 19/10, quando a API começou).
 
 ## Em andamento
-- Pedidos em Sobre → Pedidos: "conferências novas da fase 1" (fazendo) e "fase 2: chat do auditor" (fila).
+- Nada. Pedidos: "conferências novas da fase 1" (precisa de você: conferir na tela) e "fase 2" (fila, parada).
 
 ## Esperando a usuária
-- "Pode publicar" do site com a fase 1.
-- Taxas das formas de pagamento estão todas em 0%: sem elas a conferência do cartão só mostra a taxa efetiva
-  (dado incompleto). Cadastrar em Configurações → Formas de pagamento (com a conta bancária ligada).
+- Abrir Auditoria financeira → Exceções e confirmar que as conferências novas aparecem; só então marcar "feito".
+- Cadastrar a taxa contratada nas formas de pagamento de cartão (todas em 0%), ligadas à conta bancária; sem ela a
+  conferência do cartão só mostra a taxa efetiva.
+- Aprovar a fase 2 (chat do auditor) quando a rodada de fechamento acabar.
 
 ## Diagnóstico (27/10) — o que achei nas fontes
 - Vendas: `pedidos` (origem tiny, whatsapp, balcao, loja, marketplace). Boa parte dos pedidos entregues que vieram
@@ -54,7 +57,7 @@ Depois: fase 2 (chat do auditor).
 - Telas: `src/pages/Auditoria.tsx`, `src/pages/Conciliacao.tsx`. Modelo do chat: `ia-busca`.
 
 ## Próximos passos
-1. Publicar a fase 1 (com "Pode publicar") e conferir os números na tela.
+1. Depois que ela conferir a tela, marcar o pedido da fase 1 como feito.
 2. Fase 2: função `ia-auditor` no padrão do `ia-busca`: a IA só escolhe a conferência e o período; a conta roda
    com o login de quem perguntou; resposta no formato fixo; registro em `ia_registros`; interruptor em `ia-controle`.
 3. Fase 5: fila Novo → Em análise → Resolvido/Descartado e gravidade crítica/informativa (hoje: alta/média/baixa e
