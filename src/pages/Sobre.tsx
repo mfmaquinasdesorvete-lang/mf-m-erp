@@ -30,6 +30,7 @@ import { TelasAlteradas } from "@/components/sobre/TelasAlteradas";
 import { CodigoErp } from "@/components/sobre/CodigoErp";
 import { DesignSystem } from "@/components/sobre/DesignSystem";
 import { Chats } from "@/components/sobre/Chats";
+import { PaginasClaude } from "@/components/sobre/PaginasClaude";
 import { ResumoSobre } from "@/components/sobre/ResumoSobre";
 import { ItemModal, type InicialItem } from "@/components/sobre/ItemProjeto";
 import { copiar } from "@/components/sobre/Guardanapo";
@@ -38,7 +39,7 @@ const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
 const HISTORICO = typeof __ERP_HISTORICO__ !== "undefined" ? __ERP_HISTORICO__ : [];
 const ULTIMA = versoesDoHistorico(HISTORICO)[0] ?? null;
 
-const ABAS = ["resumo", "modulos", "esquemas", "sistemas", "design", "chats", "monitor", "seguranca", "atualizacoes", "pedidos", "telas", "codigo", "ideias", "rodada", "handoff"] as const;
+const ABAS = ["resumo", "modulos", "esquemas", "sistemas", "design", "paginas", "chats", "monitor", "seguranca", "atualizacoes", "pedidos", "telas", "codigo", "ideias", "rodada", "handoff"] as const;
 type Aba = (typeof ABAS)[number];
 
 type Grupo = { id: string; titulo: string; texto: string; icone: LucideIcon; cor: string; abas: { value: Aba; label: string }[] };
@@ -49,7 +50,7 @@ function gruposDoSobre(ehAdmin: boolean, podeHandoff: boolean): Grupo[] {
     { id: "resumo", titulo: "Resumo", texto: "Tudo de relance: chats, pendências, pedidos, ideias e o que mudou", icone: LayoutDashboard, cor: "bg-fixo-sky-700",
       abas: [{ value: "resumo", label: "Resumo" }] },
     { id: "conhecer", titulo: "Conhecer o ERP", texto: "O que cada tela faz e os processos desenhados", icone: BookOpen, cor: "bg-fixo-sky-700",
-      abas: [{ value: "modulos", label: "Módulos" }, { value: "esquemas", label: "Esquemas" }, { value: "sistemas", label: "Sistemas" }, { value: "design", label: "Design" }] },
+      abas: [{ value: "modulos", label: "Módulos" }, { value: "esquemas", label: "Esquemas" }, { value: "sistemas", label: "Sistemas" }, { value: "design", label: "Design" }, ...(ehAdmin ? [{ value: "paginas" as const, label: "Páginas" }] : [])] },
     { id: "chats", titulo: "Chats e saúde", texto: "Chats do Claude, automações e segurança", icone: Activity, cor: "bg-fixo-purple-700",
       abas: ehAdmin ? [{ value: "chats", label: "Chats" }, { value: "monitor", label: "Monitor" }, { value: "seguranca", label: "Segurança" }] : [] },
     { id: "mudou", titulo: "O que mudou", texto: "Versões, pedidos e cada tela alterada", icone: History, cor: "bg-fixo-teal-700",
@@ -97,6 +98,7 @@ export default function Sobre() {
       {aba === "resumo" && <ResumoSobre ehAdmin={ehAdmin} podeHandoff={podeHandoff} ultima={ULTIMA} onIrAba={setAba} />}
       {aba === "modulos" && <ModulosCartoes onIdeia={setIdeia} onAuditoria={() => setAba("esquemas")} />}
       {aba === "chats" && ehAdmin && <Chats />}
+      {aba === "paginas" && ehAdmin && <PaginasClaude />}
       {aba === "sistemas" && <Sistemas onIdeia={setIdeia} />}
       {aba === "monitor" && ehAdmin && <Monitor />}
       {aba === "seguranca" && ehAdmin && <Seguranca />}
