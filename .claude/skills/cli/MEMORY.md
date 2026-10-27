@@ -30,6 +30,11 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
   incluindo 7e3b667c, cd15f506, bef6b62e e o 23cf9fcf (dados fiscais), que virou "feito". a681f43c (licença e comodato
   da Yozzy Natal) é do SOR.
 
+- Desfeita a unificação 590 ← 300 (27/10, com o ok dela): o 300 era filial diferente (já recriada como 2176 pelo
+  Tiny). Não há botão de desfazer; à mão: tirar de `enderecos_extras` e `unificacoes` do que ficou o que tem origem
+  "cadastro nº X", levar a pessoa de contato "Cadastro unificado nº X" e conferir de quem são pedidos e notas pelo CNPJ
+  do destinatário (`unificar_clientes` não registra o que moveu).
+
 ## Esperando a usuária
 - Anexos sem dono (~50 do ZapSign e ~40 arquivos genéricos do Drive): ligar à mão se ela quiser.
 - Levantamento da qualidade do cadastro (sem CPF/CNPJ, sem cidade/UF, sem telefone, repetidos): só com números,
