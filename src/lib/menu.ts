@@ -52,6 +52,7 @@ export const grupos: Grupo[] = [
       { to: "/tecnicos", tela: "assistencia", label: "Técnicos", curto: "Técnicos", icon: UserCog, busca: "técnico parceiro assistência região cidade estado atende quem atendeu" },
       { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores", curto: "Fornec.", icon: Store, busca: "fornecedor peças compra cotação" },
       { to: "/produtos/servicos", tela: "estoque", label: "Serviços", curto: "Serviços", icon: Wrench, busca: "serviço carga de gás limpeza lavagem troca de compressor reparo mecânica mão de obra visita" },
+      { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado modelos ficha manuais garantia" },
     ],
   },
   {
@@ -73,7 +74,6 @@ export const grupos: Grupo[] = [
       { to: "/painel/posvenda", tela: "assistencia", label: "Painel da assistência", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos técnico conserto tempo garantia preventiva pós-venda" },
       { to: "/assistencia", tela: "assistencia", label: "Ordens de serviço", curto: "OS", icon: Wrench, busca: "os ordem de serviço conserto técnico assistência técnica" },
       { to: "/garantias", tela: "garantias", label: "Garantias e preventivas", curto: "Garantias", icon: ShieldCheck, busca: "preventiva manutenção equipamento" },
-      { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado modelos ficha manuais garantia" },
       { to: "/teste-giga", tela: "testegiga", label: "Teste do giga (REG-006)", curto: "Giga", icon: PlugZap, busca: "teste do giga reg-006 reg 006 qualidade bancada aterramento continuidade tensão suportável rigidez dielétrica hipot funcional número de série ns reteste reprovada aprovada first pass yield manual hg371 gigateste programação do equipamento" },
     ],
   },

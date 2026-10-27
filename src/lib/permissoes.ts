@@ -36,13 +36,16 @@ export const TELAS_ROTULO: Record<Tela, string> = {
 /** Telas que cada papel vê (admin vê todas). O Scrum das equipes é de todos da empresa (não do contador nem do representante). */
 const TELAS: Record<Exclude<Papel, "admin">, Tela[]> = {
   // metas: o vendedor vê só a própria (o banco filtra); administrador e financeiro veem e cadastram todas
-  vendas: ["painel", "fluxo", "expedicao", "fretes", "email", "comissoes", "metas", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "clientes", "fornecedores", "scrum"],
+  // cada papel só com o que é dele (revisão de 27/10): vendas sem produção e compras, fornecedores, assistência e financeiro
+  vendas: ["painel", "fluxo", "expedicao", "fretes", "email", "comissoes", "metas", "documentos", "pedidos", "mercadolivre", "estoque", "notas", "clientes", "scrum"],
   // financeiro vê só o que é de financeiro (pedido de 27/10): a área Financeiro (contas, bancos e conciliação,
   // aprovações, auditoria), as notas fiscais, os fornecedores, relatórios e margem, e os funcionários (salários)
   financeiro: ["conciliacao", "auditoria", "margem", "financeiro", "notas", "relatorios", "fornecedores", "funcionarios"],
   contador: ["contador", "notas", "financeiro", "conciliacao", "auditoria", "documentos"],
-  tecnico: ["painel", "documentos", "assistencia", "garantias", "producao", "testegiga", "estoque", "clientes", "scrum"],
-  expedicao: ["expedicao", "fluxo", "documentos", "scrum"],
+  // técnico: só as OS (assistência), as garantias e o teste do giga
+  tecnico: ["assistencia", "garantias", "testegiga"],
+  // expedição: só separar e embalar e o fluxo dos pedidos
+  expedicao: ["expedicao", "fluxo"],
   // só os cadastros dos produtos (lista, qualidade, marketplace e anúncios, categorias, tabelas de preço para consulta)
   // e os anúncios do Mercado Livre (o que vai de estoque e preço, exceções e aprovar preço travado)
   marketplace: ["estoque", "documentos", "mercadolivre", "scrum"],

@@ -62,3 +62,19 @@ describe("financeiro vê só financeiro (27/10)", () => {
       expect(podeVer("financeiro", t)).toBe(false);
   });
 });
+
+describe("cada papel só com o que é dele (27/10)", () => {
+  it("técnico: só assistência, garantias e teste do giga", () => {
+    for (const t of ["assistencia", "garantias", "testegiga"] as const) expect(podeVer("tecnico", t)).toBe(true);
+    for (const t of ["estoque", "producao", "clientes", "painel", "pedidos"] as const) expect(podeVer("tecnico", t)).toBe(false);
+  });
+  it("vendas: sem produção e compras, fornecedores, assistência, garantias e financeiro", () => {
+    for (const t of ["pedidos", "clientes", "estoque", "notas", "metas"] as const) expect(podeVer("vendas", t)).toBe(true);
+    for (const t of ["producao", "fornecedores", "assistencia", "garantias", "financeiro"] as const) expect(podeVer("vendas", t)).toBe(false);
+  });
+  it("expedição: só separação e fluxo de pedidos", () => {
+    expect(podeVer("expedicao", "expedicao")).toBe(true);
+    expect(podeVer("expedicao", "fluxo")).toBe(true);
+    for (const t of ["documentos", "scrum", "pedidos"] as const) expect(podeVer("expedicao", t)).toBe(false);
+  });
+});
