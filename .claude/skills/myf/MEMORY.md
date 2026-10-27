@@ -1,5 +1,5 @@
 # MEMORY — MYF (ERP Line – My Frost)
-Atualizado em 25/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 A empresa anterior fica separada da MF, na Retaguarda → My Frost, só para a conta master. Lá estão o Painel, as notas, as
@@ -15,12 +15,15 @@ as notas e as propostas da empresa anterior. A auditoria fiscal começou e esper
 - Documentos da empresa anterior na aba Documentos (entidade `my_frost`, só master).
 
 ## Em andamento
+- Rodada de fechamento (27/10): nada novo sem pedido dela; anotar no checklist o que foi testado (o update no checklist pede confirmação que não chega; gravar uma coisa por chamada).
 - Auditoria fiscal (declarado × faturado no Simples), pedida pelo FIS: faturamento por ano já levantado; falta cruzar com o
   que foi declarado. O ano de 2022 passou do sublimite do Simples, e é o primeiro ponto a conferir.
 - Parte "Compras" da empresa anterior, à parte da MF e sem repetir pela chave: falta o zip de compras de 2023.
 - Próxima parte da planilha de propostas (da 501 em diante).
 
 ## Esperando a usuária
+- Abrir na tela o Painel da My Frost e uma Ficha 360 com máquina ligada, para fechar os pedidos (o teste no banco já passou).
+- Dizer se o cadastro de comércio de máquinas que virou fornecedor volta a ser cliente (pergunta do CLI; as notas da My Frost voltam junto).
 - Extratos do PGDAS-D, recibos da DEFIS e relatório de situação fiscal (e-CAC ou contador).
 - Backup completo dos XML das notas emitidas: não está no Drive nem no Gmail. Sem ele, não há condição de pagamento.
 - Levar ao advogado: comunicação do Domicílio Judicial, CNPJ inapto e dívida ativa de DIFAL em outro estado.
