@@ -1,10 +1,12 @@
 # MEMORY — IAD (ERP Line – IA do dia a dia (ideias))
-Atualizado em 26/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 As cinco frentes de IA nos cadastros e nas vendas estão no ar, e também a fila das ideias da pesquisa (resumo, busca nos
 documentos, títulos a pagar, regras da IA analítica, ações com aprovação). Na fila sobrou só o robô do WhatsApp.
-Nenhuma das IAs novas foi testada com dado real ainda: falta a usuária usar e contar o que achou.
+Rodada de fechamento (27/10): "feito" só depois do teste com tarefa real. Pelo registro de uso (ia_registros), já foram
+usadas de verdade: Anotar por voz, Perguntar à IA e Analisar com IA nos títulos (17 pareceres coerentes em 26/10).
+As outras estão no ar e esperando o primeiro uso real.
 
 ## No ar
 - Anotar por voz (🎤 em todas as telas), Anotações, pagamentos anotados na conciliação, ok do giga por voz;
@@ -20,12 +22,18 @@ Nenhuma das IAs novas foi testada com dado real ainda: falta a usuária usar e c
 - Controle: Configurações → Inteligência artificial (IA desligada e registro de uso de todas as funções).
 
 ## Em andamento
-- Nada parado no meio.
+- Rodada de fechamento: no Sobre → Pedidos, as IAs ainda sem uso real voltam para "fazendo" até o teste.
 
 ## Esperando a usuária
-- Testar as IAs novas no dia a dia e dizer o que ajustar.
+- Teste com tarefa real (eu não tenho login no ERP nem a chave da IA para testar sozinho):
+  1. Clientes → Novo → Preencher com IA (o erro 400 foi corrigido em 26/10; a última tentativa foi antes da correção).
+  2. Vendas → novo pedido → Montar com IA, com uma conversa de cliente.
+  3. Ficha 360 → Responder no WhatsApp → Escrever com IA.
+  4. Produtos → Preencher com IA mandando o PDF do fornecedor (NCM, peso e medidas).
+  5. Perguntar à IA → 🛠️ Dúvida de manutenção e ⚡ Pedir uma ação (uma baixa de conta).
+  6. Documentos → ✨ Resumir um PDF e "Achar pelo assunto".
+  7. Ajuda IA → 📎 mandar a foto de um comprovante.
 - Robô do WhatsApp: ligar o número fixo na conta oficial da Meta (WhatsApp Business API) antes de começar.
-- Crédito da conta da Anthropic: ela cuida no console; a chave fica só no secret do Supabase.
 
 ## Decisões da usuária
 - A IA só sugere ou prepara; quem grava é a pessoa, com o Confirmar da tela de sempre.
