@@ -2,10 +2,16 @@
 // lista com o nome de cada seção, que se arrasta pela alça (dedo ou mouse) ou se move pelas setas. A ordem fica salva
 // no perfil (preferência "ordem:<página>"), vale em qualquer aparelho e não muda nada para as outras pessoas.
 // Seção nova no código entra no lugar dela na ordem padrão; seção que deixou de existir é ignorada.
+// A conta master pode "Usar para toda a equipe" (27/10): a ordem dela vira a padrão de todos (configuracoes.aparencia
+// .ordem_secoes); quem arrumou a sua continua com a sua. Ordem de quem vale: a da pessoa, a da equipe, a do código.
 import { useRef, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, Check, GripVertical, LayoutList, RotateCcw } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, GripVertical, LayoutList, RotateCcw, Users } from "lucide-react";
 import { Button } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
+import { usePerfil } from "@/lib/auth";
+import { useConfig } from "@/lib/useConfig";
+import { useInvalidate } from "@/lib/data";
+import { notify, notifyError } from "@/lib/notify";
 import { lerOrdemSecoes, guardarOrdemSecoes } from "@/lib/ordemSecoes";
 
 export type Secao = {
@@ -42,7 +48,21 @@ export function Secoes({ pagina, secoes, className = "" }: { pagina: string; sec
   const [rascunho, setRascunho] = useState<string[]>([]);
   const [arrastando, setArrastando] = useState<string | null>(null);
   const itensRef = useRef(new Map<string, HTMLLIElement>());
-  const lista = ordenarSecoes(visiveis, salva);
+  const { master } = usePerfil();
+  const { data: cfg } = useConfig();
+  const invalidar = useInvalidate();
+  const aparencia = (cfg?.aparencia ?? null) as ({ ordem_secoes?: Record<string, string[]> } & Record<string, unknown>) | null;
+  const daEquipe = aparencia?.ordem_secoes?.[pagina] ?? null;
+  const lista = ordenarSecoes(visiveis, salva ?? (daEquipe?.length ? daEquipe : null));
+  // master: grava a ordem como a padrão de todos (ou tira, com null), sem mexer no resto da aparência
+  async function paraEquipe(ordem: string[] | null) {
+    const atual = { ...(aparencia?.ordem_secoes ?? {}) };
+    if (ordem) atual[pagina] = ordem; else delete atual[pagina];
+    const { error } = await supabase.from("configuracoes").update({ aparencia: { ...(aparencia ?? {}), ordem_secoes: atual } }).eq("id", 1);
+    if (error) { notifyError(error); return; }
+    invalidar("configuracoes");
+    notify(ordem ? "Essa ordem agora é a padrão de toda a equipe" : "A equipe volta para a ordem padrão do sistema");
+  }
 
   function abrir() { setRascunho(lista.map((s) => s.id)); setOrganizando(true); }
   function salvar(ordem: string[] | null) {
@@ -90,10 +110,14 @@ export function Secoes({ pagina, secoes, className = "" }: { pagina: string; sec
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-bold text-fg">Organizar a página</h2>
-            <p className="text-xs text-slate-500">Segure a alça <GripVertical size={12} className="inline" aria-hidden /> e arraste, ou use as setas. Vale só para você.</p>
+            <p className="text-xs text-slate-500">Segure a alça <GripVertical size={12} className="inline" aria-hidden /> e arraste, ou use as setas. "Pronto" vale só para você.
+              {master && daEquipe && <> A equipe usa a ordem que você definiu. <button type="button" className="link-discreto" onClick={() => paraEquipe(null)}>Tirar</button></>}</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" tamanho="mini" onClick={() => { salvar(null); setOrganizando(false); }}><RotateCcw size={13} aria-hidden /> Ordem padrão</Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="ghost" tamanho="mini" onClick={() => { salvar(null); setOrganizando(false); }} title={daEquipe ? "Volta para a ordem da equipe" : "Volta para a ordem do sistema"}>
+              <RotateCcw size={13} aria-hidden /> {daEquipe ? "Ordem da equipe" : "Ordem padrão"}</Button>
+            {master && <Button variant="secondary" tamanho="mini" onClick={() => { salvar(ordem); paraEquipe(ordem); setOrganizando(false); }} title="Essa ordem vira a padrão de todos; quem já arrumou a sua continua com a sua">
+              <Users size={13} aria-hidden /> Usar para toda a equipe</Button>}
             <Button tamanho="mini" onClick={() => { salvar(ordem); setOrganizando(false); }}><Check size={13} aria-hidden /> Pronto</Button>
           </div>
         </div>

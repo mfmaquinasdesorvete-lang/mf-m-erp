@@ -101,7 +101,9 @@ export function EditorAparencia() {
   async function salvar() {
     setSalvando(true);
     try {
-      const { error } = await supabase.from("configuracoes").update({ aparencia: limparAparencia(a), icone_url: icone }).eq("id", 1);
+      // a ordem das seções da equipe (Organizar → "Usar para toda a equipe") fica na mesma coluna: não se perde aqui
+      const ordem = (cfg?.aparencia as { ordem_secoes?: unknown } | null | undefined)?.ordem_secoes;
+      const { error } = await supabase.from("configuracoes").update({ aparencia: { ...limparAparencia(a), ...(ordem ? { ordem_secoes: ordem } : {}) }, icone_url: icone }).eq("id", 1);
       if (error) throw error;
       notify("Aparência salva: já vale para toda a equipe");
       invalidar("configuracoes");

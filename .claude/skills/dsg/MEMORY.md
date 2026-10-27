@@ -16,6 +16,7 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Resumo do dono no Início de um usuário do financeiro (`ResumoDono`, `veResumoDono` pelo nome).
 - Equipe online no Início da conta master (`EquipeOnline`, usa acessos_usuarios).
 - Organizar as seções arrastando (peça `Secoes`, ordem no perfil "ordem:<página>"): Início e os 10 painéis das áreas.
+  A master pode "Usar para toda a equipe" (configuracoes.aparencia.ordem_secoes); vale: a da pessoa > a da equipe > a do código.
 - Janela de avisos: setas, "Ciente em todos" e ligar/desligar o som (d515e01).
 - Cartão do cliente no celular: selos numa fila, contato só em ícones no rodapé, sem marcador repetido (c05d1a2).
 - Design System "ERP Line" no Claude (artifact) atualizado com o visual de 24/10 (antes do escuro liso).
@@ -31,7 +32,7 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Escuro padrão liso; Aurora só para quem escolher.
 - Marcadores nunca somem do registro; no cartão pode esconder o que já aparece de outro jeito.
 - Contato no cartão do cliente: só os ícones de WhatsApp e e-mail.
-- Cada pessoa organiza a ordem das seções só para ela (não muda para a equipe).
+- Ordem das seções: cada pessoa arruma a sua; a master pode passar a dela para toda a equipe.
 - Card azul no alto do Início do celular (resumo) e acesso rápido em cartõezinhos coloridos.
 
 ## Onde está
