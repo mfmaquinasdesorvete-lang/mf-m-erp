@@ -25,6 +25,10 @@ type Tarifas = {
 };
 type FonteCusto = "cadastro" | "avista" | "ultima";
 
+/** Imposto efetivo sobre a venda das peças (Lucro Real, saindo de SC), em % do preço, sem o IPI (cobrado à parte) e sem
+ *  IRPJ/CSLL; e o crédito das compras com nota (ICMS de 12% + PIS/COFINS de 9,25% do custo). Passados pelo chat Fiscal
+ *  em 27/10 e usados só na simulação, enquanto as Configurações estão com 0%. A apuração oficial é do contador. */
+const IMPOSTO_LOJA = 25, IMPOSTO_ML = 27, CREDITO_COMPRAS = 21.25;
 const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const pctTxt = (v: number | null | undefined) => (v == null ? "—" : `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`);
 
@@ -44,6 +48,8 @@ export function SimuladorCanais() {
   const p = produtos.data?.find((x) => x.id === id) ?? null;
   const [fonteCusto, setFonteCusto] = useState<FonteCusto>("cadastro");
   const [imposto, setImposto] = useState("");
+  const [impostoML, setImpostoML] = useState("");
+  const [credito, setCredito] = useState(true);
   const [lucroDesejado, setLucroDesejado] = useState("");
   const [precos, setPrecos] = useState<Record<string, string>>({});
   const historico = useHistoricoCustos(id);
@@ -74,7 +80,7 @@ export function SimuladorCanais() {
   });
 
   // ao trocar de produto, volta ao padrão: imposto das Configurações e o lucro desejado do produto (ou do tipo)
-  useEffect(() => { setPrecos({}); setImposto(""); setLucroDesejado(""); }, [id]);
+  useEffect(() => { setPrecos({}); setImposto(""); setImpostoML(""); setLucroDesejado(""); }, [id]);
 
   const custos = useMemo(() => {
     const l = historico.data ?? [];
@@ -86,16 +92,23 @@ export function SimuladorCanais() {
       ultima: ult ? { valor: num(ult.valor_unitario), fonte: `última compra (${String(ult.detalhe ?? "").trim() || "nota de entrada"})` } : null,
     };
   }, [historico.data, p]);
-  const custo = (fonteCusto !== "cadastro" && custos[fonteCusto]) || custos.cadastro;
+  const custoBase = (fonteCusto !== "cadastro" && custos[fonteCusto]) || custos.cadastro;
+  // crédito de imposto das compras com nota: o custo de verdade é menor que o da nota
+  const custo = credito && custoBase.valor > 0
+    ? { valor: Math.round(custoBase.valor * (1 - CREDITO_COMPRAS / 100) * 100) / 100, fonte: `${custoBase.fonte}, menos ${pctTxt(CREDITO_COMPRAS)} de crédito de ICMS e PIS/COFINS da compra (sugestão do chat Fiscal)` }
+    : custoBase;
 
-  const impostoPct = lerValor(imposto) ?? cfg.impostos_pct;
+  // imposto: o digitado aqui; senão o das Configurações; com 0% lá, o efetivo que o chat Fiscal passou
+  const impPadrao = (pctSugerido: number) => (cfg.impostos_pct > 0 ? { v: cfg.impostos_pct, o: "Configurações → Formação de preço → impostos" } : { v: pctSugerido, o: "imposto efetivo sugerido pelo chat Fiscal (Configurações estão com 0%)" });
+  const impLoja = imposto.trim() ? { v: lerValor(imposto) ?? 0, o: "digitado aqui (não grava)" } : impPadrao(IMPOSTO_LOJA);
+  const impML = impostoML.trim() ? { v: lerValor(impostoML) ?? 0, o: "digitado aqui (não grava)" } : impPadrao(IMPOSTO_ML);
   const lucroPadrao = p ? (p.margem_desejada != null ? { v: num(p.margem_desejada), o: "do produto" } : cfg.margens[p.tipo] != null ? { v: num(cfg.margens[p.tipo]), o: "do tipo, nas Configurações" } : { v: cfg.margem_padrao, o: "padrão das Configurações" }) : { v: 0, o: "" };
   const lucroPct = lerValor(lucroDesejado) ?? lucroPadrao.v;
-  const fonteImposto = imposto.trim() ? "digitado aqui (não grava)" : "Configurações → Formação de preço → impostos";
 
   const canais = useMemo(() => {
     if (!p) return [] as { canal: Canal; padrao: number; fontePreco: string }[];
-    const imp = { nome: "Imposto sobre a venda", pct: impostoPct, fonte: fonteImposto };
+    const imp = { nome: "Imposto sobre a venda", pct: impLoja.v, fonte: `${impLoja.o}; SC e empresas` };
+    const impM = { nome: "Imposto sobre a venda", pct: impML.v, fonte: `${impML.o}; consumidor de outros estados (com DIFAL)` };
     const meio = (id: "pix" | "credito" | "link", nome: string) => ({
       canal: { id, nome, percentuais: [imp, { nome: "Taxa do pagamento", pct: cfg.taxas_meio[id] ?? 0, fonte: `Configurações → Formação de preço → taxa ${nome.split(" · ")[1].toLowerCase()}` }] },
       padrao: num(p.preco_venda), fontePreco: "preço de venda do cadastro (o da loja)",
@@ -105,7 +118,7 @@ export function SimuladorCanais() {
       lista.push({
         canal: {
           id: t.id, nome: `Mercado Livre · ${t.nome}`,
-          percentuais: [imp, { nome: `Tarifa do ${t.nome}`, pct: t.pct ?? 0, fonte: t.fonte }],
+          percentuais: [impM, { nome: `Tarifa do ${t.nome}`, pct: t.pct ?? 0, fonte: t.fonte }],
           fixa: { valor: tarifaFixa, fonte: "tabela do Mercado Livre (abaixo de R$ 79)" },
           frete: tarifas.data!.frete.valor ? { valor: tarifas.data!.frete.valor, desde: tarifas.data!.frete.desde, fonte: `${tarifas.data!.frete.fonte}${tarifas.data!.frete.estimado ? ", caixa média (sem medidas no cadastro)" : `, caixa ${tarifas.data!.frete.medidas}`}` } : undefined,
         },
@@ -113,7 +126,7 @@ export function SimuladorCanais() {
       });
     }
     return lista;
-  }, [p, impostoPct, fonteImposto, cfg, tarifas.data, precoMLnum, precos.ml, precoML.data]);
+  }, [p, impLoja.v, impLoja.o, impML.v, impML.o, cfg, tarifas.data, precoMLnum, precos.ml, precoML.data]);
 
   return (
     <Section title="Simulador de canais" actions={id ? (
@@ -140,20 +153,25 @@ export function SimuladorCanais() {
               <option value="ultima" disabled={!custos.ultima}>Última compra{custos.ultima ? "" : " (nenhuma)"}</option>
             </select>
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Imposto (%)" dica={imposto.trim() ? "só nesta simulação" : "das Configurações"}>
-              <input className="input num" inputMode="decimal" placeholder={pctTxt(cfg.impostos_pct)} value={imposto} onChange={(e) => setImposto(e.target.value)} disabled={!p} />
-            </Field>
-            <Field label="Lucro desejado (%)" dica={lucroDesejado.trim() ? "só nesta simulação" : lucroPadrao.o}>
-              <input className="input num" inputMode="decimal" placeholder={pctTxt(lucroPadrao.v)} value={lucroDesejado} onChange={(e) => setLucroDesejado(e.target.value)} disabled={!p} />
-            </Field>
-          </div>
+          <Field label="Lucro desejado (%)" dica={lucroDesejado.trim() ? "só nesta simulação" : lucroPadrao.o}>
+            <input className="input num" inputMode="decimal" placeholder={pctTxt(lucroPadrao.v)} value={lucroDesejado} onChange={(e) => setLucroDesejado(e.target.value)} disabled={!p} />
+          </Field>
+          <Field label="Imposto na loja (%)" dica={imposto.trim() ? "só nesta simulação" : "SC e empresas"}>
+            <input className="input num" inputMode="decimal" placeholder={pctTxt(impLoja.v)} value={imposto} onChange={(e) => setImposto(e.target.value)} disabled={!p} />
+          </Field>
+          <Field label="Imposto no Mercado Livre (%)" dica={impostoML.trim() ? "só nesta simulação" : "consumidor de outros estados"}>
+            <input className="input num" inputMode="decimal" placeholder={pctTxt(impML.v)} value={impostoML} onChange={(e) => setImpostoML(e.target.value)} disabled={!p} />
+          </Field>
+          <label className="flex items-start gap-2 text-sm text-slate-700 sm:col-span-2 lg:self-end lg:pb-2">
+            <input type="checkbox" className="mt-0.5 h-4 w-4" checked={credito} onChange={(e) => setCredito(e.target.checked)} disabled={!p} />
+            <span>Abater do custo o crédito das compras com nota ({pctTxt(CREDITO_COMPRAS)}: ICMS 12% e PIS/COFINS 9,25%)</span>
+          </label>
         </div>
       )}
 
-      {p && !impostoPct && (
+      {p && !cfg.impostos_pct && (
         <p className="mt-3 flex items-start gap-1.5 rounded-cartao bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden /> O imposto sobre a venda está em 0% nas Configurações: o lucro aparece maior do que é. Digite o % aqui ou peça ao chat Fiscal o imposto efetivo.
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden /> O imposto sobre a venda está em 0% nas Configurações. Aqui entra o imposto efetivo que o chat Fiscal passou ({IMPOSTO_LOJA}% na loja, {IMPOSTO_ML}% no Mercado Livre); dá para digitar outro. IRPJ e CSLL ficam de fora.
         </p>
       )}
 
