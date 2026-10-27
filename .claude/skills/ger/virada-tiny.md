@@ -29,6 +29,15 @@ Data proposta: **segunda, 09/11/2026** (duas semanas para fechar a lista abaixo)
 | 8 | Teste do começo ao fim no ERP no ar: pedido → NF → conta a receber → recebimento → conciliação | GER | depois de 1–5 |
 | 9 | Tiny só leitura: tirar as integrações que gravam (pedidos, notas) e avisar a equipe | usuária + TIN | no dia |
 
+## Como o TIN propõe o dia (27/10)
+- Na véspera, a equipe para de lançar no Tiny.
+- No dia, a usuária clica em Importar: "Buscar histórico do Tiny" a partir de 28/09 (pedidos, NF-e/NFS-e, propostas e
+  OCs lançados no Tiny depois disso; não duplica, pelo ID do Tiny), "Buscar recebimentos do Tiny" (nunca foi rodado;
+  as recebidas sem dono vão para a aba "Decidir", com o ENT) e "Atualizar cadastros do Tiny".
+- Contas a pagar em aberto e pagas depois de 20/10 entram e as pagas esperam o ok dela em Aprovações.
+- O TIN confere se as contagens batem com as do Tiny antes de declarar a virada.
+- Dá para adiantar o item 1 rodando "Buscar recebimentos do Tiny" já agora (precisa do login dela).
+
 ## Depois da virada
 - Última importação do Tiny (o que entrou até o dia) e conferência dos totais do mês.
 - Uma semana de acompanhamento: tudo o que a equipe pedir no Tiny vira pedido no ERP.
