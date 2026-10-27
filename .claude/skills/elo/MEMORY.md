@@ -24,7 +24,8 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
   O TRA e o TEC entram quando a base estiver no ar.
 
 ## Esperando a usuária
-- ELO: rodar no SQL Editor a criação de `paginas_claude` com as 16 páginas; publicar o site da aba Páginas.
+- ELO: `paginas_claude` está no SQL único do FAZ (item 1). Quando a tabela existir, gravar as 16 páginas
+  (inserts em paginas-claude.sql do scratchpad: refazer a partir da lista do Raio-X/artifacts). Site da aba já publicado.
 - GER: rodar no SQL Editor a criação da tabela `config_ajustes`, base de Prazos e padrões.
 - PRD: aprovar no chat do PRD a gravação da migração das variações de produto.
 - MKT: estoque na SC e dados de 5 peças para os anúncios novos.
@@ -44,5 +45,6 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
 - Página nova feita para a usuária (artifact do ERP): acrescentar uma linha em `paginas_claude`.
 
 ## Próximos passos
+- Esperando respostas: FIS, GER, CAR e SOR sobre telas com período abrindo em "Esta semana" (27/10).
 1. De tempos em tempos, conferir se as memórias continuam sem dados da empresa e trazer para a raiz o que vale para todos.
 2. Cobrar o GER pela base em Configurações e avisar o TRA e o TEC quando ela estiver no ar.
