@@ -36,11 +36,11 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
-- Fichas técnicas das máquinas × lista "Produto x Fornecedor" (27/10): grupos gravados em todas as linhas
-  (separações dela → 7 grupos do ERP; senão cálculo interno do Tiny; senão pelo nome). Ela disse para não cadastrar
-  de novo: a maioria dos 88 itens "sem cadastro" está só nas compras (pedido de compra e nota sem produto_id).
-  Falta ela decidir: ligar essas linhas a um cadastro (necessário para entrar na ficha) e quais itens entram em cada
-  máquina. Ficha técnica é da produção (GER, avisado).
+- Fichas técnicas × lista "Produto x Fornecedor" (27/10): grupos gravados em todas as linhas; 57 cadastros novos
+  criados a partir das compras (CP-ELE-020 a 035, CP-EST-031 a 034, CP-CON-006 a 031, CP-MAT-001 a 007, CP-REF-016,
+  CP-MEC-005 a 007), ligados aos códigos dos fornecedores e às linhas de pedido de compra. Sem compra nenhuma (ficaram de
+  fora): Thermoval, adesivos, bolinha de baquelite, madeira pinus, prego, grade, placa do painel, flange de motor,
+  peças de inox da dosadora, cabo PP 4x4, fio 0,75 amarelo. Falta ela dizer quais itens entram em cada máquina.
 - Preço do PC-MEC-002 "Cubo + Separador do Cubo" (achado do MKT, 27/10): custa menos que o PC-MEC-018 "Separador do
   Cubo" sozinho e não é kit (sem componentes). Saber se o nome está errado (só o cubo?) ou se o preço está errado.
 - Planilha de custo, peso, medidas e foto das peças que vendem (mandada em 24/10).

@@ -72,5 +72,7 @@ Cuido do cadastro de produtos da MF: dados completos e certos, sem repetidos, co
   não reativar em massa.
 - Custo de peça feita aqui (chave extratora, vedações, pás) não vem de nota de fornecedor: pedir à usuária ou à ficha técnica.
 - SKU novo: próximo número livre contando `produtos.sku`, `produto_skus` e `codigos_alternativos` (SKU nunca se reaproveita).
+- Prefixos de insumo: CP-ELE, CP-EST, CP-REF, CP-MEC, CP-CIL, CP-PLA, CP-CON (consumíveis) e CP-MAT (matéria-prima
+  de metal, ex.: barras de inox e ferro chato).
 - Item "sem cadastro" pode já existir nas compras: cruzar com `pedido_compra_itens` (muitas linhas sem `produto_id`) e
   `nfe_recebida_itens` antes de dizer que falta ou de criar produto (descrição do fornecedor, ex.: "CABO FLEXIVEL 750V" = fio).
