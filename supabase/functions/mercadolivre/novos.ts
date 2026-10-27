@@ -24,7 +24,7 @@ const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const pausa = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Repete quando o Mercado Livre pede calma (429): 1, 2, 4 e 8 segundos. */
-async function ml<T = any>(caminho: string, token: string, init: Parameters<typeof chamarML>[2] = {}): Promise<T> {
+export async function ml<T = any>(caminho: string, token: string, init: Parameters<typeof chamarML>[2] = {}): Promise<T> {
   for (let i = 0; ; i++) {
     try { return await chamarML<T>(caminho, token, init); } catch (e) {
       if (e instanceof ErroML && (e.status === 429 || /rate_limit/i.test(e.message)) && i < 4) { await pausa(1000 * 2 ** i); continue; }
@@ -34,7 +34,7 @@ async function ml<T = any>(caminho: string, token: string, init: Parameters<type
 }
 
 /** Categoria sugerida pelo Mercado Livre: primeiro pelo nome da peça + "máquina de sorvete", depois pelo título. */
-async function categoria(token: string, p: Produto, titulo: string) {
+export async function categoria(token: string, p: Pick<Produto, "descricao">, titulo: string) {
   const nome = String(p.descricao ?? "").split(/\s+[-–]\s+|\(|,/)[0].trim();
   const tentativas = [...new Set([/sorvete/i.test(nome) ? nome : `${nome} máquina de sorvete`, titulo, nome].filter((q) => q.length >= 3))];
   for (const q of tentativas) {

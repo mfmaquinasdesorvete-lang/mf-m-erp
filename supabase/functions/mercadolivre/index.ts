@@ -41,6 +41,7 @@ import { enviarNotas, enviarRastreios } from "./posvenda.ts";
 import { gravarHistorico, puxarHistorico } from "./historico.ts";
 import { prepararAnuncios, publicarAnuncios } from "./novos.ts";
 import { atualizarAnuncios, copiarFotos, republicarAnuncios } from "./atualizar.ts";
+import { tarifasDoProduto } from "./simular.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
@@ -126,6 +127,12 @@ Deno.serve(async (req) => {
       case "copiar_fotos": {
         if (!(await chamadaDoAgendamento(req))) await requireErpUser(req, ["financeiro", "marketplace"]);
         return json({ ok: true, resultado: await copiarFotos(db) });
+      }
+      case "simular_canais": {
+        // só consulta (tarifas e frete do Mercado Livre para o simulador de canais); não muda nada
+        await requireErpUser(req, ["financeiro", "marketplace"]);
+        const conta = await contaLigada(db);
+        return json({ ok: true, resultado: await tarifasDoProduto(db, conta as any, await tokenValido(db, conta), body.produto_id, body.preco) });
       }
       case "buscar_anuncios": {
         await requireErpUser(req, ["vendas", "financeiro", "marketplace"]);

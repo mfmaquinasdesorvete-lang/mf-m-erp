@@ -256,9 +256,10 @@ function AbaAnuncios({ p }: { p: ProdutoFicha }) {
 }
 
 /** Histórico de custos do produto (compras pelas notas e mudanças no cadastro); a ficha e a aba Custos dividem a mesma leitura. */
-function useHistoricoCustos(produtoId: string) {
+export function useHistoricoCustos(produtoId: string) {
   return useQuery({
     queryKey: ["historico_custos", produtoId],
+    enabled: !!produtoId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("historico_custos", { p_produto: produtoId });
       if (error) throw error;
