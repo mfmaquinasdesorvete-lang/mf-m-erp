@@ -55,6 +55,8 @@ Atualizado em 25/10/2026 pelo ELO.
 - Telas com filtro de período abrem em "Esta semana" (pedido nas Aprovações e nas notas emitidas, 27/10). Vale
   para tela nova e para a tela que o chat dono mexer; a pessoa pode trocar o período na hora.
 - O nome da empresa nos textos para o cliente vem de Configurações → Empresa, nunca escrito à mão.
+- Regras oficiais de design (27/10): `.claude/skills/dsg/regras-design.md`; tela nova ou mudada passa pela conferência
+  de 8 itens dela antes do "Pode publicar". O DSG audita as telas e leva os achados ao chat dono.
 - Visual de toda tela nova, conforme as diretrizes da usuária de 24/10 (chat DSG):
   - uma ação principal clara, com um botão cheio;
   - cartões lisos com borda fina, sem degradê, brilho ou sombra pesada; o escuro liso é o padrão;

@@ -25,6 +25,8 @@
   Antes de enviar commits: `git pull --rebase origin paineis-no-ar`, para não apagar o que outro chat enviou.
 - Antes de pedir "Pode publicar", conferir o que mudou com a lista `.claude/checklist-codigo.md` (conta certa, gravação
   segura, leve, fácil de mexer); achado de prioridade alta se conserta na hora.
+- Tela nova ou mudada passa também pela conferência de 8 itens de `.claude/skills/dsg/regras-design.md` (peças e
+  tokens, uma ação principal, celular, carregando/vazio/erro, volta e Cancelar, acessibilidade, permissões, tarefa real).
 - Marcadores são da usuária e não se perdem: importação (Tiny ou outra), unificação de cadastros e correções
   automáticas só somam marcadores, nunca tiram; os marcadores que vierem do Tiny (ex.: Em garantia, Fora de garantia,
   Não cobrado) entram com o mesmo nome.

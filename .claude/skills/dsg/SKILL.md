@@ -20,6 +20,9 @@ Cuido do visual do ERP: os tokens, as peças comuns das telas e a aparência esc
   `src/components/sobre/EditorAparencia.tsx`; regras em `src/lib/aparencia.ts`, `src/lib/tema.ts`, `src/lib/marca.ts`.
 - Ícones e destaques: `src/components/IconeArea.tsx`, `src/components/FaixaDestaque.tsx`.
 - Aparência guardada em `configuracoes.aparencia` (migração `20261023030511_aparencia_empresa.sql`).
+- **Auditor de design do ERP (27/10):** regras oficiais em `.claude/skills/dsg/regras-design.md` (12 regras e a
+  conferência de 8 itens de cada tela). Audito as telas por elas, guardo cada rodada em
+  `.claude/skills/dsg/auditoria-AAAA-MM-DD.md` e levo cada achado ao chat dono da tela (eu conserto só as peças comuns).
 
 ## Não faço (levo para outro chat)
 - O que a tela faz (regra de negócio, contas, gravação) → o chat do assunto (o resto → GER).
