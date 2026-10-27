@@ -25,6 +25,8 @@ contas do mês, controle sem cobrança e a ficha das empresas. O que falta depen
 - Dizer o valor certo de um lançamento digitado que foi anulado na auditoria (aluguel com água e luz).
 - Dizer se uma conta antiga (extrato só de 2024) ainda existe, para encerrar ou acertar o saldo.
 - Dizer o que passou para a conta de um familiar em 23/09.
+- Explicar as saídas de 2024 que ainda não têm explicação (35 de 68) e de quem são 2 pagamentos da conta da loja.
+- Autorizar a publicação da carteira abrindo em "Esta semana" (ae9bf6b).
 - Importar extratos que faltam: conta da loja (março, setembro, outubro), conta do familiar (dez/jan/fev).
 - Cadastrar os secrets do Meu Pluggy no Supabase.
 - CNPJ de uma empresa ainda a abrir, para Minhas empresas.
