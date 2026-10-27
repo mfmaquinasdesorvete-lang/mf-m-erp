@@ -78,8 +78,8 @@ Atualizado em 25/10/2026 pelo ELO.
 - Pelo MCP do Supabase:
   - gravar uma coisa por chamada, com `where` pelo id e texto curto. Juntar gravações, filtrar pelo nome ou mandar
     texto longo faz a chamada pedir confirmação e cair por tempo;
-  - várias linhas de uma vez: `with t(id, txt) as (values (...), (...)) update tabela set ... from t where ... returning 1`
-    passou sem pedir confirmação em 27/10 (37 itens). Se pedir, é uma confirmação só para ela aprovar;
+  - várias linhas do mesmo assunto (ex.: os "Testado em…" de um chat): juntar num único update, para a usuária aprovar
+    uma vez só. Nunca para escapar da confirmação: se o banco pedir, espera-se a aprovação dela;
   - criar ou apagar tabela pelo MCP trava. Peça à usuária para rodar o SQL no SQL Editor do Supabase;
   - antes de gravar, avise a usuária para ficar com o chat aberto e tocar em "Permitir".
 - O push é recusado ("fetch first" ou "cannot lock ref") quando outro chat enviou antes. Repetir `pull --rebase` e
