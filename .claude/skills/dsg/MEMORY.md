@@ -27,7 +27,11 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Nada aberto.
 
 ## Esperando a usuária
-- Nada.
+- Testar no ERP no ar (com login) o Organizar: Início → Organizar → mover uma seção → Pronto (e, se quiser, "Usar para
+  toda a equipe"). Testado só no modo demonstração.
+- Olhar no celular, no ERP no ar, uma lista (ex.: Clientes) com as letras novas (texto 14 px, rótulos 12 px).
+- Pendente: no Sobre → Pedidos, mudar esses dois de "feito" para "precisa de você" com o que foi testado (o Supabase
+  não respondeu em 27/10).
 
 ## Decisões da usuária
 - Cor primária: o ciano de sempre (cada pessoa pode trocar em Aparência).
