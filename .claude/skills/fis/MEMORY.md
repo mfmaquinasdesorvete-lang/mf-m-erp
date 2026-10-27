@@ -1,5 +1,5 @@
 # MEMORY — FIS (ERP Line – Fiscal e contábil)
-Atualizado em 27/10/2026 (lista de risco).
+Atualizado em 27/10/2026 (NF-e do restante no ar; imposto das peças para o MKT).
 
 ## Estado agora
 A emissão da NF-e, o DIFAL, as certidões e a previsão de imposto por máquina estão no ar. O que falta depende
@@ -18,10 +18,8 @@ guias e os parcelamentos que estão no e-mail do contador.
   emitida como venda e nas notas de pedidos do Tiny com valor menor que a venda.
 
 ## Em andamento
-- Observações dos 2 parcelamentos da prefeitura de SC: o banco pediu confirmação e não gravou. Texto: pagamentos
-  achados nos extratos, provável quitação, confirmar com a certidão municipal.
-- Observação de uma nota que confere com o pedido (o problema é o outro pedido que foi junto sem nota): não gravou
-  pelo mesmo motivo.
+- NF-e do restante do pedido (entrega parcial) e cartão de vendas sem as transferências: no ar (e529b35, c289b2c).
+  Falta o teste real: emitir a NF do restante de um pedido com entrega parcial; só então "feito" no checklist.
 
 ## Esperando a usuária
 Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de risco"):
@@ -40,6 +38,8 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
 - As listas de notas (emitidas e recebidas) abrem na semana atual.
 - Tudo que não é da MF vai para o painel pessoal (CAR). A Soft Premium não é deste ERP: não buscar nada dela.
 - Marcadores só se somam; avisos nas notas usam o marcador "Rever com o contador" e a observação interna.
+- Imposto efetivo das peças para o simulador do MKT: 25% na loja e 27% no Mercado Livre (bruto, sem crédito);
+  gravar nas Configurações → Formação de preço só com o ok dela.
 - Funcionários (RH) é o chat FUN; a folha fiscal (eSocial, INSS, FGTS, DCTFWeb) fica no FIS.
 
 ## Onde está
@@ -51,7 +51,7 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
   difal_vendas_interestaduais().
 
 ## Próximos passos
-1. Gravar as duas observações pendentes quando o banco deixar.
+1. Teste real da NF-e do restante (checklist) quando a usuária emitir.
 2. Com o Gmail do contador: cadastrar os parcelamentos federais e conferir as guias da época do Simples.
 3. Regra da entrada para conserto 1915/2915 quando o contador passar o cBenef.
 4. Ajudar o MYF na parte técnica da auditoria da My Frost (anexos do Simples, ST, DIFAL).
