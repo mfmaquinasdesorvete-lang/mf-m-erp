@@ -1,5 +1,5 @@
 # MEMORY — FUN (ERP Line – Funcionários (RH))
-Atualizado em 26/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 Funcionários é uma área própria do menu, com 6 abas no ar. O cadastro tem a equipe atual e os ex-funcionários
@@ -14,12 +14,14 @@ das épocas anteriores. Falta a usuária importar os documentos do Drive (a past
 - Admissão e saída: o que falta no cadastro e na pasta (ede120d).
 - Férias e ponto: períodos, vencimento e lançamento; divisão Ponto (9fcc2f0).
 - Página Crown Móveis: época antes da MF, com/sem carteira e pagamentos antigos (450481e).
-- Recibos da equipe: os de funcionário saem do Financeiro → Recibos; só admin e financeiro leem (este pedido).
 
 ## Em andamento
-- Nada em código.
+- Recibos da equipe fora do Financeiro (6f1524a): código pronto e site montado, mas NÃO no ar. Falta aplicar a
+  migração 20261101000170 (coluna `recibos.de_funcionario`, gatilho e regra de leitura); o Supabase pede a
+  confirmação da usuária e ela não respondeu (26 e 27/10). Depois: publicar o site, testar no ERP e marcar feito.
 
 ## Esperando a usuária
+- Aprovar a confirmação do Supabase para a migração dos recibos (ela já deu o "Pode publicar" em 26/10).
 - Baixar no computador a pasta "ERP – Pastas dos funcionários" do Drive da MF e usar Importar pasta.
   Depois, conferir no banco quantos arquivos entraram por pessoa.
 - Pagamentos da época Crown com meses sem documento; os extratos daquela época no Drive podem completar.
