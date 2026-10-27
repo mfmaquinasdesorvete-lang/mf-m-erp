@@ -24,14 +24,14 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Design System "ERP Line" no Claude (artifact) atualizado com o visual de 24/10 (antes do escuro liso).
 
 ## Em andamento
-- Nada aberto.
+- Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 
 ## Esperando a usuária
-- Testar no ERP no ar (com login) o Organizar: Início → Organizar → mover uma seção → Pronto (e, se quiser, "Usar para
-  toda a equipe"). Testado só no modo demonstração.
-- Olhar no celular, no ERP no ar, uma lista (ex.: Clientes) com as letras novas (texto 14 px, rótulos 12 px).
-- Pendente: no Sobre → Pedidos, mudar esses dois de "feito" para "precisa de você" com o que foi testado (o Supabase
-  não respondeu em 27/10).
+- Teste no ERP no ar com login (este chat não entra no ar): os 57 pedidos do DSG foram testados em 27/10 no modo
+  demonstração, que roda o mesmo código, e o teste está escrito no detalhe de cada um em Sobre → Pedidos. Para a
+  usuária conferir no ar quando puder: Início → Organizar → mover uma seção → Pronto; uma lista no celular com as letras novas.
+- Aviso do meio da tela (setas, Ciente em todos, som): não deu para testar sem um aviso de chat de verdade; pedido voltou
+  para "fazendo" até aparecer um aviso.
 
 ## Decisões da usuária
 - Cor primária: o ciano de sempre (cada pessoa pode trocar em Aparência).
