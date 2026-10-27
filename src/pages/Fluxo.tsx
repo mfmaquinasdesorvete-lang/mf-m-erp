@@ -17,6 +17,9 @@ import { bancoDaVenda, contasDaVenda, meioDaVenda, pagamentoDaVenda } from "@/li
 import { useConfig } from "@/lib/useConfig";
 import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { CANAIS } from "@/lib/margem";
+
+/** Origens do histórico do Tiny: ficam fora do fluxo (as vendas de lá já foram entregues ou resolvidas no Tiny). */
+const ORIGENS_TINY = ["tiny", "nfe"];
 import { usePerfil } from "@/lib/auth";
 import { COLUNAS, situacao, type Acao, type ColunaId, type EnvioFluxo, type Exp, type Nivel, type PedidoFluxo as P, type Situacao, type TipoAlerta } from "@/lib/fluxo";
 import { confirmar } from "@/components/Dialogos";
@@ -50,7 +53,9 @@ export default function Fluxo() {
   const { filtrar } = useUnidade();
   const { papel, user_id, nome: nomeUsuario, pode, podeVer, tem } = usePerfil();
   // as contas a receber da venda (pelo pedido e pelas notas) dão o selo Pago / Não pago, a forma e o banco no cartão
-  const { data: todos = [], isLoading } = useRows<P>("pedidos", { select: `*, cliente:clientes(*), itens:pedido_itens(*), contas:contas_receber(${CONTA_FLUXO}), notas:notas_fiscais(id, status, numero, serie, chave, mensagem, ambiente, created_at, contas:contas_receber(${CONTA_FLUXO}))` });
+  const { data: todos = [], isLoading } = useRows<P>("pedidos", { select: `*, cliente:clientes(*), itens:pedido_itens(*), contas:contas_receber(${CONTA_FLUXO}), notas:notas_fiscais(id, status, numero, serie, chave, mensagem, ambiente, created_at, contas:contas_receber(${CONTA_FLUXO}))`,
+    // só o que foi feito no ERP: o histórico que veio do Tiny (pedidos e notas sem pedido) já foi resolvido lá (pedido de 27/10)
+    key: ["fluxo"], filtro: (q) => q.not("origem", "in", `(${ORIGENS_TINY.join(",")})`) });
   const { data: bancos = [] } = useRows<{ id: string; nome: string }>("contas_bancarias", { select: "id, nome", order: "nome", ascending: true, key: ["fluxo"] });
   const nomesBancos = useMemo(() => new Map(bancos.map((b) => [b.id, b.nome])), [bancos]);
   const { data: exps = [] } = useRows<Exp>("expedicoes", {});
@@ -227,7 +232,7 @@ export default function Fluxo() {
             </div>
           ) : undefined} />
         <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" role="group" aria-label="Canal de venda">
-          {[["", "Todos os canais"], ...Object.entries(CANAIS)].map(([v, l]) => (
+          {[["", "Todos os canais"], ...Object.entries(CANAIS).filter(([v]) => !ORIGENS_TINY.includes(v))].map(([v, l]) => (
             <button key={v || "todos"} type="button" onClick={() => setCanal(v)} aria-pressed={canal === v}
               className={`${classeChip(canal === v)} whitespace-nowrap`}>
               {l}
