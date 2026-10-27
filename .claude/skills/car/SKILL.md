@@ -61,3 +61,5 @@ Cuido da carteira pessoal da usuária, separada da empresa. Dados pessoais não 
   que não achou.
 - Número longo no texto falado (telefone, documento) já virou valor de bilhões: o banco recusa |valor| ≥ 10 milhões
   em pessoal_lancamentos; ao auditar, comece por `abs(valor) > 100000`.
+- Tabela nova do painel: regra de acesso com `dono = (select auth.uid())` (não `auth.uid()` direto) e índice em
+  `dono` e em cada chave estrangeira (auditoria REV 27/10).

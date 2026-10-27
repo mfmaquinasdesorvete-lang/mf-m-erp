@@ -1,5 +1,5 @@
 # MEMORY — CAR (ERP Line – Minha carteira (pessoal))
-Atualizado em 25/10/2026 (auditoria).
+Atualizado em 27/10/2026.
 
 ## Estado agora
 Painel pessoal (Retaguarda → Pessoal, só a conta master) completo: resumo, encontro de contas, extratos por mês,
@@ -44,7 +44,7 @@ contas do mês, controle sem cobrança e a ficha das empresas. O que falta depen
 - Regras: src/lib/pessoal.ts, pessoalCards.ts, encontroContas.ts, extratosRecebidos.ts, contasDoMes.ts,
   controlePessoal.ts, minhasEmpresas.ts.
 - Banco: pessoal_contas, pessoal_lancamentos, pessoal_regras, pessoal_empresas, pessoal_enderecos, pessoal_mensais,
-  pessoal_mensais_pagos, pessoal_controle (todas com dono = auth.uid()).
+  pessoal_mensais_pagos, pessoal_controle (todas com dono = (select auth.uid()); índices na 20261101000174).
 - Funções do Supabase: pessoal-pluggy.
 
 ## Próximos passos
