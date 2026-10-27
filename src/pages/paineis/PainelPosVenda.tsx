@@ -6,6 +6,7 @@ import {
   AlarmClock, BellRing, CircleDollarSign, Clock, FileText, Hourglass, PackageCheck, Plus, ShieldCheck, ShieldOff, Timer, Users, Wrench,
 } from "lucide-react";
 import { Badge, Section } from "@/components/ui";
+import { Secoes } from "@/components/Secoes";
 import { Colunas, Ranking, Rosca } from "@/components/Charts";
 import {
   AtalhosArea, baldes, CabecalhoPainel, CartaoPainel, dentro, FiltrosAtivos, frasePeriodo, intervalos, ListaAtencao, PERIODOS, usePeriodo, variacao,
@@ -142,96 +143,107 @@ export default function PainelPosVenda() {
 
       <FiltrosAtivos filtros={filtros} onLimpar={() => { setFTecnico(null); setFEtapa(null); }} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title={periodo === "ano" ? "Entraram x consertadas, mês a mês" : "Entraram x consertadas"} className="xl:col-span-3">
-          <Colunas dados={k.serie} altura={250} formatar={(v) => `${v} OS`} inteiro vazio="Nenhuma OS entrou nem saiu no período."
-            series={[{ nome: "Entraram", cor: "var(--serie-1)" }, { nome: "Consertadas", cor: "var(--serie-3)" }]} />
-        </Section>
-        <Section title="Onde estão as máquinas agora" className="xl:col-span-2" actions={<span className="text-xs text-slate-500">toque para ver</span>}>
-          <Rosca total="Na oficina" formatar={(v) => `${v} OS`} ativo={fEtapa}
-            onClicar={(i) => { const r = k.etapas[i].rotulo; setFEtapa(fEtapa === r ? null : r); }}
-            fatias={k.etapas.map((e) => ({ rotulo: e.rotulo, valor: e.lista.length, cor: e.cor }))} />
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title={etapaAtiva ? `OS · ${etapaAtiva.rotulo}` : "OS na oficina (pela data prometida)"} className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/assistencia")} className="link-modulo text-sm">Ver todas</button>}>
-          {listaAbertas.length ? (
-            <ul className="divide-y divide-slate-100">
-              {listaAbertas.map((o) => {
-                const atrasada = o.previsao && o.previsao < dia && ABERTA(o);
-                return (
-                  <li key={o.id}>
-                    <button type="button" onClick={() => navigate("/assistencia", { state: { abrir: o.id } })}
-                      className="linha-clicavel flex items-center gap-3 px-1 py-2.5">
-                      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${atrasada ? "bg-red-50 text-red-600" : "bg-modulo/10 text-modulo-texto"}`}><Wrench size={17} /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-fg">#{o.numero} · {o.cliente?.nome_fantasia || o.cliente?.nome}</span>
-                        <span className="block truncate text-xs text-slate-500">{o.equipamento} · {tecnicoDe(o)} · entrou {dataBR(o.data_entrada)}</span>
-                      </span>
-                      <span className="flex shrink-0 flex-col items-end gap-1">
-                        <span className={`text-xs font-semibold ${atrasada ? "text-red-600" : "text-slate-500"}`}>{o.previsao ? `${atrasada ? "atrasada · " : "até "}${dataBR(o.previsao)}` : "sem previsão"}</span>
-                        <Badge value={o.status} />
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : <p className="py-8 text-center text-sm text-slate-500">Nenhuma OS aqui. ✅</p>}
-        </Section>
-        <Section title="Precisa de atenção" className="xl:col-span-2">
-          <ListaAtencao itens={atencao} vazio="Nada parado na assistência" />
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Section title="Técnicos" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
-          <Ranking ativo={fTecnico} cor="var(--serie-3)" formatar={(v) => `${v} OS`} vazio="Nenhuma OS no período."
-            onClicar={(i) => { const t = k.tecnicos[i][0]; setFTecnico(fTecnico === t ? null : t); }}
-            itens={k.tecnicos.map(([nome, v]) => ({ rotulo: nome, valor: v.qtd, detalhe: `${v.abertas} em andamento${v.qtd ? ` · ${(v.dias / v.qtd).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${pl(Math.round((v.dias / v.qtd) * 10) / 10, "dia", "dias")} por conserto` : ""}` }))} />
-        </Section>
-        <Section title="Máquinas que mais voltam">
-          <Ranking cor="var(--serie-2)" formatar={(v) => `${v} OS`} vazio="Nenhuma máquina entrou no período."
-            itens={k.modelos.map(([modelo, n]) => ({ rotulo: modelo, valor: n }))} />
-          <p className="mt-2 text-xs text-slate-500">Modelos que entraram para conserto no período: ajuda a ver defeito de fábrica.</p>
-        </Section>
-        <Section title="Garantias e preventivas" className="md:col-span-2 xl:col-span-1"
-          actions={<button type="button" onClick={() => navigate("/garantias")} className="link-modulo text-sm">Abrir</button>}>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { icone: ShieldCheck, cor: "var(--kpi-verde)", rotulo: "Em garantia", n: g.em, state: undefined },
-              { icone: ShieldCheck, cor: "var(--kpi-laranja)", rotulo: "Vencem em 30 dias", n: g.vence, state: undefined },
-              { icone: ShieldOff, cor: "var(--eixo-texto)", rotulo: "Fora da garantia", n: g.fora, state: undefined },
-              { icone: AlarmClock, cor: "var(--kpi-rosa)", rotulo: "Preventiva atrasada", n: g.prevAtrasada, state: { lembretes: true } },
-            ].map((x) => (
-              <button key={x.rotulo} type="button" onClick={() => navigate("/garantias", { state: x.state })}
-                className="flex items-center gap-2.5 rounded-xl border border-slate-100 p-2.5 text-left transition hover:border-slate-200 hover:bg-slate-50">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${x.cor} 16%, transparent)`, color: x.cor }}><x.icone size={17} /></span>
-                <span className="min-w-0"><span className="num block text-lg font-bold leading-none text-fg">{x.n}</span><span className="mt-0.5 block text-xs leading-tight text-slate-500">{x.rotulo}</span></span>
-              </button>
-            ))}
+      {/* seções que a pessoa pode reordenar no "Organizar" (fica no perfil dela) */}
+      <Secoes pagina="painel-pos-venda" secoes={[
+        { id: "cartoes", titulo: "Números", largo: true, conteudo: (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+            {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
           </div>
-          <p className="mt-2 text-xs text-slate-500">{g.prevProxima} {pl(g.prevProxima, "preventiva", "preventivas")} nos próximos 30 dias.</p>
-        </Section>
-      </div>
-
-      <div className="space-y-3">
-        <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
-        <AtalhosArea itens={[
-          { rotulo: "Assistência técnica", icone: Wrench, to: "/assistencia", aviso: k.atrasadas.length, tela: "assistencia" },
-          { rotulo: "Garantias e manutenção", icone: ShieldCheck, to: "/garantias", tela: "garantias" },
-          { rotulo: "Lembrar clientes", icone: BellRing, to: "/garantias", state: { lembretes: true }, aviso: lembretes.length, tela: "garantias" },
-          { rotulo: "Notas de serviço", icone: FileText, to: "/notas", state: { aba: "nfse" }, tela: "notas" },
-          { rotulo: "Clientes", icone: Users, to: "/clientes", tela: "clientes" },
-          ...(podeVer("producao") ? [{ rotulo: "Peças (compras)", icone: Timer, to: "/compras", state: { aba: "compras" } }] : []),
-        ]} />
-      </div>
+        ) },
+        { id: "entraram", titulo: "Entraram x consertadas", conteudo: (
+          <Section title={periodo === "ano" ? "Entraram x consertadas, mês a mês" : "Entraram x consertadas"} className="h-full">
+            <Colunas dados={k.serie} altura={250} formatar={(v) => `${v} OS`} inteiro vazio="Nenhuma OS entrou nem saiu no período."
+              series={[{ nome: "Entraram", cor: "var(--serie-1)" }, { nome: "Consertadas", cor: "var(--serie-3)" }]} />
+          </Section>
+        ) },
+        { id: "etapas", titulo: "Onde estão as máquinas agora", conteudo: (
+          <Section title="Onde estão as máquinas agora" className="h-full" actions={<span className="text-xs text-slate-500">toque para ver</span>}>
+            <Rosca total="Na oficina" formatar={(v) => `${v} OS`} ativo={fEtapa}
+              onClicar={(i) => { const r = k.etapas[i].rotulo; setFEtapa(fEtapa === r ? null : r); }}
+              fatias={k.etapas.map((e) => ({ rotulo: e.rotulo, valor: e.lista.length, cor: e.cor }))} />
+          </Section>
+        ) },
+        { id: "oficina", titulo: "OS na oficina (pela data prometida)", conteudo: (
+          <Section title={etapaAtiva ? `OS · ${etapaAtiva.rotulo}` : "OS na oficina (pela data prometida)"} className="h-full"
+            actions={<button type="button" onClick={() => navigate("/assistencia")} className="link-modulo text-sm">Ver todas</button>}>
+            {listaAbertas.length ? (
+              <ul className="divide-y divide-slate-100">
+                {listaAbertas.map((o) => {
+                  const atrasada = o.previsao && o.previsao < dia && ABERTA(o);
+                  return (
+                    <li key={o.id}>
+                      <button type="button" onClick={() => navigate("/assistencia", { state: { abrir: o.id } })}
+                        className="linha-clicavel flex items-center gap-3 px-1 py-2.5">
+                        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${atrasada ? "bg-red-50 text-red-600" : "bg-modulo/10 text-modulo-texto"}`}><Wrench size={17} /></span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-fg">#{o.numero} · {o.cliente?.nome_fantasia || o.cliente?.nome}</span>
+                          <span className="block truncate text-xs text-slate-500">{o.equipamento} · {tecnicoDe(o)} · entrou {dataBR(o.data_entrada)}</span>
+                        </span>
+                        <span className="flex shrink-0 flex-col items-end gap-1">
+                          <span className={`text-xs font-semibold ${atrasada ? "text-red-600" : "text-slate-500"}`}>{o.previsao ? `${atrasada ? "atrasada · " : "até "}${dataBR(o.previsao)}` : "sem previsão"}</span>
+                          <Badge value={o.status} />
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : <p className="py-8 text-center text-sm text-slate-500">Nenhuma OS aqui. ✅</p>}
+          </Section>
+        ) },
+        { id: "atencao", titulo: "Precisa de atenção", conteudo: (
+          <Section title="Precisa de atenção" className="h-full">
+            <ListaAtencao itens={atencao} vazio="Nada parado na assistência" />
+          </Section>
+        ) },
+        { id: "tecnicos", titulo: "Técnicos", conteudo: (
+          <Section title="Técnicos" className="h-full" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
+            <Ranking ativo={fTecnico} cor="var(--serie-3)" formatar={(v) => `${v} OS`} vazio="Nenhuma OS no período."
+              onClicar={(i) => { const t = k.tecnicos[i][0]; setFTecnico(fTecnico === t ? null : t); }}
+              itens={k.tecnicos.map(([nome, v]) => ({ rotulo: nome, valor: v.qtd, detalhe: `${v.abertas} em andamento${v.qtd ? ` · ${(v.dias / v.qtd).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${pl(Math.round((v.dias / v.qtd) * 10) / 10, "dia", "dias")} por conserto` : ""}` }))} />
+          </Section>
+        ) },
+        { id: "modelos", titulo: "Máquinas que mais voltam", conteudo: (
+          <Section title="Máquinas que mais voltam" className="h-full">
+            <Ranking cor="var(--serie-2)" formatar={(v) => `${v} OS`} vazio="Nenhuma máquina entrou no período."
+              itens={k.modelos.map(([modelo, n]) => ({ rotulo: modelo, valor: n }))} />
+            <p className="mt-2 text-xs text-slate-500">Modelos que entraram para conserto no período: ajuda a ver defeito de fábrica.</p>
+          </Section>
+        ) },
+        { id: "garantias", titulo: "Garantias e preventivas", conteudo: (
+          <Section title="Garantias e preventivas" className="h-full"
+            actions={<button type="button" onClick={() => navigate("/garantias")} className="link-modulo text-sm">Abrir</button>}>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { icone: ShieldCheck, cor: "var(--kpi-verde)", rotulo: "Em garantia", n: g.em, state: undefined },
+                { icone: ShieldCheck, cor: "var(--kpi-laranja)", rotulo: "Vencem em 30 dias", n: g.vence, state: undefined },
+                { icone: ShieldOff, cor: "var(--eixo-texto)", rotulo: "Fora da garantia", n: g.fora, state: undefined },
+                { icone: AlarmClock, cor: "var(--kpi-rosa)", rotulo: "Preventiva atrasada", n: g.prevAtrasada, state: { lembretes: true } },
+              ].map((x) => (
+                <button key={x.rotulo} type="button" onClick={() => navigate("/garantias", { state: x.state })}
+                  className="flex items-center gap-2.5 rounded-xl border border-slate-100 p-2.5 text-left transition hover:border-slate-200 hover:bg-slate-50">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${x.cor} 16%, transparent)`, color: x.cor }}><x.icone size={17} /></span>
+                  <span className="min-w-0"><span className="num block text-lg font-bold leading-none text-fg">{x.n}</span><span className="mt-0.5 block text-xs leading-tight text-slate-500">{x.rotulo}</span></span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-slate-500">{g.prevProxima} {pl(g.prevProxima, "preventiva", "preventivas")} nos próximos 30 dias.</p>
+          </Section>
+        ) },
+        { id: "atalhos", titulo: "Ir para", largo: true, conteudo: (
+          <div className="space-y-3">
+            <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
+            <AtalhosArea itens={[
+              { rotulo: "Assistência técnica", icone: Wrench, to: "/assistencia", aviso: k.atrasadas.length, tela: "assistencia" },
+              { rotulo: "Garantias e manutenção", icone: ShieldCheck, to: "/garantias", tela: "garantias" },
+              { rotulo: "Lembrar clientes", icone: BellRing, to: "/garantias", state: { lembretes: true }, aviso: lembretes.length, tela: "garantias" },
+              { rotulo: "Notas de serviço", icone: FileText, to: "/notas", state: { aba: "nfse" }, tela: "notas" },
+              { rotulo: "Clientes", icone: Users, to: "/clientes", tela: "clientes" },
+              ...(podeVer("producao") ? [{ rotulo: "Peças (compras)", icone: Timer, to: "/compras", state: { aba: "compras" } }] : []),
+            ]} />
+          </div>
+        ) },
+      ]} />
     </div>
   );
 }

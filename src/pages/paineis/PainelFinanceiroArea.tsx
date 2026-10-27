@@ -10,6 +10,7 @@ import {
   ShieldAlert, Wallet,
 } from "lucide-react";
 import { Section } from "@/components/ui";
+import { Secoes } from "@/components/Secoes";
 import { Colunas, Ranking, Rosca } from "@/components/Charts";
 import { Fluxo } from "@/components/financeiro/VisaoGeral";
 import { CartoesCorporativos } from "@/components/financeiro/CartaoCorporativo";
@@ -189,98 +190,109 @@ export default function PainelFinanceiroArea() {
             <Plus size={16} /> Conta a pagar
           </button>
         )} />
-      <div className={`grid grid-cols-2 gap-3 lg:gap-4 ${cartoes.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-        {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
-      </div>
 
-      {vePagar && <ResumoPagarTipos r={aPagar.resumo} className="" onTipo={(t) => navigate("/financeiro", { state: { aba: "pagar", tipo: t || undefined } })}
-        acoes={<span className="text-xs text-white/70">toque num tipo para ver as contas</span>} />}
-      {/* cartões corporativos logo abaixo de "Quanto tem para pagar" (pedido de 19/10) */}
-      <CartoesCorporativos className="" />
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title={`${periodo === "ano" ? "Entradas e saídas mês a mês" : periodo === "hoje" ? "Entradas e saídas dos últimos 7 dias" : "Entradas e saídas dia a dia"}${usaExtrato ? " · extratos" : ""}`} className="xl:col-span-3">
-          <Colunas dados={vePagar ? k.serie : k.serie.map((s) => ({ ...s, valores: [s.valores[0]] }))} altura={250} vazio="Nada entrou nem saiu no período."
-            series={vePagar ? [{ nome: usaExtrato ? "Entrou" : "Recebido", cor: "var(--serie-3)" }, { nome: usaExtrato ? "Saiu" : "Pago", cor: "var(--serie-2)" }] : [{ nome: usaExtrato ? "Entrou" : "Recebido", cor: "var(--serie-3)" }]} />
-        </Section>
-        <Section title="Próximos 7 dias" className="xl:col-span-2">
-          <div className="mb-3 grid grid-cols-2 gap-2 text-sm">
-            <div className="cartao-fit min-w-0 rounded-xl bg-emerald-50 p-2.5"><span className="block text-xs font-semibold text-emerald-800">Vai entrar</span><span className="num valor-fit block font-bold text-emerald-700 [--valor-max:1.125rem]">+ {brl(k.entra7)}</span></div>
-            {vePagar && <div className="cartao-fit min-w-0 rounded-xl bg-orange-50 p-2.5"><span className="block text-xs font-semibold text-orange-800">Vai sair</span><span className="num valor-fit block font-bold text-orange-700 [--valor-max:1.125rem]">− {brl(k.sai7)}</span></div>}
+      {/* seções que a pessoa pode reordenar no "Organizar" (fica no perfil dela) */}
+      <Secoes pagina="painel-financeiro" secoes={[
+        { id: "cartoes", titulo: "Números", largo: true, conteudo: (
+          <div className={`grid grid-cols-2 gap-3 lg:gap-4 ${cartoes.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+            {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
           </div>
-          <Colunas dados={vePagar ? k.proximos : k.proximos.map((s) => ({ ...s, valores: [s.valores[0]] }))} altura={190} vazio="Nada vence nos próximos 7 dias."
-            series={vePagar ? [{ nome: "A receber", cor: "var(--serie-3)" }, { nome: "A pagar", cor: "var(--serie-2)" }] : [{ nome: "A receber", cor: "var(--serie-3)" }]} />
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {vePagar && (
-          <Section title="Para onde foi o dinheiro" actions={<span className="text-xs text-slate-500">toque para ver as contas</span>}>
+        ) },
+        // cartões corporativos logo abaixo de "Quanto tem para pagar" (pedido de 19/10)
+        { id: "pagar", titulo: "Quanto tem para pagar e cartões corporativos", largo: true, conteudo: (
+          <div className="space-y-4">
+            {vePagar && <ResumoPagarTipos r={aPagar.resumo} className="" onTipo={(t) => navigate("/financeiro", { state: { aba: "pagar", tipo: t || undefined } })}
+              acoes={<span className="text-xs text-white/70">toque num tipo para ver as contas</span>} />}
+            <CartoesCorporativos className="" />
+          </div>
+        ) },
+        { id: "entradas-saidas", titulo: "Entradas e saídas", conteudo: (
+          <Section title={`${periodo === "ano" ? "Entradas e saídas mês a mês" : periodo === "hoje" ? "Entradas e saídas dos últimos 7 dias" : "Entradas e saídas dia a dia"}${usaExtrato ? " · extratos" : ""}`} className="h-full">
+            <Colunas dados={vePagar ? k.serie : k.serie.map((s) => ({ ...s, valores: [s.valores[0]] }))} altura={250} vazio="Nada entrou nem saiu no período."
+              series={vePagar ? [{ nome: usaExtrato ? "Entrou" : "Recebido", cor: "var(--serie-3)" }, { nome: usaExtrato ? "Saiu" : "Pago", cor: "var(--serie-2)" }] : [{ nome: usaExtrato ? "Entrou" : "Recebido", cor: "var(--serie-3)" }]} />
+          </Section>
+        ) },
+        { id: "proximos", titulo: "Próximos 7 dias", conteudo: (
+          <Section title="Próximos 7 dias" className="h-full">
+            <div className="mb-3 grid grid-cols-2 gap-2 text-sm">
+              <div className="cartao-fit min-w-0 rounded-xl bg-emerald-50 p-2.5"><span className="block text-xs font-semibold text-emerald-800">Vai entrar</span><span className="num valor-fit block font-bold text-emerald-700 [--valor-max:1.125rem]">+ {brl(k.entra7)}</span></div>
+              {vePagar && <div className="cartao-fit min-w-0 rounded-xl bg-orange-50 p-2.5"><span className="block text-xs font-semibold text-orange-800">Vai sair</span><span className="num valor-fit block font-bold text-orange-700 [--valor-max:1.125rem]">− {brl(k.sai7)}</span></div>}
+            </div>
+            <Colunas dados={vePagar ? k.proximos : k.proximos.map((s) => ({ ...s, valores: [s.valores[0]] }))} altura={190} vazio="Nada vence nos próximos 7 dias."
+              series={vePagar ? [{ nome: "A receber", cor: "var(--serie-3)" }, { nome: "A pagar", cor: "var(--serie-2)" }] : [{ nome: "A receber", cor: "var(--serie-3)" }]} />
+          </Section>
+        ) },
+        { id: "categorias", titulo: "Para onde foi o dinheiro", conteudo: vePagar && (
+          <Section title="Para onde foi o dinheiro" className="h-full" actions={<span className="text-xs text-slate-500">toque para ver as contas</span>}>
             {k.categorias.length
               ? <Rosca total={usaExtrato ? "Saiu" : "Pago"} ativo={fCategoria} onClicar={(i) => { const c = k.categorias[i][0]; setFCategoria(fCategoria === c ? null : c); }}
                   fatias={k.categorias.map(([rotulo, valor], i) => ({ rotulo, valor, cor: CORES[i % CORES.length] }))} />
               : <p className="py-10 text-center text-sm text-slate-500">Nada pago no período.</p>}
           </Section>
-        )}
-        {vePagar && (
-          <Section title={fCategoria ? `Maiores pagamentos · ${fCategoria}` : "Maiores pagamentos"}>
+        ) },
+        { id: "maiores", titulo: "Maiores pagamentos", conteudo: vePagar && (
+          <Section title={fCategoria ? `Maiores pagamentos · ${fCategoria}` : "Maiores pagamentos"} className="h-full">
             {fCategoria && <div className="mb-3"><FiltrosAtivos filtros={[{ rotulo: "Categoria", valor: fCategoria, limpar: () => setFCategoria(null) }]} onLimpar={() => setFCategoria(null)} /></div>}
             <Ranking cor="var(--serie-2)" vazio="Nada pago no período."
               itens={k.maiores.map((x) => ({ rotulo: x.rotulo, valor: x.valor, detalhe: `${dataBR(x.data)} · ${x.categoria}${x.detalhe ? ` · ${x.detalhe}` : ""}` }))} />
           </Section>
-        )}
-        <Section title="Precisa de atenção" className={vePagar ? "md:col-span-2 xl:col-span-1" : ""}>
-          <ListaAtencao itens={atencao} vazio="Nada pendente no financeiro" />
-        </Section>
-      </div>
-
-      {k.porConta.length > 0 && (
-        <Section title="Contas bancárias" actions={<button type="button" onClick={() => navigate("/conciliacao")} className="link-modulo text-sm">Abrir bancos</button>}>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-3">Conta</th><th className="py-1 pr-3 text-right">Entrou · {per.rotulo.toLowerCase()}</th>{vePagar && <th className="py-1 pr-3 text-right">Saiu</th>}<th className="py-1 text-right">Saldo</th></tr></thead>
-              <tbody className="divide-y divide-slate-100">
-                {k.porConta.map((c) => (
-                  <tr key={c.nome}>
-                    <td className="py-1.5 pr-3 font-semibold text-fg">{c.nome}<span className="block text-xs font-normal text-slate-500">{c.n} {pl(c.n, "lançamento", "lançamentos")} no período</span></td>
-                    <td className="num whitespace-nowrap py-1.5 pr-3 text-right text-emerald-700">{brl(c.entrou)}</td>
-                    {vePagar && <td className="num whitespace-nowrap py-1.5 pr-3 text-right text-orange-700">{brl(c.saiu)}</td>}
-                    <td className="num whitespace-nowrap py-1.5 text-right font-bold">{brl(c.saldo)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        ) },
+        { id: "atencao", titulo: "Precisa de atenção", conteudo: (
+          <Section title="Precisa de atenção" className="h-full">
+            <ListaAtencao itens={atencao} vazio="Nada pendente no financeiro" />
+          </Section>
+        ) },
+        { id: "contas", titulo: "Contas bancárias", largo: true, conteudo: k.porConta.length > 0 && (
+          <Section title="Contas bancárias" actions={<button type="button" onClick={() => navigate("/conciliacao")} className="link-modulo text-sm">Abrir bancos</button>}>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-3">Conta</th><th className="py-1 pr-3 text-right">Entrou · {per.rotulo.toLowerCase()}</th>{vePagar && <th className="py-1 pr-3 text-right">Saiu</th>}<th className="py-1 text-right">Saldo</th></tr></thead>
+                <tbody className="divide-y divide-slate-100">
+                  {k.porConta.map((c) => (
+                    <tr key={c.nome}>
+                      <td className="py-1.5 pr-3 font-semibold text-fg">{c.nome}<span className="block text-xs font-normal text-slate-500">{c.n} {pl(c.n, "lançamento", "lançamentos")} no período</span></td>
+                      <td className="num whitespace-nowrap py-1.5 pr-3 text-right text-emerald-700">{brl(c.entrou)}</td>
+                      {vePagar && <td className="num whitespace-nowrap py-1.5 pr-3 text-right text-orange-700">{brl(c.saiu)}</td>}
+                      <td className="num whitespace-nowrap py-1.5 text-right font-bold">{brl(c.saldo)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        ) },
+        { id: "devedores", titulo: "Quem está devendo", conteudo: (
+          <Section title="Quem está devendo" className="h-full" actions={<button type="button" onClick={() => navigate("/financeiro", { state: { aba: "cobranca" } })} className="link-modulo text-sm">Cobrar</button>}>
+            <Ranking cor="var(--kpi-rosa)" vazio="Nenhum cliente com parcela vencida."
+              onClicar={() => navigate("/financeiro", { state: { aba: "cobranca" } })}
+              itens={k.devedores.map((d) => ({ rotulo: d.nome, valor: d.valor, detalhe: `${d.qtd} ${pl(d.qtd, "parcela", "parcelas")} · a mais antiga venceu há ${diasEntre(d.maisAntiga, dia)} ${pl(diasEntre(d.maisAntiga, dia), "dia", "dias")}` }))} />
+          </Section>
+        ) },
+        { id: "atraso", titulo: "Há quanto tempo está atrasado", conteudo: (
+          <Section title="Há quanto tempo está atrasado" className="h-full">
+            {k.qtdVencidas
+              ? <Colunas dados={k.atraso} series={[{ nome: "Vencido", cor: "var(--kpi-rosa)" }]} altura={220} />
+              : <p className="py-10 text-center text-sm text-slate-500">Nenhuma parcela vencida. ✅</p>}
+            <p className="mt-2 text-xs text-slate-500">Quanto mais antigo o atraso, mais difícil receber: comece a cobrança pelos da direita.</p>
+          </Section>
+        ) },
+        { id: "fluxo", titulo: "Saldo e fluxo de caixa", largo: true, conteudo: (
+          <Fluxo receber={rec} pagar={pag} dia={dia} />
+        ) },
+        { id: "atalhos", titulo: "Ir para", largo: true, conteudo: (
+          <div className="space-y-3">
+            <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
+            <AtalhosArea itens={[
+              { rotulo: "Contas a pagar e receber", icone: Wallet, to: "/financeiro", aviso: vePagar ? k.pagVencidas.length : 0 },
+              { rotulo: "Cobrança", icone: MessageCircle, to: "/financeiro", state: { aba: "cobranca" }, aviso: k.qtdVencidas },
+              { rotulo: "Bancos e conciliação", icone: Landmark, to: "/conciliacao", aviso: extratoPendente, tela: "conciliacao" as const },
+              ...(vePagar ? [{ rotulo: "DRE", icone: PieChart, to: "/financeiro", state: { aba: "dre" } }] : []),
+              { rotulo: "Formas de pagamento", icone: CreditCard, to: "/formas-pagamento" },
+              ...(vePagar ? [{ rotulo: "Auditoria financeira", icone: ShieldAlert, to: "/auditoria", tela: "auditoria" as const }] : []),
+            ]} />
           </div>
-        </Section>
-      )}
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Section title="Quem está devendo" actions={<button type="button" onClick={() => navigate("/financeiro", { state: { aba: "cobranca" } })} className="link-modulo text-sm">Cobrar</button>}>
-          <Ranking cor="var(--kpi-rosa)" vazio="Nenhum cliente com parcela vencida."
-            onClicar={() => navigate("/financeiro", { state: { aba: "cobranca" } })}
-            itens={k.devedores.map((d) => ({ rotulo: d.nome, valor: d.valor, detalhe: `${d.qtd} ${pl(d.qtd, "parcela", "parcelas")} · a mais antiga venceu há ${diasEntre(d.maisAntiga, dia)} ${pl(diasEntre(d.maisAntiga, dia), "dia", "dias")}` }))} />
-        </Section>
-        <Section title="Há quanto tempo está atrasado">
-          {k.qtdVencidas
-            ? <Colunas dados={k.atraso} series={[{ nome: "Vencido", cor: "var(--kpi-rosa)" }]} altura={220} />
-            : <p className="py-10 text-center text-sm text-slate-500">Nenhuma parcela vencida. ✅</p>}
-          <p className="mt-2 text-xs text-slate-500">Quanto mais antigo o atraso, mais difícil receber: comece a cobrança pelos da direita.</p>
-        </Section>
-      </div>
-
-      <Fluxo receber={rec} pagar={pag} dia={dia} />
-
-      <div className="space-y-3">
-        <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
-        <AtalhosArea itens={[
-          { rotulo: "Contas a pagar e receber", icone: Wallet, to: "/financeiro", aviso: vePagar ? k.pagVencidas.length : 0 },
-          { rotulo: "Cobrança", icone: MessageCircle, to: "/financeiro", state: { aba: "cobranca" }, aviso: k.qtdVencidas },
-          { rotulo: "Bancos e conciliação", icone: Landmark, to: "/conciliacao", aviso: extratoPendente, tela: "conciliacao" as const },
-          ...(vePagar ? [{ rotulo: "DRE", icone: PieChart, to: "/financeiro", state: { aba: "dre" } }] : []),
-          { rotulo: "Formas de pagamento", icone: CreditCard, to: "/formas-pagamento" },
-          ...(vePagar ? [{ rotulo: "Auditoria financeira", icone: ShieldAlert, to: "/auditoria", tela: "auditoria" as const }] : []),
-        ]} />
-      </div>
+        ) },
+      ]} />
     </div>
   );
 }

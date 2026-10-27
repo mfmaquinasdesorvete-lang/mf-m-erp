@@ -9,6 +9,7 @@ import {
   Warehouse, Wrench,
 } from "lucide-react";
 import { Section } from "@/components/ui";
+import { Secoes } from "@/components/Secoes";
 import { Colunas, Ranking, Rosca } from "@/components/Charts";
 import {
   AtalhosArea, baldes, CabecalhoPainel, CartaoPainel, dentro, FiltrosAtivos, frasePeriodo, intervalos, ListaAtencao, PERIODOS, usePeriodo, variacao,
@@ -201,93 +202,105 @@ export default function PainelMaquinas() {
 
       {nomeFiltro && <FiltrosAtivos filtros={[{ rotulo: "Modelo", valor: nomeFiltro, limpar: () => setFModelo(null) }]} onLimpar={() => setFModelo(null)} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title={periodo === "ano" ? "Máquinas vendidas mês a mês" : "Máquinas vendidas"} className="xl:col-span-3">
-          <Colunas dados={k.serie} altura={250} formatar={un} inteiro vazio="Nenhuma máquina vendida no período."
-            series={[{ nome: "Vendidas", cor: "var(--serie-1)" }, { nome: per.anterior[0].toUpperCase() + per.anterior.slice(1), cor: "var(--serie-2)" }]} />
-        </Section>
-        <Section title="Modelos mais vendidos" className="xl:col-span-2" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
-          <Ranking cor="var(--serie-1)" formatar={un} vazio="Nenhuma máquina vendida no período."
-            ativo={nomeFiltro} onClicar={(i) => filtrarModelo(k.ranking[i][0])}
-            itens={k.ranking.map(([id, v]) => ({ rotulo: modeloDe(porId.get(id)), valor: v.qtd, detalhe: `${brl(v.valor)} · média ${brl(v.valor / Math.max(1, v.qtd))}` }))} />
-        </Section>
-      </div>
-
-      <Section title="Estoque × venda, modelo a modelo" actions={<span className="hidden text-xs text-slate-500 sm:inline">ritmo dos últimos 90 dias · toque para filtrar</span>}>
-        {k.modelos.length ? (
-          <ul className="divide-y divide-slate-100">
-            {k.modelos.map((m) => {
-              const s = SIT[m.sit];
-              const ativo = fModelo === m.p.id;
-              return (
-                <li key={m.p.id}>
-                  <button type="button" onClick={() => filtrarModelo(m.p.id)} aria-pressed={ativo}
-                    className={`linha-clicavel grid grid-cols-4 items-center gap-x-3 gap-y-1.5 px-2 py-2.5 md:grid-cols-[minmax(0,2.2fr)_repeat(5,minmax(0,1fr))] ${ativo ? "bg-modulo/10 ring-1 ring-modulo/30" : ""}`}>
-                    <span className="col-span-4 min-w-0 md:col-span-1">
-                      <span className="block truncate text-sm font-semibold text-fg">{m.nome}</span>
-                      <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-                        <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${s.cor}`}>{s.texto}</span>
-                        {m.ultima ? `última venda ${dataBR(m.ultima)}` : "nunca vendida"}
-                      </span>
-                    </span>
-                    <Numero rotulo="Prontas" valor={m.estoque} />
-                    <Numero rotulo="Montando" valor={m.montagem} />
-                    <Numero rotulo="Vend. 90d" valor={m.q90} />
-                    <Numero rotulo="Dá para" texto={m.diasDa == null ? "—" : m.diasDa >= 365 ? "+1 ano" : m.diasDa >= 60 ? `${Math.round(m.diasDa / 30)} mes.` : `${m.diasDa} dias`}
-                      alerta={m.sit === "falta" || m.sit === "repor"} />
-                    <Numero rotulo="Margem" texto={m.margem == null ? "—" : `${Math.round(m.margem)}%`} alerta={m.margem != null && m.margem < 15} className="hidden md:block" />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : <p className="py-8 text-center text-sm text-slate-500">Nenhuma máquina cadastrada (Cadastros → Máquinas).</p>}
-      </Section>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title="Precisa de atenção" className="xl:col-span-3">
-          <ListaAtencao itens={atencao} vazio="Máquinas sem pendências" />
-        </Section>
-        <Section title="Onde estão as máquinas vendidas" className="xl:col-span-2">
-          {k.ufs.length
-            ? <Rosca total="Máquinas" formatar={(v) => `${v}`} fatias={k.ufs.map(([rotulo, v], i) => ({ rotulo, valor: v, cor: CORES[i % CORES.length] }))} />
-            : <p className="py-10 text-center text-sm text-slate-500">Nenhuma máquina vendida ainda.</p>}
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Section title="Garantias a vencer (30 dias)" actions={<button type="button" onClick={() => navigate("/garantias")} className="link-modulo text-sm">Ver todas</button>}>
-          <ListaMaquinas lista={k.venceLogo} data={(e) => e.garantia_ate} rotulo="vence" vazio="Nenhuma garantia vencendo." onAbrir={() => navigate("/garantias")} />
-        </Section>
-        <Section title="Preventivas atrasadas" actions={<button type="button" onClick={() => navigate("/garantias")} className="link-modulo text-sm">Ver todas</button>}>
-          <ListaMaquinas lista={k.prevAtrasada} data={(e) => e.proxima_preventiva} rotulo="era em" vazio="Nenhuma preventiva atrasada." onAbrir={() => navigate("/garantias")} />
-        </Section>
-        <Section title="Voltam para a assistência (12 meses)" className="md:col-span-2 xl:col-span-1">
-          <Ranking cor="var(--kpi-rosa)" formatar={(v) => `${v} OS`} vazio="Nenhuma OS de máquina nos últimos 12 meses."
-            ativo={nomeFiltro} onClicar={(i) => filtrarModelo(k.chamados[i].id)}
-            itens={k.chamados.map((c) => ({
-              rotulo: modeloDe(porId.get(c.id)), valor: c.os,
-              detalhe: `${c.parque ? `${Math.round((c.os / c.parque) * 100)}% das ${c.parque} vendidas` : "nenhuma venda encontrada"}${c.garantia ? ` · ${c.garantia} em garantia` : ""}`,
-            }))} />
-        </Section>
-      </div>
-
-      <div className="space-y-3">
-        <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
-        <AtalhosArea colunas="grid-cols-3 sm:grid-cols-7" itens={[
-          { rotulo: "Cadastro das máquinas", icone: Factory, to: "/produtos/maquinas", tela: "estoque" },
-          { rotulo: "Ordens de produção", icone: Warehouse, to: "/producao", aviso: semMaquina.length + produzir.length, tela: "producao" },
-          { rotulo: "Teste do giga", icone: PlugZap, to: "/teste-giga", aviso: gigaReteste.length, tela: "testegiga" },
-          { rotulo: "Garantias", icone: ShieldCheck, to: "/garantias", aviso: k.prevAtrasada.length, tela: "garantias" },
-          { rotulo: "Assistência", icone: Wrench, to: "/assistencia", tela: "assistencia" },
-          { rotulo: "Vendas", icone: ShoppingCart, to: "/vendas-maquinas", tela: "pedidos" },
-          { rotulo: "Margem", icone: BadgeDollarSign, to: "/margem", tela: "margem" },
-        ]} />
-      </div>
+      {/* seções que a pessoa pode reordenar no "Organizar" (fica no perfil dela) */}
+      <Secoes pagina="painel-maquinas" secoes={[
+        { id: "cartoes", titulo: "Números", largo: true, conteudo: (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+            {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
+          </div>
+        ) },
+        { id: "vendidas", titulo: "Máquinas vendidas", conteudo: (
+          <Section title={periodo === "ano" ? "Máquinas vendidas mês a mês" : "Máquinas vendidas"} className="h-full">
+            <Colunas dados={k.serie} altura={250} formatar={un} inteiro vazio="Nenhuma máquina vendida no período."
+              series={[{ nome: "Vendidas", cor: "var(--serie-1)" }, { nome: per.anterior[0].toUpperCase() + per.anterior.slice(1), cor: "var(--serie-2)" }]} />
+          </Section>
+        ) },
+        { id: "modelos", titulo: "Modelos mais vendidos", conteudo: (
+          <Section title="Modelos mais vendidos" className="h-full" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
+            <Ranking cor="var(--serie-1)" formatar={un} vazio="Nenhuma máquina vendida no período."
+              ativo={nomeFiltro} onClicar={(i) => filtrarModelo(k.ranking[i][0])}
+              itens={k.ranking.map(([id, v]) => ({ rotulo: modeloDe(porId.get(id)), valor: v.qtd, detalhe: `${brl(v.valor)} · média ${brl(v.valor / Math.max(1, v.qtd))}` }))} />
+          </Section>
+        ) },
+        { id: "estoque-venda", titulo: "Estoque × venda, modelo a modelo", largo: true, conteudo: (
+          <Section title="Estoque × venda, modelo a modelo" actions={<span className="hidden text-xs text-slate-500 sm:inline">ritmo dos últimos 90 dias · toque para filtrar</span>}>
+            {k.modelos.length ? (
+              <ul className="divide-y divide-slate-100">
+                {k.modelos.map((m) => {
+                  const s = SIT[m.sit];
+                  const ativo = fModelo === m.p.id;
+                  return (
+                    <li key={m.p.id}>
+                      <button type="button" onClick={() => filtrarModelo(m.p.id)} aria-pressed={ativo}
+                        className={`linha-clicavel grid grid-cols-4 items-center gap-x-3 gap-y-1.5 px-2 py-2.5 md:grid-cols-[minmax(0,2.2fr)_repeat(5,minmax(0,1fr))] ${ativo ? "bg-modulo/10 ring-1 ring-modulo/30" : ""}`}>
+                        <span className="col-span-4 min-w-0 md:col-span-1">
+                          <span className="block truncate text-sm font-semibold text-fg">{m.nome}</span>
+                          <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                            <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${s.cor}`}>{s.texto}</span>
+                            {m.ultima ? `última venda ${dataBR(m.ultima)}` : "nunca vendida"}
+                          </span>
+                        </span>
+                        <Numero rotulo="Prontas" valor={m.estoque} />
+                        <Numero rotulo="Montando" valor={m.montagem} />
+                        <Numero rotulo="Vend. 90d" valor={m.q90} />
+                        <Numero rotulo="Dá para" texto={m.diasDa == null ? "—" : m.diasDa >= 365 ? "+1 ano" : m.diasDa >= 60 ? `${Math.round(m.diasDa / 30)} mes.` : `${m.diasDa} dias`}
+                          alerta={m.sit === "falta" || m.sit === "repor"} />
+                        <Numero rotulo="Margem" texto={m.margem == null ? "—" : `${Math.round(m.margem)}%`} alerta={m.margem != null && m.margem < 15} className="hidden md:block" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : <p className="py-8 text-center text-sm text-slate-500">Nenhuma máquina cadastrada (Cadastros → Máquinas).</p>}
+          </Section>
+        ) },
+        { id: "atencao", titulo: "Precisa de atenção", conteudo: (
+          <Section title="Precisa de atenção" className="h-full">
+            <ListaAtencao itens={atencao} vazio="Máquinas sem pendências" />
+          </Section>
+        ) },
+        { id: "estados", titulo: "Onde estão as máquinas vendidas", conteudo: (
+          <Section title="Onde estão as máquinas vendidas" className="h-full">
+            {k.ufs.length
+              ? <Rosca total="Máquinas" formatar={(v) => `${v}`} fatias={k.ufs.map(([rotulo, v], i) => ({ rotulo, valor: v, cor: CORES[i % CORES.length] }))} />
+              : <p className="py-10 text-center text-sm text-slate-500">Nenhuma máquina vendida ainda.</p>}
+          </Section>
+        ) },
+        { id: "garantias", titulo: "Garantias a vencer (30 dias)", conteudo: (
+          <Section title="Garantias a vencer (30 dias)" className="h-full" actions={<button type="button" onClick={() => navigate("/garantias")} className="link-modulo text-sm">Ver todas</button>}>
+            <ListaMaquinas lista={k.venceLogo} data={(e) => e.garantia_ate} rotulo="vence" vazio="Nenhuma garantia vencendo." onAbrir={() => navigate("/garantias")} />
+          </Section>
+        ) },
+        { id: "preventivas", titulo: "Preventivas atrasadas", conteudo: (
+          <Section title="Preventivas atrasadas" className="h-full" actions={<button type="button" onClick={() => navigate("/garantias")} className="link-modulo text-sm">Ver todas</button>}>
+            <ListaMaquinas lista={k.prevAtrasada} data={(e) => e.proxima_preventiva} rotulo="era em" vazio="Nenhuma preventiva atrasada." onAbrir={() => navigate("/garantias")} />
+          </Section>
+        ) },
+        { id: "assistencia", titulo: "Voltam para a assistência (12 meses)", conteudo: (
+          <Section title="Voltam para a assistência (12 meses)" className="h-full">
+            <Ranking cor="var(--kpi-rosa)" formatar={(v) => `${v} OS`} vazio="Nenhuma OS de máquina nos últimos 12 meses."
+              ativo={nomeFiltro} onClicar={(i) => filtrarModelo(k.chamados[i].id)}
+              itens={k.chamados.map((c) => ({
+                rotulo: modeloDe(porId.get(c.id)), valor: c.os,
+                detalhe: `${c.parque ? `${Math.round((c.os / c.parque) * 100)}% das ${c.parque} vendidas` : "nenhuma venda encontrada"}${c.garantia ? ` · ${c.garantia} em garantia` : ""}`,
+              }))} />
+          </Section>
+        ) },
+        { id: "atalhos", titulo: "Ir para", largo: true, conteudo: (
+          <div className="space-y-3">
+            <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
+            <AtalhosArea colunas="grid-cols-3 sm:grid-cols-7" itens={[
+              { rotulo: "Cadastro das máquinas", icone: Factory, to: "/produtos/maquinas", tela: "estoque" },
+              { rotulo: "Ordens de produção", icone: Warehouse, to: "/producao", aviso: semMaquina.length + produzir.length, tela: "producao" },
+              { rotulo: "Teste do giga", icone: PlugZap, to: "/teste-giga", aviso: gigaReteste.length, tela: "testegiga" },
+              { rotulo: "Garantias", icone: ShieldCheck, to: "/garantias", aviso: k.prevAtrasada.length, tela: "garantias" },
+              { rotulo: "Assistência", icone: Wrench, to: "/assistencia", tela: "assistencia" },
+              { rotulo: "Vendas", icone: ShoppingCart, to: "/vendas-maquinas", tela: "pedidos" },
+              { rotulo: "Margem", icone: BadgeDollarSign, to: "/margem", tela: "margem" },
+            ]} />
+          </div>
+        ) },
+      ]} />
     </div>
   );
 }

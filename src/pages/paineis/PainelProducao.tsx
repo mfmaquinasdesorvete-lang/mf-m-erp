@@ -6,6 +6,7 @@ import {
   AlarmClock, ArrowLeftRight, Boxes, ClipboardList, ClipboardCheck, Factory, PackageSearch, Plus, ShoppingBag, Truck, Warehouse, Wrench,
 } from "lucide-react";
 import { Badge, Section } from "@/components/ui";
+import { Secoes } from "@/components/Secoes";
 import { Colunas, Ranking, Rosca } from "@/components/Charts";
 import {
   AtalhosArea, baldes, CabecalhoPainel, CartaoPainel, dentro, FiltrosAtivos, frasePeriodo, intervalos, ListaAtencao, PERIODOS, usePeriodo, variacao,
@@ -126,101 +127,110 @@ export default function PainelProducao() {
           </button>
         )} />
 
-      <div className={`grid grid-cols-2 gap-3 lg:gap-4 ${cartoes.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-        {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title="Ordens de produção abertas (pela data prevista)" className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/producao")} className="link-modulo text-sm">Ver todas</button>}>
-          {k.lista.length ? (
-            <ul className="divide-y divide-slate-100">
-              {k.lista.map((o) => {
-                const atrasada = o.previsao && o.previsao < dia;
-                const semPeca = k.comFalta.has(o.id);
-                return (
-                  <li key={o.id}>
-                    <button type="button" onClick={() => navigate("/producao")} className="linha-clicavel flex items-center gap-3 px-1 py-2.5">
-                      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${semPeca ? "bg-red-50 text-red-600" : "bg-modulo/10 text-modulo-texto"}`}><Factory size={17} /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-fg">OP #{o.numero} · {o.quantidade}× {o.produto?.descricao ?? "produto"}</span>
-                        <span className={`block text-xs ${semPeca ? "font-semibold text-red-600" : "text-slate-500"}`}>{semPeca ? "falta peça" : "peças ok"}{o.responsavel ? ` · ${o.responsavel}` : ""}</span>
-                      </span>
-                      <span className="flex shrink-0 flex-col items-end gap-1">
-                        <span className={`text-xs font-semibold ${atrasada ? "text-red-600" : "text-slate-500"}`}>{o.previsao ? `${atrasada ? "atrasada · " : "até "}${dataBR(o.previsao)}` : "sem previsão"}</span>
-                        <Badge value={o.status} />
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : <p className="py-8 text-center text-sm text-slate-500">Nenhuma OP aberta.</p>}
-        </Section>
-        <Section title="Precisa de atenção" className="xl:col-span-2">
-          <ListaAtencao itens={atencao} vazio="Fábrica sem pendências" />
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Section title={periodo === "ano" ? "Máquinas prontas mês a mês" : "Máquinas prontas"}>
-          <Colunas dados={k.serie} altura={220} formatar={un} inteiro vazio="Nenhuma OP concluída no período." series={[{ nome: "Prontas", cor: "var(--serie-3)" }]} />
-        </Section>
-        <Section title="Peças que faltam para as OPs">
-          <Ranking cor="var(--kpi-rosa)" vazio="Nenhuma peça faltando. ✅" formatar={(v) => v.toLocaleString("pt-BR")}
-            itens={k.pecas.map(([d, v]) => ({ rotulo: d, valor: v.falta, detalhe: `faltam ${v.falta.toLocaleString("pt-BR")} ${v.un} · livre no estoque ${v.tem.toLocaleString("pt-BR")} · ≈ ${brl(v.falta * v.custo)}` }))} />
-        </Section>
-        {verCompras ? (
-          <Section title="Compras a caminho por fornecedor" className="md:col-span-2 xl:col-span-1">
+      {/* seções que a pessoa pode reordenar no "Organizar" (fica no perfil dela) */}
+      <Secoes pagina="painel-producao" secoes={[
+        { id: "cartoes", titulo: "Números", largo: true, conteudo: (
+          <div className={`grid grid-cols-2 gap-3 lg:gap-4 ${cartoes.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+            {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
+          </div>
+        ) },
+        { id: "ops", titulo: "Ordens de produção abertas", conteudo: (
+          <Section title="Ordens de produção abertas (pela data prevista)" className="h-full"
+            actions={<button type="button" onClick={() => navigate("/producao")} className="link-modulo text-sm">Ver todas</button>}>
+            {k.lista.length ? (
+              <ul className="divide-y divide-slate-100">
+                {k.lista.map((o) => {
+                  const atrasada = o.previsao && o.previsao < dia;
+                  const semPeca = k.comFalta.has(o.id);
+                  return (
+                    <li key={o.id}>
+                      <button type="button" onClick={() => navigate("/producao")} className="linha-clicavel flex items-center gap-3 px-1 py-2.5">
+                        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${semPeca ? "bg-red-50 text-red-600" : "bg-modulo/10 text-modulo-texto"}`}><Factory size={17} /></span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-fg">OP #{o.numero} · {o.quantidade}× {o.produto?.descricao ?? "produto"}</span>
+                          <span className={`block text-xs ${semPeca ? "font-semibold text-red-600" : "text-slate-500"}`}>{semPeca ? "falta peça" : "peças ok"}{o.responsavel ? ` · ${o.responsavel}` : ""}</span>
+                        </span>
+                        <span className="flex shrink-0 flex-col items-end gap-1">
+                          <span className={`text-xs font-semibold ${atrasada ? "text-red-600" : "text-slate-500"}`}>{o.previsao ? `${atrasada ? "atrasada · " : "até "}${dataBR(o.previsao)}` : "sem previsão"}</span>
+                          <Badge value={o.status} />
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : <p className="py-8 text-center text-sm text-slate-500">Nenhuma OP aberta.</p>}
+          </Section>
+        ) },
+        { id: "atencao", titulo: "Precisa de atenção", conteudo: (
+          <Section title="Precisa de atenção" className="h-full">
+            <ListaAtencao itens={atencao} vazio="Fábrica sem pendências" />
+          </Section>
+        ) },
+        { id: "prontas", titulo: "Máquinas prontas", conteudo: (
+          <Section title={periodo === "ano" ? "Máquinas prontas mês a mês" : "Máquinas prontas"} className="h-full">
+            <Colunas dados={k.serie} altura={220} formatar={un} inteiro vazio="Nenhuma OP concluída no período." series={[{ nome: "Prontas", cor: "var(--serie-3)" }]} />
+          </Section>
+        ) },
+        { id: "pecas", titulo: "Peças que faltam para as OPs", conteudo: (
+          <Section title="Peças que faltam para as OPs" className="h-full">
+            <Ranking cor="var(--kpi-rosa)" vazio="Nenhuma peça faltando. ✅" formatar={(v) => v.toLocaleString("pt-BR")}
+              itens={k.pecas.map(([d, v]) => ({ rotulo: d, valor: v.falta, detalhe: `faltam ${v.falta.toLocaleString("pt-BR")} ${v.un} · livre no estoque ${v.tem.toLocaleString("pt-BR")} · ≈ ${brl(v.falta * v.custo)}` }))} />
+          </Section>
+        ) },
+        { id: "compras", titulo: "Compras a caminho por fornecedor", conteudo: verCompras && (
+          <Section title="Compras a caminho por fornecedor" className="h-full">
             <Ranking cor="var(--serie-2)" vazio="Nenhuma compra a caminho."
               onClicar={() => navigate("/compras", { state: { aba: "compras" } })}
               itens={k.fornecedores.map(([nome, v]) => ({ rotulo: nome, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "pedido", "pedidos")}` }))} />
           </Section>
-        ) : null}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title="Onde está o dinheiro do estoque" className="xl:col-span-2" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
-          {k.porTipo.length
-            ? <Rosca total="Em estoque" ativo={fTipo} onClicar={(i) => { const t = k.porTipo[i][0]; setFTipo(fTipo === t ? null : t); }}
-                fatias={k.porTipo.map(([rotulo, valor]) => ({ rotulo, valor, cor: COR_TIPO[rotulo] ?? "var(--eixo-texto)" }))} />
-            : <p className="py-10 text-center text-sm text-slate-500">Sem estoque com custo cadastrado.</p>}
-        </Section>
-        <Section title={fTipo ? `No estoque mínimo · ${fTipo}` : "No estoque mínimo (os mais críticos primeiro)"} className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/estoque")} className="link-modulo text-sm">Abrir estoque</button>}>
-          {fTipo && <div className="mb-3"><FiltrosAtivos filtros={[{ rotulo: "Tipo", valor: fTipo, limpar: () => setFTipo(null) }]} onLimpar={() => setFTipo(null)} /></div>}
-          {abaixoFiltrado.length ? (
-            <ul className="space-y-2.5">
-              {abaixoFiltrado.map((p) => {
-                const pct = Math.min(100, (qtd(p) / Math.max(1, Number(p.estoque_minimo))) * 100);
-                return (
-                  <li key={p.id}>
-                    <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
-                      <span className="min-w-0 truncate text-slate-700">{p.descricao}</span>
-                      <span className="num shrink-0 font-semibold text-fg">{qtd(p).toLocaleString("pt-BR")} <span className="font-normal text-slate-500">/ mín. {Number(p.estoque_minimo).toLocaleString("pt-BR")} {p.unidade}</span></span>
-                    </div>
-                    <div className="h-2 rounded-r bg-slate-100"><div className="h-2 rounded-r" style={{ width: `${Math.max(pct, 2)}%`, background: qtd(p) <= 0 ? "rgb(var(--red-500))" : "var(--kpi-laranja)" }} /></div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : <p className="py-8 text-center text-sm text-slate-500">Nenhum item no mínimo{fTipo ? " deste tipo" : ""}. ✅</p>}
-        </Section>
-      </div>
-
-      <div className="space-y-3">
-        <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
-        <AtalhosArea itens={[
-          { rotulo: "OP - Ordem de Produção", icone: Factory, to: "/producao", aviso: k.opsComFalta, tela: "producao" },
-          ...(verCompras ? [
-            { rotulo: "Reposição de Estoque (base 90 dias)", icone: Boxes, to: "/compras", state: { aba: "reposicao" }, aviso: k.abaixo.length },
-            { rotulo: "OC - Ordem de Compras", icone: ShoppingBag, to: "/compras", state: { aba: "compras" }, aviso: k.comprasAtrasadas.length },
-          ] : []),
-          { rotulo: "Ficha técnica", icone: Wrench, to: "/producao", state: { aba: "ficha" }, tela: "producao" },
-          { rotulo: "Produtos e estoque", icone: Warehouse, to: "/estoque", tela: "estoque" },
-          { rotulo: "Transferências", icone: ArrowLeftRight, to: "/transferencias", aviso: transito, tela: "estoque" },
-        ]} />
-      </div>
+        ) },
+        { id: "estoque-tipo", titulo: "Onde está o dinheiro do estoque", conteudo: (
+          <Section title="Onde está o dinheiro do estoque" className="h-full" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
+            {k.porTipo.length
+              ? <Rosca total="Em estoque" ativo={fTipo} onClicar={(i) => { const t = k.porTipo[i][0]; setFTipo(fTipo === t ? null : t); }}
+                  fatias={k.porTipo.map(([rotulo, valor]) => ({ rotulo, valor, cor: COR_TIPO[rotulo] ?? "var(--eixo-texto)" }))} />
+              : <p className="py-10 text-center text-sm text-slate-500">Sem estoque com custo cadastrado.</p>}
+          </Section>
+        ) },
+        { id: "minimo", titulo: "No estoque mínimo", conteudo: (
+          <Section title={fTipo ? `No estoque mínimo · ${fTipo}` : "No estoque mínimo (os mais críticos primeiro)"} className="h-full"
+            actions={<button type="button" onClick={() => navigate("/estoque")} className="link-modulo text-sm">Abrir estoque</button>}>
+            {fTipo && <div className="mb-3"><FiltrosAtivos filtros={[{ rotulo: "Tipo", valor: fTipo, limpar: () => setFTipo(null) }]} onLimpar={() => setFTipo(null)} /></div>}
+            {abaixoFiltrado.length ? (
+              <ul className="space-y-2.5">
+                {abaixoFiltrado.map((p) => {
+                  const pct = Math.min(100, (qtd(p) / Math.max(1, Number(p.estoque_minimo))) * 100);
+                  return (
+                    <li key={p.id}>
+                      <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+                        <span className="min-w-0 truncate text-slate-700">{p.descricao}</span>
+                        <span className="num shrink-0 font-semibold text-fg">{qtd(p).toLocaleString("pt-BR")} <span className="font-normal text-slate-500">/ mín. {Number(p.estoque_minimo).toLocaleString("pt-BR")} {p.unidade}</span></span>
+                      </div>
+                      <div className="h-2 rounded-r bg-slate-100"><div className="h-2 rounded-r" style={{ width: `${Math.max(pct, 2)}%`, background: qtd(p) <= 0 ? "rgb(var(--red-500))" : "var(--kpi-laranja)" }} /></div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : <p className="py-8 text-center text-sm text-slate-500">Nenhum item no mínimo{fTipo ? " deste tipo" : ""}. ✅</p>}
+          </Section>
+        ) },
+        { id: "atalhos", titulo: "Ir para", largo: true, conteudo: (
+          <div className="space-y-3">
+            <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
+            <AtalhosArea itens={[
+              { rotulo: "OP - Ordem de Produção", icone: Factory, to: "/producao", aviso: k.opsComFalta, tela: "producao" },
+              ...(verCompras ? [
+                { rotulo: "Reposição de Estoque (base 90 dias)", icone: Boxes, to: "/compras", state: { aba: "reposicao" }, aviso: k.abaixo.length },
+                { rotulo: "OC - Ordem de Compras", icone: ShoppingBag, to: "/compras", state: { aba: "compras" }, aviso: k.comprasAtrasadas.length },
+              ] : []),
+              { rotulo: "Ficha técnica", icone: Wrench, to: "/producao", state: { aba: "ficha" }, tela: "producao" },
+              { rotulo: "Produtos e estoque", icone: Warehouse, to: "/estoque", tela: "estoque" },
+              { rotulo: "Transferências", icone: ArrowLeftRight, to: "/transferencias", aviso: transito, tela: "estoque" },
+            ]} />
+          </div>
+        ) },
+      ]} />
     </div>
   );
 }

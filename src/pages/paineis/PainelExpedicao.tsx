@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { tocar } from "@/components/Notificacoes";
 import { Section, Button } from "@/components/ui";
+import { Secoes } from "@/components/Secoes";
 import { CabecalhoPainel, CartaoPainel, ListaAtencao, type Cartao, type ItemAtencao } from "@/components/painel/Painel";
 import { ExpedicaoModal, useAcoesExpedicao } from "@/components/fluxo/Expedicao";
 import { RiscosParaDespachar } from "@/components/fluxo/ConferenciaRisco";
@@ -221,153 +222,161 @@ export default function PainelExpedicao() {
           </div>
         )} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4">
-        {cartoes.map((c) => <CartaoPainel key={c.id} c={c} />)}
-      </div>
-      <RiscosParaDespachar />
-
-      {/* Etapas: botões grandes para o tablet */}
-      <div role="tablist" aria-label="Etapa" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {ETAPAS.map((x) => {
-          const ativo = x.id === etapa;
-          return (
-            <button key={x.id} type="button" role="tab" aria-selected={ativo} onClick={() => setEtapa(x.id)}
-              className={`flex min-h-[56px] items-center gap-3 rounded-2xl border px-4 text-left transition ${ativo ? "border-modulo bg-modulo text-white shadow-card" : "border-slate-200 bg-surface text-fg hover:border-modulo/50"}`}>
-              <x.icone size={22} className={ativo ? "text-white" : "text-modulo-texto"} aria-hidden />
-              <span className="flex-1 text-sm font-bold">{x.titulo}</span>
-              <span className={`num grid h-8 min-w-[32px] place-items-center rounded-full px-2 text-sm font-bold ${ativo ? "bg-white/20" : "bg-slate-100 text-slate-700"}`}>{porEtapa[x.id].length}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <div className="space-y-3 xl:col-span-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="min-w-0 flex-1 text-sm text-slate-600">{atual.frase}</p>
-            {etapa === "embalar" || etapa === "despachar" ? lista.length > 0 && (
-              <Button type="button" variant="secondary" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir(lista.map((l) => ({ tipo: "pedido" as const, pedido_id: l.p.id })))}>
-                <Printer size={16} /> Etiquetas de todos
-              </Button>
-            ) : null}
+      {/* seções que a pessoa pode reordenar no "Organizar" (fica no perfil dela); a fila e a coluna ao lado seguem a etapa escolhida */}
+      <Secoes pagina="painel-expedicao" secoes={[
+        { id: "cartoes", titulo: "Números", largo: true, conteudo: (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4">
+              {cartoes.map((c) => <CartaoPainel key={c.id} c={c} />)}
+            </div>
+            <RiscosParaDespachar />
           </div>
-          {isLoading ? <p className="py-10 text-center text-slate-500">Carregando pedidos…</p> : lista.length ? (
-            <ul className="space-y-2.5">
-              {lista.map((l) => {
-                const marcado = etapa === "separar" && !fora.has(l.p.id);
-                const itens = l.p.itens ?? [];
-                const unidades = itens.reduce((s, i) => s + Number(i.quantidade), 0);
-                return (
-                  <li key={l.p.id} className={`rounded-2xl border bg-surface p-3 shadow-card sm:p-4 ${l.horas >= 24 ? "border-red-200" : "border-slate-200/80"}`}>
-                    <div className="flex items-start gap-3">
-                      {etapa === "separar" && (
-                        <button type="button" onClick={() => { const n = new Set(fora); if (marcado) n.add(l.p.id); else n.delete(l.p.id); setFora(n); }}
-                          aria-pressed={marcado} title={marcado ? "Tirar da lista de separação" : "Pôr na lista de separação"} className="mt-0.5 text-modulo-texto">
-                          {marcado ? <CheckSquare size={24} /> : <Square size={24} className="text-slate-400" />}
-                        </button>
-                      )}
-                      <button type="button" onClick={() => podeExpedir && setAberta({ p: l.p, e: l.e })} className="min-w-0 flex-1 text-left">
-                        <span className="block text-lg font-bold leading-tight text-fg">#{l.p.numero} · {l.p.cliente?.nome_fantasia || l.p.cliente?.nome}</span>
-                        <span className="mt-0.5 block text-sm text-slate-600">
-                          {l.p.cliente?.municipio ? `${l.p.cliente.municipio}/${l.p.cliente.uf ?? ""} · ` : ""}{itens.length} {pl(itens.length, "item", "itens")}, {unidades.toLocaleString("pt-BR")} un. · {nomeTransp(l.e.transportadora_id ?? l.p.transportadora_id)}
-                        </span>
-                        <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold">
-                          <span className={`inline-flex items-center gap-1 ${corTempo(l.horas)}`}><Timer size={13} aria-hidden /> {tempo(l.horas)} nesta etapa</span>
-                          {l.e.responsavel && <span className="inline-flex items-center gap-1 text-slate-500"><Users size={13} aria-hidden /> {l.e.responsavel}</span>}
-                          {l.nota ? <span className="text-emerald-700">NF-e {l.nota.numero}</span> : l.processando ? <span className="text-sky-700">NF-e processando</span> : <span className="text-amber-700">sem NF-e</span>}
-                          {l.e.volumes && l.e.status !== "separar" && l.e.status !== "separando" ? <span className="text-slate-500">{l.e.volumes} {pl(l.e.volumes, "volume", "volumes")}</span> : null}
-                        </span>
+        ) },
+        // Etapas: botões grandes para o tablet
+        { id: "etapas", titulo: "Etapas", largo: true, conteudo: (
+          <div role="tablist" aria-label="Etapa" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {ETAPAS.map((x) => {
+              const ativo = x.id === etapa;
+              return (
+                <button key={x.id} type="button" role="tab" aria-selected={ativo} onClick={() => setEtapa(x.id)}
+                  className={`flex min-h-[56px] items-center gap-3 rounded-2xl border px-4 text-left transition ${ativo ? "border-modulo bg-modulo text-white shadow-card" : "border-slate-200 bg-surface text-fg hover:border-modulo/50"}`}>
+                  <x.icone size={22} className={ativo ? "text-white" : "text-modulo-texto"} aria-hidden />
+                  <span className="flex-1 text-sm font-bold">{x.titulo}</span>
+                  <span className={`num grid h-8 min-w-[32px] place-items-center rounded-full px-2 text-sm font-bold ${ativo ? "bg-white/20" : "bg-slate-100 text-slate-700"}`}>{porEtapa[x.id].length}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) },
+        { id: "fila", titulo: "Pedidos da etapa", conteudo: (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="min-w-0 flex-1 text-sm text-slate-600">{atual.frase}</p>
+              {etapa === "embalar" || etapa === "despachar" ? lista.length > 0 && (
+                <Button type="button" variant="secondary" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir(lista.map((l) => ({ tipo: "pedido" as const, pedido_id: l.p.id })))}>
+                  <Printer size={16} /> Etiquetas de todos
+                </Button>
+              ) : null}
+            </div>
+            {isLoading ? <p className="py-10 text-center text-slate-500">Carregando pedidos…</p> : lista.length ? (
+              <ul className="space-y-2.5">
+                {lista.map((l) => {
+                  const marcado = etapa === "separar" && !fora.has(l.p.id);
+                  const itens = l.p.itens ?? [];
+                  const unidades = itens.reduce((s, i) => s + Number(i.quantidade), 0);
+                  return (
+                    <li key={l.p.id} className={`rounded-2xl border bg-surface p-3 shadow-card sm:p-4 ${l.horas >= 24 ? "border-red-200" : "border-slate-200/80"}`}>
+                      <div className="flex items-start gap-3">
                         {etapa === "separar" && (
-                          <span className="mt-2 block text-sm text-slate-700">
-                            {itens.slice(0, 4).map((i) => `${Number(i.quantidade)}× ${i.descricao}${prod.get(i.produto_id)?.localizacao ? ` (${prod.get(i.produto_id)!.localizacao})` : ""}`).join(" · ")}{itens.length > 4 ? " …" : ""}
-                          </span>
+                          <button type="button" onClick={() => { const n = new Set(fora); if (marcado) n.add(l.p.id); else n.delete(l.p.id); setFora(n); }}
+                            aria-pressed={marcado} title={marcado ? "Tirar da lista de separação" : "Pôr na lista de separação"} className="mt-0.5 text-modulo-texto">
+                            {marcado ? <CheckSquare size={24} /> : <Square size={24} className="text-slate-400" />}
+                          </button>
                         )}
-                      </button>
-                    </div>
-                    <div className="mt-3 flex flex-wrap justify-end gap-2">
-                      {l.nota?.danfe_url && (
-                        <a href={l.nota.danfe_url} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-fg hover:border-modulo">
-                          <ExternalLink size={16} /> DANFE
-                        </a>
-                      )}
-                      {(etapa === "embalar" || etapa === "despachar") && (
-                        <Button type="button" variant="secondary" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir([{ tipo: "pedido", pedido_id: l.p.id }])}
-                          className="min-h-[44px]">
-                          <Printer size={16} /> Etiquetas
-                        </Button>
-                      )}
-                      {podeExpedir && (
-                        <button type="button" disabled={acoes.ocupado === l.p.id || lote || (etapa === "despachar" && !l.nota)} onClick={() => agir(l)}
-                          title={etapa === "despachar" && !l.nota ? "Precisa da NF-e autorizada" : undefined}
-                          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-modulo px-4 text-sm font-bold text-white shadow-sm hover:brightness-110 disabled:opacity-50">
-                          <atual.icone size={18} aria-hidden /> {acoes.ocupado === l.p.id ? "Salvando…" : atual.botao}
+                        <button type="button" onClick={() => podeExpedir && setAberta({ p: l.p, e: l.e })} className="min-w-0 flex-1 text-left">
+                          <span className="block text-lg font-bold leading-tight text-fg">#{l.p.numero} · {l.p.cliente?.nome_fantasia || l.p.cliente?.nome}</span>
+                          <span className="mt-0.5 block text-sm text-slate-600">
+                            {l.p.cliente?.municipio ? `${l.p.cliente.municipio}/${l.p.cliente.uf ?? ""} · ` : ""}{itens.length} {pl(itens.length, "item", "itens")}, {unidades.toLocaleString("pt-BR")} un. · {nomeTransp(l.e.transportadora_id ?? l.p.transportadora_id)}
+                          </span>
+                          <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold">
+                            <span className={`inline-flex items-center gap-1 ${corTempo(l.horas)}`}><Timer size={13} aria-hidden /> {tempo(l.horas)} nesta etapa</span>
+                            {l.e.responsavel && <span className="inline-flex items-center gap-1 text-slate-500"><Users size={13} aria-hidden /> {l.e.responsavel}</span>}
+                            {l.nota ? <span className="text-emerald-700">NF-e {l.nota.numero}</span> : l.processando ? <span className="text-sky-700">NF-e processando</span> : <span className="text-amber-700">sem NF-e</span>}
+                            {l.e.volumes && l.e.status !== "separar" && l.e.status !== "separando" ? <span className="text-slate-500">{l.e.volumes} {pl(l.e.volumes, "volume", "volumes")}</span> : null}
+                          </span>
+                          {etapa === "separar" && (
+                            <span className="mt-2 block text-sm text-slate-700">
+                              {itens.slice(0, 4).map((i) => `${Number(i.quantidade)}× ${i.descricao}${prod.get(i.produto_id)?.localizacao ? ` (${prod.get(i.produto_id)!.localizacao})` : ""}`).join(" · ")}{itens.length > 4 ? " …" : ""}
+                            </span>
+                          )}
                         </button>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="rounded-2xl border border-dashed border-slate-200 px-3 py-10 text-center text-slate-500">
-              {termo ? "Nenhum pedido com essa busca nesta etapa." : `Nada para ${atual.titulo.toLowerCase()} agora. ✅`}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-4 xl:col-span-2">
-          {etapa === "separar" && (
-            <Section title={`Lista de separação · ${aSeparar.length} ${pl(aSeparar.length, "pedido", "pedidos")}`}
-              actions={separacao.length > 0 && <button type="button" onClick={imprimirSeparacao} className="link-modulo inline-flex items-center gap-1 text-sm"><Printer size={15} /> Imprimir</button>}>
-              {separacao.length ? (
-                <>
-                  <ul className="divide-y divide-slate-100">
-                    {separacao.map((x) => (
-                      <li key={x.id} className="flex items-center gap-3 py-2">
-                        <span className="w-16 shrink-0 rounded-lg bg-slate-100 px-1.5 py-1 text-center text-xs font-bold text-slate-700" title="Local no estoque">{x.local ?? "—"}</span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-fg">{x.descricao}</span>
-                          <span className="block truncate text-xs text-slate-500">{x.sku ? `${x.sku} · ` : ""}{[...x.pedidos].map((n) => `#${n}`).join(" ")}</span>
-                        </span>
-                        <span className="num shrink-0 text-lg font-bold text-fg">{x.qtd.toLocaleString("pt-BR")}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {podeExpedir && (
-                    <button type="button" disabled={lote || !aSeparar.length} onClick={comecarTodos}
-                      className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-modulo px-4 text-sm font-bold text-white shadow-sm hover:brightness-110 disabled:opacity-50">
-                      <ListChecks size={18} /> {lote ? "Salvando…" : `Começar a separar ${aSeparar.length === 1 ? "o pedido" : `os ${aSeparar.length} pedidos`}`}
-                    </button>
-                  )}
-                  <p className="mt-2 text-xs text-slate-500">Soma dos pedidos marcados, na ordem do local no estoque. Kits já aparecem abertos nos componentes. Desmarque um pedido na lista ao lado para tirá-lo daqui.</p>
-                </>
-              ) : <p className="py-6 text-center text-sm text-slate-500">Nenhum pedido marcado para separar.</p>}
-            </Section>
-          )}
-          {etapa === "conferir" && (
-            <Section title="Como conferir">
-              <ol className="list-decimal space-y-1.5 pl-5 text-sm text-slate-700">
-                <li>Toque em <b>Conferir itens</b> no pedido.</li>
-                <li>Leia o código de barras de cada peça com o leitor (ou digite o SKU ou o número de série).</li>
-                <li>Quando todos os itens estiverem marcados, toque em <b>Conferência ok</b>.</li>
-              </ol>
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500"><Barcode size={14} aria-hidden /> Leitor USB ou Bluetooth funciona como teclado: é só ler com o campo selecionado.</p>
-            </Section>
-          )}
-          <Section title="Precisa de atenção">
-            <ListaAtencao itens={atencao} vazio="Expedição em dia" />
-          </Section>
-          <Section title="Separações de hoje por pessoa">
-            {porPessoa.length ? (
-              <ul className="space-y-1.5">
-                {porPessoa.map(([n, q]) => (
-                  <li key={n} className="flex items-center justify-between gap-2 text-sm"><span className="truncate text-slate-700">{n}</span><span className="num font-bold text-fg">{q} {pl(q, "pedido", "pedidos")}</span></li>
-                ))}
+                      </div>
+                      <div className="mt-3 flex flex-wrap justify-end gap-2">
+                        {l.nota?.danfe_url && (
+                          <a href={l.nota.danfe_url} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-fg hover:border-modulo">
+                            <ExternalLink size={16} /> DANFE
+                          </a>
+                        )}
+                        {(etapa === "embalar" || etapa === "despachar") && (
+                          <Button type="button" variant="secondary" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir([{ tipo: "pedido", pedido_id: l.p.id }])}
+                            className="min-h-[44px]">
+                            <Printer size={16} /> Etiquetas
+                          </Button>
+                        )}
+                        {podeExpedir && (
+                          <button type="button" disabled={acoes.ocupado === l.p.id || lote || (etapa === "despachar" && !l.nota)} onClick={() => agir(l)}
+                            title={etapa === "despachar" && !l.nota ? "Precisa da NF-e autorizada" : undefined}
+                            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-modulo px-4 text-sm font-bold text-white shadow-sm hover:brightness-110 disabled:opacity-50">
+                            <atual.icone size={18} aria-hidden /> {acoes.ocupado === l.p.id ? "Salvando…" : atual.botao}
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
-            ) : <p className="text-sm text-slate-500">Nenhuma separação começou hoje.</p>}
-          </Section>
-        </div>
-      </div>
+            ) : (
+              <p className="rounded-2xl border border-dashed border-slate-200 px-3 py-10 text-center text-slate-500">
+                {termo ? "Nenhum pedido com essa busca nesta etapa." : `Nada para ${atual.titulo.toLowerCase()} agora. ✅`}
+              </p>
+            )}
+          </div>
+        ) },
+        { id: "lateral", titulo: "Lista de separação e atenção", conteudo: (
+          <div className="space-y-4">
+            {etapa === "separar" && (
+              <Section title={`Lista de separação · ${aSeparar.length} ${pl(aSeparar.length, "pedido", "pedidos")}`}
+                actions={separacao.length > 0 && <button type="button" onClick={imprimirSeparacao} className="link-modulo inline-flex items-center gap-1 text-sm"><Printer size={15} /> Imprimir</button>}>
+                {separacao.length ? (
+                  <>
+                    <ul className="divide-y divide-slate-100">
+                      {separacao.map((x) => (
+                        <li key={x.id} className="flex items-center gap-3 py-2">
+                          <span className="w-16 shrink-0 rounded-lg bg-slate-100 px-1.5 py-1 text-center text-xs font-bold text-slate-700" title="Local no estoque">{x.local ?? "—"}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold text-fg">{x.descricao}</span>
+                            <span className="block truncate text-xs text-slate-500">{x.sku ? `${x.sku} · ` : ""}{[...x.pedidos].map((n) => `#${n}`).join(" ")}</span>
+                          </span>
+                          <span className="num shrink-0 text-lg font-bold text-fg">{x.qtd.toLocaleString("pt-BR")}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {podeExpedir && (
+                      <button type="button" disabled={lote || !aSeparar.length} onClick={comecarTodos}
+                        className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-modulo px-4 text-sm font-bold text-white shadow-sm hover:brightness-110 disabled:opacity-50">
+                        <ListChecks size={18} /> {lote ? "Salvando…" : `Começar a separar ${aSeparar.length === 1 ? "o pedido" : `os ${aSeparar.length} pedidos`}`}
+                      </button>
+                    )}
+                    <p className="mt-2 text-xs text-slate-500">Soma dos pedidos marcados, na ordem do local no estoque. Kits já aparecem abertos nos componentes. Desmarque um pedido na lista ao lado para tirá-lo daqui.</p>
+                  </>
+                ) : <p className="py-6 text-center text-sm text-slate-500">Nenhum pedido marcado para separar.</p>}
+              </Section>
+            )}
+            {etapa === "conferir" && (
+              <Section title="Como conferir">
+                <ol className="list-decimal space-y-1.5 pl-5 text-sm text-slate-700">
+                  <li>Toque em <b>Conferir itens</b> no pedido.</li>
+                  <li>Leia o código de barras de cada peça com o leitor (ou digite o SKU ou o número de série).</li>
+                  <li>Quando todos os itens estiverem marcados, toque em <b>Conferência ok</b>.</li>
+                </ol>
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500"><Barcode size={14} aria-hidden /> Leitor USB ou Bluetooth funciona como teclado: é só ler com o campo selecionado.</p>
+              </Section>
+            )}
+            <Section title="Precisa de atenção">
+              <ListaAtencao itens={atencao} vazio="Expedição em dia" />
+            </Section>
+            <Section title="Separações de hoje por pessoa">
+              {porPessoa.length ? (
+                <ul className="space-y-1.5">
+                  {porPessoa.map(([n, q]) => (
+                    <li key={n} className="flex items-center justify-between gap-2 text-sm"><span className="truncate text-slate-700">{n}</span><span className="num font-bold text-fg">{q} {pl(q, "pedido", "pedidos")}</span></li>
+                  ))}
+                </ul>
+              ) : <p className="text-sm text-slate-500">Nenhuma separação começou hoje.</p>}
+            </Section>
+          </div>
+        ) },
+      ]} />
 
       {aberta && <ExpedicaoModal pedido={aberta.p} exp={aberta.e} onClose={() => setAberta(null)} />}
       {etiquetas.modal}

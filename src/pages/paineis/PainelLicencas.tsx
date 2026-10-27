@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, IceCreamCone, Receipt, Store, Wallet } from "lucide-react";
 import { Section } from "@/components/ui";
+import { Secoes } from "@/components/Secoes";
 import { Colunas, Ranking } from "@/components/Charts";
 import { CabecalhoPainel, CartaoPainel, type Cartao } from "@/components/painel/Painel";
 import { useRows } from "@/lib/data";
@@ -72,67 +73,74 @@ export default function PainelLicencas() {
           </div>
         } />
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {cartoes.map((c) => <CartaoPainel key={c.id} c={c} />)}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title="Recebido mês a mês" className="xl:col-span-3">
-          <Colunas altura={230} vazio="Sem pagamentos nesses meses." dados={serie.map((s) => ({ rotulo: mesCurto(s.mes), valores: [s.valor, s.taxas] }))}
-            series={[{ nome: "Recebido", cor: ROSA }, { nome: "Taxas", cor: "var(--serie-2)" }]} />
-        </Section>
-        <Section title="Máquinas nas unidades por modelo" className="xl:col-span-2">
-          <Ranking cor="var(--kpi-roxo)" formatar={(v) => String(v)} vazio="Nenhuma máquina cadastrada nas unidades."
-            itens={porModelo.map(([nome, n]) => ({ rotulo: nome, valor: n, detalhe: `${Math.round((n / Math.max(1, naLoja.length)) * 100)}%` }))} />
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title="Licenças por unidade" className="xl:col-span-3" actions={<span className="text-xs text-slate-500">toque para abrir a carteira</span>}>
-          {!resumo.length ? <p className="py-6 text-center text-sm text-slate-500">Nenhuma unidade cadastrada.</p> : (
-            <ul className="divide-y divide-slate-100">
-              {[...resumo].sort((a, b) => Number(funcionando(b.loja)) - Number(funcionando(a.loja)) || b.total - a.total).map((r) => (
-                <li key={r.loja.id}>
-                  <button type="button" onClick={() => navigate("/licenciados")} className="linha-clicavel grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-2">
+      {/* seções que a pessoa pode reordenar no "Organizar" (fica no perfil dela) */}
+      <Secoes pagina="painel-licencas" secoes={[
+        { id: "cartoes", titulo: "Números", largo: true, conteudo: (
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {cartoes.map((c) => <CartaoPainel key={c.id} c={c} />)}
+          </div>
+        ) },
+        { id: "recebido", titulo: "Recebido mês a mês", conteudo: (
+          <Section title="Recebido mês a mês" className="h-full">
+            <Colunas altura={230} vazio="Sem pagamentos nesses meses." dados={serie.map((s) => ({ rotulo: mesCurto(s.mes), valores: [s.valor, s.taxas] }))}
+              series={[{ nome: "Recebido", cor: ROSA }, { nome: "Taxas", cor: "var(--serie-2)" }]} />
+          </Section>
+        ) },
+        { id: "maquinas-modelo", titulo: "Máquinas nas unidades por modelo", conteudo: (
+          <Section title="Máquinas nas unidades por modelo" className="h-full">
+            <Ranking cor="var(--kpi-roxo)" formatar={(v) => String(v)} vazio="Nenhuma máquina cadastrada nas unidades."
+              itens={porModelo.map(([nome, n]) => ({ rotulo: nome, valor: n, detalhe: `${Math.round((n / Math.max(1, naLoja.length)) * 100)}%` }))} />
+          </Section>
+        ) },
+        { id: "licencas", titulo: "Licenças por unidade", conteudo: (
+          <Section title="Licenças por unidade" className="h-full" actions={<span className="text-xs text-slate-500">toque para abrir a carteira</span>}>
+            {!resumo.length ? <p className="py-6 text-center text-sm text-slate-500">Nenhuma unidade cadastrada.</p> : (
+              <ul className="divide-y divide-slate-100">
+                {[...resumo].sort((a, b) => Number(funcionando(b.loja)) - Number(funcionando(a.loja)) || b.total - a.total).map((r) => (
+                  <li key={r.loja.id}>
+                    <button type="button" onClick={() => navigate("/licenciados")} className="linha-clicavel grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-2">
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-fg">{r.loja.nome}</span>
+                        <span className="block truncate text-xs text-slate-500">
+                          {[nomeSituacao(r.loja.situacao), nomeModelo(r.loja.modelo), [r.loja.cidade, r.loja.uf].filter(Boolean).join("/"), r.ultimo && `último ${dataBR(r.ultimo)}`].filter(Boolean).join(" · ")}
+                        </span>
+                      </span>
+                      <span className="num text-right text-sm">
+                        <b className="text-fg">{brl(r.total)}</b>
+                        {r.falta != null && <span className={`block text-xs ${r.falta > 0 ? "text-amber-700" : "text-emerald-700"}`}>{r.falta > 0 ? `falta ${brl(r.falta)}` : "licença quitada"}</span>}
+                      </span>
+                      {r.pct != null && (
+                        <span className="col-span-2 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-label={`${r.pct}% do combinado`}>
+                          <span className="block h-full rounded-full" style={{ width: `${r.pct}%`, background: ROSA }} />
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+        ) },
+        { id: "atencao", titulo: "Precisa de atenção", conteudo: (
+          <Section title="Precisa de atenção" className="h-full">
+            {!atencao.length ? <p className="py-6 text-center text-sm text-slate-500">Nenhuma licença com saldo ou sem pagar há mais de 45 dias.</p> : (
+              <ul className="space-y-2">
+                {atencao.slice(0, 8).map((r) => (
+                  <li key={r.loja.id} className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900">
+                    <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden />
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-semibold text-fg">{r.loja.nome}</span>
-                      <span className="block truncate text-xs text-slate-500">
-                        {[nomeSituacao(r.loja.situacao), nomeModelo(r.loja.modelo), [r.loja.cidade, r.loja.uf].filter(Boolean).join("/"), r.ultimo && `último ${dataBR(r.ultimo)}`].filter(Boolean).join(" · ")}
+                      <b>{r.loja.nome}</b>
+                      <span className="block text-xs">
+                        {[(r.falta ?? 0) > 0 && `falta ${brl(r.falta!)} da licença`, (r.diasSemPagar ?? 0) > 45 && `sem pagar há ${r.diasSemPagar} dias`, r.diasSemPagar == null && "nenhum pagamento ligado"].filter(Boolean).join(" · ")}
                       </span>
                     </span>
-                    <span className="num text-right text-sm">
-                      <b className="text-fg">{brl(r.total)}</b>
-                      {r.falta != null && <span className={`block text-xs ${r.falta > 0 ? "text-amber-700" : "text-emerald-700"}`}>{r.falta > 0 ? `falta ${brl(r.falta)}` : "licença quitada"}</span>}
-                    </span>
-                    {r.pct != null && (
-                      <span className="col-span-2 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-label={`${r.pct}% do combinado`}>
-                        <span className="block h-full rounded-full" style={{ width: `${r.pct}%`, background: ROSA }} />
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
-        <Section title="Precisa de atenção" className="xl:col-span-2">
-          {!atencao.length ? <p className="py-6 text-center text-sm text-slate-500">Nenhuma licença com saldo ou sem pagar há mais de 45 dias.</p> : (
-            <ul className="space-y-2">
-              {atencao.slice(0, 8).map((r) => (
-                <li key={r.loja.id} className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900">
-                  <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden />
-                  <span className="min-w-0">
-                    <b>{r.loja.nome}</b>
-                    <span className="block text-xs">
-                      {[(r.falta ?? 0) > 0 && `falta ${brl(r.falta!)} da licença`, (r.diasSemPagar ?? 0) > 45 && `sem pagar há ${r.diasSemPagar} dias`, r.diasSemPagar == null && "nenhum pagamento ligado"].filter(Boolean).join(" · ")}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
-      </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+        ) },
+      ]} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   TriangleAlert, Undo2,
 } from "lucide-react";
 import { Section } from "@/components/ui";
+import { Secoes } from "@/components/Secoes";
 import { Colunas, Ranking, Rosca } from "@/components/Charts";
 import {
   AtalhosArea, baldes, CabecalhoPainel, CartaoPainel, dentro, FiltrosAtivos, frasePeriodo, intervalos, ListaAtencao, PERIODOS, usePeriodo, variacao,
@@ -160,75 +161,85 @@ export default function PainelNotas() {
 
       {fCfop && <FiltrosAtivos filtros={[{ rotulo: "CFOP", valor: fCfop, limpar: () => setFCfop(null) }]} onLimpar={() => setFCfop(null)} />}
 
-      <div className={`grid grid-cols-2 gap-3 lg:gap-4 ${cartoes.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-        {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
-      </div>
-
-      {veObrigacoes && <ProximasObrigacoes />}
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title={veRecebidas ? "Notas de venda x notas de fornecedores" : "Notas de venda"} className="xl:col-span-3">
-          <Colunas dados={k.serie} altura={250} vazio="Nenhuma nota no período."
-            series={veRecebidas ? [{ nome: "Vendas (saída)", cor: "var(--serie-1)" }, { nome: "Compras (entrada)", cor: "var(--serie-2)" }] : [{ nome: "Vendas (saída)", cor: "var(--serie-1)" }]} />
-        </Section>
-        <Section title={fCfop ? `Impostos destacados · CFOP ${fCfop}` : "Impostos destacados"} className="xl:col-span-2">
-          {k.impostos.length
-            ? <Rosca total="Impostos" fatias={k.impostos} />
-            : <p className="py-10 text-center text-sm text-slate-500">Nenhum imposto destacado no período.</p>}
-        </Section>
-      </div>
-
-      <Section title="Situação das NF-e">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          {situacoes.map((s) => (
-            <button key={s.rotulo} type="button" onClick={() => navigate("/notas", { state: { aba: "emitidas", filtro: s.filtro } })}
-              className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-xl border border-slate-100 p-3 text-left transition hover:border-slate-200 hover:bg-slate-50">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${s.cor} 16%, transparent)`, color: s.cor }}><s.icone size={18} /></span>
-              <span className="num block truncate text-xl font-bold leading-none text-fg">{s.n}</span>
-              <span className="col-span-2 block text-xs leading-snug text-slate-600">{s.rotulo}</span>
-            </button>
-          ))}
-        </div>
-        <p className="mt-2 text-xs text-slate-500">Autorizadas, canceladas e devoluções: no período. Rejeitadas e na fila: todas as que estão paradas agora.</p>
-      </Section>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Section title="Por CFOP" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
-          <Ranking ativo={fCfop} onClicar={(i) => { const c = k.cfops[i][0]; setFCfop(fCfop === c ? null : c); }} vazio="Nenhuma nota com itens no período."
-            itens={k.cfops.map(([cfop, v]) => ({ rotulo: cfop, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "item", "itens")}` }))} />
-        </Section>
-        <Section title="Para onde vendemos (UF)">
-          <Ranking cor="var(--serie-2)" vazio="Nenhuma nota no período."
-            itens={k.ufs.map(([uf, v]) => ({ rotulo: uf === "—" ? "Sem UF na nota" : uf, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "nota", "notas")}` }))} />
-        </Section>
-        <Section title="Precisa de atenção" className="md:col-span-2 xl:col-span-1">
-          <ListaAtencao itens={atencao} vazio="Nenhuma nota travada" />
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        {veRecebidas && (
-          <Section title="Maiores fornecedores (notas recebidas)" className="xl:col-span-3">
+      {/* seções que a pessoa pode reordenar no "Organizar" (fica no perfil dela) */}
+      <Secoes pagina="painel-notas" secoes={[
+        { id: "cartoes", titulo: "Números", largo: true, conteudo: (
+          <div className={`grid grid-cols-2 gap-3 lg:gap-4 ${cartoes.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+            {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
+          </div>
+        ) },
+        { id: "obrigacoes", titulo: "Próximas obrigações", largo: true, conteudo: veObrigacoes && (
+          <ProximasObrigacoes />
+        ) },
+        { id: "notas", titulo: "Notas de venda", conteudo: (
+          <Section title={veRecebidas ? "Notas de venda x notas de fornecedores" : "Notas de venda"} className="h-full">
+            <Colunas dados={k.serie} altura={250} vazio="Nenhuma nota no período."
+              series={veRecebidas ? [{ nome: "Vendas (saída)", cor: "var(--serie-1)" }, { nome: "Compras (entrada)", cor: "var(--serie-2)" }] : [{ nome: "Vendas (saída)", cor: "var(--serie-1)" }]} />
+          </Section>
+        ) },
+        { id: "impostos", titulo: "Impostos destacados", conteudo: (
+          <Section title={fCfop ? `Impostos destacados · CFOP ${fCfop}` : "Impostos destacados"} className="h-full">
+            {k.impostos.length
+              ? <Rosca total="Impostos" fatias={k.impostos} />
+              : <p className="py-10 text-center text-sm text-slate-500">Nenhum imposto destacado no período.</p>}
+          </Section>
+        ) },
+        { id: "situacao", titulo: "Situação das NF-e", largo: true, conteudo: (
+          <Section title="Situação das NF-e">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {situacoes.map((s) => (
+                <button key={s.rotulo} type="button" onClick={() => navigate("/notas", { state: { aba: "emitidas", filtro: s.filtro } })}
+                  className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-xl border border-slate-100 p-3 text-left transition hover:border-slate-200 hover:bg-slate-50">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${s.cor} 16%, transparent)`, color: s.cor }}><s.icone size={18} /></span>
+                  <span className="num block truncate text-xl font-bold leading-none text-fg">{s.n}</span>
+                  <span className="col-span-2 block text-xs leading-snug text-slate-600">{s.rotulo}</span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-slate-500">Autorizadas, canceladas e devoluções: no período. Rejeitadas e na fila: todas as que estão paradas agora.</p>
+          </Section>
+        ) },
+        { id: "cfop", titulo: "Por CFOP", conteudo: (
+          <Section title="Por CFOP" className="h-full" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
+            <Ranking ativo={fCfop} onClicar={(i) => { const c = k.cfops[i][0]; setFCfop(fCfop === c ? null : c); }} vazio="Nenhuma nota com itens no período."
+              itens={k.cfops.map(([cfop, v]) => ({ rotulo: cfop, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "item", "itens")}` }))} />
+          </Section>
+        ) },
+        { id: "ufs", titulo: "Para onde vendemos (UF)", conteudo: (
+          <Section title="Para onde vendemos (UF)" className="h-full">
+            <Ranking cor="var(--serie-2)" vazio="Nenhuma nota no período."
+              itens={k.ufs.map(([uf, v]) => ({ rotulo: uf === "—" ? "Sem UF na nota" : uf, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "nota", "notas")}` }))} />
+          </Section>
+        ) },
+        { id: "atencao", titulo: "Precisa de atenção", conteudo: (
+          <Section title="Precisa de atenção" className="h-full">
+            <ListaAtencao itens={atencao} vazio="Nenhuma nota travada" />
+          </Section>
+        ) },
+        { id: "fornecedores", titulo: "Maiores fornecedores (notas recebidas)", conteudo: veRecebidas && (
+          <Section title="Maiores fornecedores (notas recebidas)" className="h-full">
             <Ranking cor="var(--serie-2)" vazio="Nenhuma nota de fornecedor no período."
               itens={k.fornecedores.map(([nome, v]) => ({ rotulo: nome, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "nota", "notas")}` }))} />
           </Section>
-        )}
-        <div className={`space-y-3 ${veRecebidas ? "xl:col-span-2" : "xl:col-span-5"}`}>
-          <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
-          <AtalhosArea colunas={veRecebidas ? "grid-cols-3" : undefined} itens={[
-            { rotulo: "NF-e emitidas", icone: Receipt, to: "/notas", state: { aba: "emitidas" }, aviso: k.situacao.rejeitadas + k.situacao.fila },
-            ...(veRecebidas ? [{ rotulo: "NF-e de fornecedores", icone: FileInput, to: "/notas", state: { aba: "recebidas", filtro: "pendentes" }, aviso: k.aResolver.length }] : []),
-            { rotulo: "NFS-e", icone: FileText, to: "/notas", state: { aba: "nfse" }, aviso: k.nfseRejeitadas },
-            { rotulo: "Pendências fiscais", icone: ShieldCheck, to: "/notas", state: { aba: "compliance" } },
-            { rotulo: "Painel do contador", icone: Calculator, to: "/contador", tela: "contador" },
-            { rotulo: "Analista fiscal", icone: Scale, to: "/analista-fiscal", tela: "contador" },
-          ]} />
-          <div className="cartao flex items-start gap-2 p-3 text-xs text-slate-500">
-            <Landmark size={16} className="mt-0.5 shrink-0 text-modulo-texto" aria-hidden />
-            Impostos destacados são os que saíram nas notas (débitos). A apuração do mês, com os créditos das compras, fica no Painel do contador e no Analista fiscal.
+        ) },
+        { id: "atalhos", titulo: "Ir para", largo: !veRecebidas, conteudo: (
+          <div className="space-y-3">
+            <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
+            <AtalhosArea colunas={veRecebidas ? "grid-cols-3" : undefined} itens={[
+              { rotulo: "NF-e emitidas", icone: Receipt, to: "/notas", state: { aba: "emitidas" }, aviso: k.situacao.rejeitadas + k.situacao.fila },
+              ...(veRecebidas ? [{ rotulo: "NF-e de fornecedores", icone: FileInput, to: "/notas", state: { aba: "recebidas", filtro: "pendentes" }, aviso: k.aResolver.length }] : []),
+              { rotulo: "NFS-e", icone: FileText, to: "/notas", state: { aba: "nfse" }, aviso: k.nfseRejeitadas },
+              { rotulo: "Pendências fiscais", icone: ShieldCheck, to: "/notas", state: { aba: "compliance" } },
+              { rotulo: "Painel do contador", icone: Calculator, to: "/contador", tela: "contador" },
+              { rotulo: "Analista fiscal", icone: Scale, to: "/analista-fiscal", tela: "contador" },
+            ]} />
+            <div className="cartao flex items-start gap-2 p-3 text-xs text-slate-500">
+              <Landmark size={16} className="mt-0.5 shrink-0 text-modulo-texto" aria-hidden />
+              Impostos destacados são os que saíram nas notas (débitos). A apuração do mês, com os créditos das compras, fica no Painel do contador e no Analista fiscal.
+            </div>
           </div>
-        </div>
-      </div>
+        ) },
+      ]} />
     </div>
   );
 }

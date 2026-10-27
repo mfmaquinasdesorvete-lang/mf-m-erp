@@ -7,6 +7,7 @@ import {
   IceCreamCone, ScanBarcode, ShoppingCart, Store, Target, ThumbsDown, TrendingUp, Truck, Users, Workflow,
 } from "lucide-react";
 import { Badge, Section } from "@/components/ui";
+import { Secoes } from "@/components/Secoes";
 import { Area, Rosca, Ranking } from "@/components/Charts";
 import { FichaCliente } from "@/components/FichaCliente";
 import {
@@ -160,102 +161,115 @@ export default function PainelVendas() {
 
       <FiltrosAtivos filtros={filtros} onLimpar={() => { setFCanal(null); setFVendedor(null); }} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title={periodo === "ano" ? "Vendas mês a mês" : periodo === "hoje" ? "Vendas dos últimos 7 dias" : "Vendas dia a dia"} className="xl:col-span-3">
-          <Area dados={k.serie} altura={250} series={[
-            { nome: periodo === "ano" ? "Este ano" : "Este período", cor: "var(--serie-1)" },
-            { nome: periodo === "ano" ? "Ano passado" : "Período anterior", cor: "var(--eixo-texto)", tracejada: true },
-          ]} />
-        </Section>
-        <Section title="Do orçamento à entrega" className="xl:col-span-2">
-          <Funil etapas={[
-            { rotulo: "Orçamentos feitos", valor: k.funil.criados, onClick: () => navigate("/pedidos", { state: { status: "todos" } }),
-              sub: k.funil.enviados ? `${k.funil.enviados} com proposta enviada pelo ERP, ${k.funil.vistos} ${pl(k.funil.vistos, "aberta", "abertas")} pelo cliente` : undefined },
-            { rotulo: "Aprovados", valor: k.funil.aprovados, onClick: () => navigate("/pedidos", { state: { status: "aprovado" } }) },
-            { rotulo: "Faturados", valor: k.funil.faturados, onClick: () => navigate("/pedidos", { state: { status: "faturado" } }) },
-            { rotulo: "Entregues", valor: k.funil.entregues, onClick: () => navigate("/pedidos", { state: { status: "entregue" } }) },
-          ]} />
-          <p className="mt-3 text-xs text-slate-500">Orçamentos criados no período e até onde cada um chegou.</p>
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Section title="Por canal" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
-          {k.canais.length
-            ? <Rosca total="Vendido" ativo={fCanal} onClicar={(i) => { const c = k.canais[i][0]; setFCanal(fCanal === c ? null : c); }}
-                fatias={k.canais.map(([rotulo, v], i) => ({ rotulo, valor: v.valor, cor: CORES[i % CORES.length] }))} />
-            : <p className="py-10 text-center text-sm text-slate-500">Sem vendas no período.</p>}
-        </Section>
-        <Section title="Por vendedor" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
-          <Ranking ativo={fVendedor} cor="var(--serie-3)" onClicar={(i) => { const v = k.vendedores[i][0]; setFVendedor(fVendedor === v ? null : v); }}
-            itens={k.vendedores.map(([rotulo, v]) => ({ rotulo, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "venda", "vendas")} · ticket ${brl(v.valor / v.qtd)}` }))} />
-        </Section>
-        <Section title="Precisa de atenção" className="md:col-span-2 xl:col-span-1">
-          <ListaAtencao itens={atencao} vazio="Nenhuma venda parada" />
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Section title="Produtos mais vendidos">
-          <Ranking itens={k.produtos.map(([rotulo, v]) => ({ rotulo, valor: v.valor, detalhe: `${v.qtd.toLocaleString("pt-BR")} un.` }))} />
-        </Section>
-        <Section title="Melhores clientes" actions={<span className="text-xs text-slate-500">toque para abrir a ficha</span>}>
-          <Ranking cor="var(--kpi-roxo)" onClicar={(i) => setFicha(k.clientes[i].cliente)} vazio="Sem vendas no período."
-            itens={k.clientes.map((c) => ({ rotulo: c.cliente.nome_fantasia || c.cliente.nome, valor: c.valor, detalhe: `${c.qtd} ${pl(c.qtd, "compra", "compras")}${c.cliente.municipio ? ` · ${c.cliente.municipio}/${c.cliente.uf ?? ""}` : ""}` }))} />
-        </Section>
-        <Section title="Onde vendemos" className="md:col-span-2 xl:col-span-1">
-          <Ranking cor="var(--serie-2)" vazio="Sem vendas no período."
-            itens={k.estados.slice(0, 6).map(([uf, v]) => ({ rotulo: uf === "—" ? "Sem estado no cadastro" : uf, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "venda", "vendas")}` }))} />
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title="Últimos pedidos e orçamentos" className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/pedidos")} className="link-modulo text-sm">Ver todos</button>}>
-          {k.recentes.length ? (
-            <ul className="divide-y divide-slate-100">
-              {k.recentes.map((p) => (
-                <li key={p.id}>
-                  <button type="button" onClick={() => navigate("/pedidos", { state: { abrir: p.id } })}
-                    className="linha-clicavel flex items-center gap-3 px-1 py-2.5">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-modulo/10 text-modulo-texto"><ClipboardList size={17} /></span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-fg">#{p.numero} · {p.cliente?.nome_fantasia || p.cliente?.nome}</span>
-                      <span className="block text-xs text-slate-500">{dataBR(p.created_at.slice(0, 10))} · {canal(p)} · {vendedorDe(p)}</span>
-                    </span>
-                    <span className="flex shrink-0 flex-col items-end gap-1">
-                      <span className="num text-sm font-bold text-fg">{brl(p.valor_total)}</span>
-                      <Badge value={p.status} />
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="py-8 text-center text-sm text-slate-500">Nenhum pedido ainda.</p>}
-        </Section>
-        <div className="space-y-3 xl:col-span-2">
-          <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
-          <AtalhosArea colunas="grid-cols-3" itens={[
-            { rotulo: "Venda de Peças", icone: ShoppingCart, to: "/pedidos", aviso: k.abertos.length, tela: "pedidos" },
-            { rotulo: "Venda de Máquinas", icone: IceCreamCone, to: "/vendas-maquinas", tela: "pedidos" },
-            // licenças da My Frost Sorveterias (outra empresa): painel separado, só o administrador
-            ...(papel === "admin" ? [{ rotulo: "Licenças My Frost", icone: Store, to: "/painel/licencas", tela: "pedidos" as const }] : []),
-            { rotulo: "PDV", icone: ScanBarcode, to: "/pdv", tela: "pedidos" },
-            { rotulo: "Fluxo de pedidos", icone: Workflow, to: "/fluxo", aviso: k.semNota.length + k.aEntregar.length, tela: "fluxo" },
-            { rotulo: "Fretes e envios", icone: PackageSearch, to: "/fretes", tela: "fretes" },
-            { rotulo: "Comissões", icone: HandCoins, to: "/comissoes", tela: "comissoes" },
-            { rotulo: "Clientes", icone: Users, to: "/clientes", tela: "clientes" },
-          ]} />
-          <div className="grid grid-cols-2 gap-3">
-            <MiniNumero icone={BadgePercent} rotulo="Perdidas no período" valor={k.perdidos} sub={k.motivo ?? "sem motivo registrado"} />
-            <MiniNumero icone={PackageCheck} rotulo="Entregues no período" valor={k.funil.entregues} sub="dos orçamentos do período" />
+      {/* seções que a pessoa pode reordenar no "Organizar" (fica no perfil dela) */}
+      <Secoes pagina="painel-vendas" secoes={[
+        { id: "cartoes", titulo: "Números", largo: true, conteudo: (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+            {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
           </div>
-        </div>
-      </div>
+        ) },
+        { id: "grafico-vendas", titulo: "Gráfico das vendas", conteudo: (
+          <Section title={periodo === "ano" ? "Vendas mês a mês" : periodo === "hoje" ? "Vendas dos últimos 7 dias" : "Vendas dia a dia"} className="h-full">
+            <Area dados={k.serie} altura={250} series={[
+              { nome: periodo === "ano" ? "Este ano" : "Este período", cor: "var(--serie-1)" },
+              { nome: periodo === "ano" ? "Ano passado" : "Período anterior", cor: "var(--eixo-texto)", tracejada: true },
+            ]} />
+          </Section>
+        ) },
+        { id: "funil", titulo: "Do orçamento à entrega", conteudo: (
+          <Section title="Do orçamento à entrega" className="h-full">
+            <Funil etapas={[
+              { rotulo: "Orçamentos feitos", valor: k.funil.criados, onClick: () => navigate("/pedidos", { state: { status: "todos" } }),
+                sub: k.funil.enviados ? `${k.funil.enviados} com proposta enviada pelo ERP, ${k.funil.vistos} ${pl(k.funil.vistos, "aberta", "abertas")} pelo cliente` : undefined },
+              { rotulo: "Aprovados", valor: k.funil.aprovados, onClick: () => navigate("/pedidos", { state: { status: "aprovado" } }) },
+              { rotulo: "Faturados", valor: k.funil.faturados, onClick: () => navigate("/pedidos", { state: { status: "faturado" } }) },
+              { rotulo: "Entregues", valor: k.funil.entregues, onClick: () => navigate("/pedidos", { state: { status: "entregue" } }) },
+            ]} />
+            <p className="mt-3 text-xs text-slate-500">Orçamentos criados no período e até onde cada um chegou.</p>
+          </Section>
+        ) },
+        { id: "canais", titulo: "Por canal", conteudo: (
+          <Section title="Por canal" className="h-full" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
+            {k.canais.length
+              ? <Rosca total="Vendido" ativo={fCanal} onClicar={(i) => { const c = k.canais[i][0]; setFCanal(fCanal === c ? null : c); }}
+                  fatias={k.canais.map(([rotulo, v], i) => ({ rotulo, valor: v.valor, cor: CORES[i % CORES.length] }))} />
+              : <p className="py-10 text-center text-sm text-slate-500">Sem vendas no período.</p>}
+          </Section>
+        ) },
+        { id: "vendedores", titulo: "Por vendedor", conteudo: (
+          <Section title="Por vendedor" className="h-full" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
+            <Ranking ativo={fVendedor} cor="var(--serie-3)" onClicar={(i) => { const v = k.vendedores[i][0]; setFVendedor(fVendedor === v ? null : v); }}
+              itens={k.vendedores.map(([rotulo, v]) => ({ rotulo, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "venda", "vendas")} · ticket ${brl(v.valor / v.qtd)}` }))} />
+          </Section>
+        ) },
+        { id: "atencao", titulo: "Precisa de atenção", conteudo: (
+          <Section title="Precisa de atenção" className="h-full">
+            <ListaAtencao itens={atencao} vazio="Nenhuma venda parada" />
+          </Section>
+        ) },
+        { id: "produtos", titulo: "Produtos mais vendidos", conteudo: (
+          <Section title="Produtos mais vendidos" className="h-full">
+            <Ranking itens={k.produtos.map(([rotulo, v]) => ({ rotulo, valor: v.valor, detalhe: `${v.qtd.toLocaleString("pt-BR")} un.` }))} />
+          </Section>
+        ) },
+        { id: "clientes", titulo: "Melhores clientes", conteudo: (
+          <Section title="Melhores clientes" className="h-full" actions={<span className="text-xs text-slate-500">toque para abrir a ficha</span>}>
+            <Ranking cor="var(--kpi-roxo)" onClicar={(i) => setFicha(k.clientes[i].cliente)} vazio="Sem vendas no período."
+              itens={k.clientes.map((c) => ({ rotulo: c.cliente.nome_fantasia || c.cliente.nome, valor: c.valor, detalhe: `${c.qtd} ${pl(c.qtd, "compra", "compras")}${c.cliente.municipio ? ` · ${c.cliente.municipio}/${c.cliente.uf ?? ""}` : ""}` }))} />
+          </Section>
+        ) },
+        { id: "estados", titulo: "Onde vendemos", conteudo: (
+          <Section title="Onde vendemos" className="h-full">
+            <Ranking cor="var(--serie-2)" vazio="Sem vendas no período."
+              itens={k.estados.slice(0, 6).map(([uf, v]) => ({ rotulo: uf === "—" ? "Sem estado no cadastro" : uf, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "venda", "vendas")}` }))} />
+          </Section>
+        ) },
+        { id: "recentes", titulo: "Últimos pedidos e orçamentos", conteudo: (
+          <Section title="Últimos pedidos e orçamentos" className="h-full"
+            actions={<button type="button" onClick={() => navigate("/pedidos")} className="link-modulo text-sm">Ver todos</button>}>
+            {k.recentes.length ? (
+              <ul className="divide-y divide-slate-100">
+                {k.recentes.map((p) => (
+                  <li key={p.id}>
+                    <button type="button" onClick={() => navigate("/pedidos", { state: { abrir: p.id } })}
+                      className="linha-clicavel flex items-center gap-3 px-1 py-2.5">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-modulo/10 text-modulo-texto"><ClipboardList size={17} /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-fg">#{p.numero} · {p.cliente?.nome_fantasia || p.cliente?.nome}</span>
+                        <span className="block text-xs text-slate-500">{dataBR(p.created_at.slice(0, 10))} · {canal(p)} · {vendedorDe(p)}</span>
+                      </span>
+                      <span className="flex shrink-0 flex-col items-end gap-1">
+                        <span className="num text-sm font-bold text-fg">{brl(p.valor_total)}</span>
+                        <Badge value={p.status} />
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="py-8 text-center text-sm text-slate-500">Nenhum pedido ainda.</p>}
+          </Section>
+        ) },
+        { id: "atalhos", titulo: "Ir para", conteudo: (
+          <div className="space-y-3">
+            <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
+            <AtalhosArea colunas="grid-cols-3" itens={[
+              { rotulo: "Venda de Peças", icone: ShoppingCart, to: "/pedidos", aviso: k.abertos.length, tela: "pedidos" },
+              { rotulo: "Venda de Máquinas", icone: IceCreamCone, to: "/vendas-maquinas", tela: "pedidos" },
+              // licenças da My Frost Sorveterias (outra empresa): painel separado, só o administrador
+              ...(papel === "admin" ? [{ rotulo: "Licenças My Frost", icone: Store, to: "/painel/licencas", tela: "pedidos" as const }] : []),
+              { rotulo: "PDV", icone: ScanBarcode, to: "/pdv", tela: "pedidos" },
+              { rotulo: "Fluxo de pedidos", icone: Workflow, to: "/fluxo", aviso: k.semNota.length + k.aEntregar.length, tela: "fluxo" },
+              { rotulo: "Fretes e envios", icone: PackageSearch, to: "/fretes", tela: "fretes" },
+              { rotulo: "Comissões", icone: HandCoins, to: "/comissoes", tela: "comissoes" },
+              { rotulo: "Clientes", icone: Users, to: "/clientes", tela: "clientes" },
+            ]} />
+            <div className="grid grid-cols-2 gap-3">
+              <MiniNumero icone={BadgePercent} rotulo="Perdidas no período" valor={k.perdidos} sub={k.motivo ?? "sem motivo registrado"} />
+              <MiniNumero icone={PackageCheck} rotulo="Entregues no período" valor={k.funil.entregues} sub="dos orçamentos do período" />
+            </div>
+          </div>
+        ) },
+      ]} />
 
       {ficha && <FichaCliente cliente={ficha} onClose={() => setFicha(null)} />}
     </div>

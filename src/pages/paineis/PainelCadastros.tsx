@@ -6,6 +6,7 @@ import {
   AlertTriangle, Factory, FileWarning, IdCard, Package, PackageX, ShieldAlert, ShoppingCart, Store, Truck, UserPlus, Users, UserX, Wrench,
 } from "lucide-react";
 import { Section } from "@/components/ui";
+import { Secoes } from "@/components/Secoes";
 import { Colunas, Ranking, Rosca } from "@/components/Charts";
 import { FichaCliente } from "@/components/FichaCliente";
 import {
@@ -143,71 +144,81 @@ export default function PainelCadastros() {
     <div className="space-y-4 sm:space-y-5">
       <CabecalhoPainel icone={Users} area="Cadastros" titulo="Como está a base" resumo={resumo} periodo={periodo} onPeriodo={setPeriodo} />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-4 xl:grid-cols-5">
-        {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Section title={fUf ? `Clientes · ${fUf}` : "Clientes mais recentes"} actions={<span className="text-xs text-slate-500">toque para abrir a ficha</span>}>
-          {fUf && <div className="mb-3"><FiltrosAtivos filtros={[{ rotulo: "Estado", valor: fUf, limpar: () => setFUf(null) }]} onLimpar={() => setFUf(null)} /></div>}
-          {k.recentes.length ? (
-            <ul className="divide-y divide-slate-100">
-              {k.recentes.map(({ c, d }) => (
-                <li key={c.id}>
-                  <button type="button" onClick={() => setFicha(c)} className="linha-clicavel flex items-center gap-3 px-1 py-2">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-modulo/10 text-sm font-bold text-modulo-texto">{nomeDe(c).slice(0, 1).toUpperCase()}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-fg">{nomeDe(c)}</span>
-                      <span className="block truncate text-xs text-slate-500">{[c.municipio && `${c.municipio}/${c.uf ?? ""}`, desdeReal(d) ? `desde ${dataBR(d!.desde)} (${FONTE_DESDE[d!.fonte] ?? d!.fonte})` : "importado, sem a data do Tiny"].filter(Boolean).join(" · ") || "—"}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="py-8 text-center text-sm text-slate-500">Nenhum cliente aqui.</p>}
-        </Section>
-        <Section title="Cadastro dos clientes: o que está preenchido">
-          <Ranking cor="var(--serie-3)" formatar={(v) => `${v}%`} onClicar={() => navigate("/clientes")}
-            itens={k.qualidade.filter((q) => q.base).map((q) => ({ rotulo: q.rotulo, valor: pct(q.n, q.base), detalhe: `${q.n.toLocaleString("pt-BR")} de ${q.base.toLocaleString("pt-BR")}` }))} />
-        </Section>
-        <Section title="Precisa de atenção" className="md:col-span-2 xl:col-span-1">
-          <ListaAtencao itens={atencao} vazio="Cadastros em ordem" />
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title="Clientes novos x clientes que compraram" className="xl:col-span-3">
-          <Colunas dados={k.serie} altura={250} formatar={(v) => `${v}`} inteiro vazio="Nenhum cliente novo nem venda no período."
-            series={[{ nome: "Novos", cor: "var(--serie-3)" }, { nome: "Compraram", cor: "var(--serie-1)" }]} />
-        </Section>
-        <Section title="Onde estão os clientes" className="xl:col-span-2" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
-          <Rosca total="Clientes" formatar={(v) => `${v}`} ativo={fUf} onClicar={(i) => { const u = k.ufs[i][0]; setFUf(fUf === u ? null : u); }}
-            fatias={k.ufs.map(([rotulo, valor], i) => ({ rotulo, valor, cor: CORES[i % CORES.length] }))} />
-        </Section>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title="Cadastro dos produtos: o que falta" className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/estoque?aba=qualidade")} className="link-modulo text-sm">Corrigir</button>}>
-          {/* tocar numa linha abre a Qualidade do cadastro já naquele problema */}
-          <Ranking cor="var(--kpi-rosa)" formatar={(v) => `${v} ${pl(v, "item", "itens")}`} vazio="Nenhum problema nos produtos ativos. ✅" onClicar={(i) => navigate(`/estoque?aba=qualidade&problema=${k.problemas[i]?.id ?? ""}`)}
-            itens={k.problemas.map((p) => ({ rotulo: p.rotulo, valor: p.lista.length, detalhe: p.lista.slice(0, 3).map((x) => x.descricao).join(" · ") + (p.lista.length > 3 ? "…" : "") }))} />
-          <p className="mt-2 text-xs text-slate-500">Toque numa linha para ver só aqueles itens e corrigir um por um.</p>
-        </Section>
-        <div className="space-y-3 xl:col-span-2">
-          <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
-          <AtalhosArea colunas="grid-cols-3" itens={[
-            { rotulo: "Clientes", icone: Users, to: "/clientes", aviso: k.irregulares.length, tela: "clientes" },
-            { rotulo: "Máquinas", icone: Factory, to: "/produtos/maquinas", tela: "estoque" },
-            { rotulo: "Peças à venda", icone: Wrench, to: "/produtos/pecas", tela: "estoque" },
-            { rotulo: "Tornearia", icone: Wrench, to: "/produtos/tornearia", tela: "estoque" },
-            { rotulo: "Insumos", icone: Package, to: "/produtos/componentes", tela: "estoque" },
-            { rotulo: "Fornecedores", icone: Store, to: "/fornecedores", tela: "fornecedores" },
-            { rotulo: "Transportadoras", icone: Truck, to: "/transportadoras", tela: "fornecedores" },
-            ...(podeVer("funcionarios") ? [{ rotulo: "Funcionários", icone: IdCard, to: "/funcionarios" }] : []),
-          ]} />
-        </div>
-      </div>
+      {/* seções que a pessoa pode reordenar no "Organizar" (fica no perfil dela) */}
+      <Secoes pagina="painel-cadastros" secoes={[
+        { id: "cartoes", titulo: "Números", largo: true, conteudo: (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-4 xl:grid-cols-5">
+            {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
+          </div>
+        ) },
+        { id: "recentes", titulo: "Clientes mais recentes", conteudo: (
+          <Section title={fUf ? `Clientes · ${fUf}` : "Clientes mais recentes"} className="h-full" actions={<span className="text-xs text-slate-500">toque para abrir a ficha</span>}>
+            {fUf && <div className="mb-3"><FiltrosAtivos filtros={[{ rotulo: "Estado", valor: fUf, limpar: () => setFUf(null) }]} onLimpar={() => setFUf(null)} /></div>}
+            {k.recentes.length ? (
+              <ul className="divide-y divide-slate-100">
+                {k.recentes.map(({ c, d }) => (
+                  <li key={c.id}>
+                    <button type="button" onClick={() => setFicha(c)} className="linha-clicavel flex items-center gap-3 px-1 py-2">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-modulo/10 text-sm font-bold text-modulo-texto">{nomeDe(c).slice(0, 1).toUpperCase()}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-fg">{nomeDe(c)}</span>
+                        <span className="block truncate text-xs text-slate-500">{[c.municipio && `${c.municipio}/${c.uf ?? ""}`, desdeReal(d) ? `desde ${dataBR(d!.desde)} (${FONTE_DESDE[d!.fonte] ?? d!.fonte})` : "importado, sem a data do Tiny"].filter(Boolean).join(" · ") || "—"}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="py-8 text-center text-sm text-slate-500">Nenhum cliente aqui.</p>}
+          </Section>
+        ) },
+        { id: "qualidade-clientes", titulo: "Cadastro dos clientes: o que está preenchido", conteudo: (
+          <Section title="Cadastro dos clientes: o que está preenchido" className="h-full">
+            <Ranking cor="var(--serie-3)" formatar={(v) => `${v}%`} onClicar={() => navigate("/clientes")}
+              itens={k.qualidade.filter((q) => q.base).map((q) => ({ rotulo: q.rotulo, valor: pct(q.n, q.base), detalhe: `${q.n.toLocaleString("pt-BR")} de ${q.base.toLocaleString("pt-BR")}` }))} />
+          </Section>
+        ) },
+        { id: "atencao", titulo: "Precisa de atenção", conteudo: (
+          <Section title="Precisa de atenção" className="h-full">
+            <ListaAtencao itens={atencao} vazio="Cadastros em ordem" />
+          </Section>
+        ) },
+        { id: "grafico-clientes", titulo: "Clientes novos x clientes que compraram", conteudo: (
+          <Section title="Clientes novos x clientes que compraram" className="h-full">
+            <Colunas dados={k.serie} altura={250} formatar={(v) => `${v}`} inteiro vazio="Nenhum cliente novo nem venda no período."
+              series={[{ nome: "Novos", cor: "var(--serie-3)" }, { nome: "Compraram", cor: "var(--serie-1)" }]} />
+          </Section>
+        ) },
+        { id: "estados", titulo: "Onde estão os clientes", conteudo: (
+          <Section title="Onde estão os clientes" className="h-full" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
+            <Rosca total="Clientes" formatar={(v) => `${v}`} ativo={fUf} onClicar={(i) => { const u = k.ufs[i][0]; setFUf(fUf === u ? null : u); }}
+              fatias={k.ufs.map(([rotulo, valor], i) => ({ rotulo, valor, cor: CORES[i % CORES.length] }))} />
+          </Section>
+        ) },
+        { id: "qualidade-produtos", titulo: "Cadastro dos produtos: o que falta", conteudo: (
+          <Section title="Cadastro dos produtos: o que falta" className="h-full"
+            actions={<button type="button" onClick={() => navigate("/estoque?aba=qualidade")} className="link-modulo text-sm">Corrigir</button>}>
+            {/* tocar numa linha abre a Qualidade do cadastro já naquele problema */}
+            <Ranking cor="var(--kpi-rosa)" formatar={(v) => `${v} ${pl(v, "item", "itens")}`} vazio="Nenhum problema nos produtos ativos. ✅" onClicar={(i) => navigate(`/estoque?aba=qualidade&problema=${k.problemas[i]?.id ?? ""}`)}
+              itens={k.problemas.map((p) => ({ rotulo: p.rotulo, valor: p.lista.length, detalhe: p.lista.slice(0, 3).map((x) => x.descricao).join(" · ") + (p.lista.length > 3 ? "…" : "") }))} />
+            <p className="mt-2 text-xs text-slate-500">Toque numa linha para ver só aqueles itens e corrigir um por um.</p>
+          </Section>
+        ) },
+        { id: "atalhos", titulo: "Ir para", conteudo: (
+          <div className="space-y-3">
+            <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
+            <AtalhosArea colunas="grid-cols-3" itens={[
+              { rotulo: "Clientes", icone: Users, to: "/clientes", aviso: k.irregulares.length, tela: "clientes" },
+              { rotulo: "Máquinas", icone: Factory, to: "/produtos/maquinas", tela: "estoque" },
+              { rotulo: "Peças à venda", icone: Wrench, to: "/produtos/pecas", tela: "estoque" },
+              { rotulo: "Tornearia", icone: Wrench, to: "/produtos/tornearia", tela: "estoque" },
+              { rotulo: "Insumos", icone: Package, to: "/produtos/componentes", tela: "estoque" },
+              { rotulo: "Fornecedores", icone: Store, to: "/fornecedores", tela: "fornecedores" },
+              { rotulo: "Transportadoras", icone: Truck, to: "/transportadoras", tela: "fornecedores" },
+              ...(podeVer("funcionarios") ? [{ rotulo: "Funcionários", icone: IdCard, to: "/funcionarios" }] : []),
+            ]} />
+          </div>
+        ) },
+      ]} />
 
       {ficha && <FichaCliente cliente={ficha} onClose={() => setFicha(null)} />}
     </div>
