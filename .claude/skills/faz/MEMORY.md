@@ -26,6 +26,9 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 
 ## Decisões da usuária
 - 27/10: este chat dá a lista do que só ela faz no Supabase, no GitHub e na Hostinger e fica cobrando.
+- 27/10 (pelo ELO, af5913d): o FAZ é o único que manda o resumo da manhã: tarefas de painel, decisões que cada chat
+  espera dela (o CNF me passa) e o que ficou pronto para conferir. Curto, o mais importante primeiro (por ora: o fiscal
+  pendente e a virada do Tiny); o resto em `resumo-do-dia.md`.
 
 ## Onde está
 - Fontes: `.claude/skills/*/MEMORY.md`, `pedidos_checklist` (`voce`), `publicacoes`, `supabase/migrations/`,
@@ -35,5 +38,6 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Secrets não dá para ler daqui (as funções pedem login): conferir pelo "Testar conexão" ou pelo uso (dados novos).
 
 ## Próximos passos
+0. A partir de 28/10 08:40: resumo único da manhã (a tarefa agendada já tem o roteiro).
 1. Na cobrança da manhã: conferir item 1 no banco; o que estiver feito sai da lista e o chat dono recebe send_message.
 2. Depois do item 1: avisar GER, FUN, ELO, PRD e REV (send_message, sessao em `chats_claude`).
