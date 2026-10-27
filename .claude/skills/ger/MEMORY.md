@@ -26,12 +26,13 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 
 ## Esperando a usuária
 - Rodar no SQL Editor a criação da tabela `config_ajustes` (o MCP pede confirmação e expira). Depois eu crio as funções.
-- Apagar a tabela `tmp_oc_plano_2310` no SQL Editor.
+- Apagar a tabela `tmp_oc_plano_2310` no SQL Editor (ela disse que vai apagar, 27/10).
 - Fazer a contagem do estoque com o que existe (o estoque foi zerado).
 - Pedidos aprovados sem pagamento e sem NF (três): cancelar ou esperar.
 - Pagamentos de um prestador esperam a planilha do Tiny (TIN).
 
 ## Decisões da usuária
+- "Produção" fica na área Fábrica e estoque, depois de Produtos e estoque; o quadro antigo de contas a pagar (KanbanPagar) foi apagado (REV, 27/10).
 - Tela com período abre em "Esta semana" (27/10, pelo ELO): Gastos separados e Início também. Ficam como estão: Cartão (abre no cartão tocado), Conferir itens das notas (fila do ano), Garantias e Propostas do Tiny (sem período).
 - Relatório de vendas para imprimir (botão "Relatório" em Vendas): vendas aprovadas, faturadas e entregues do período, cartões (faturamento, lucro, custo, ticket), gráfico por dia, por vendedor e a lista com total e lucro; lucro = total − frete − custo do cadastro, item sem custo marcado com * (27/10).
 - Nota do fornecedor liga sozinha à OC (mesmo fornecedor e valor até 2%); lista de Compras mostra o passo da OC (26/10).
@@ -54,7 +55,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Funções do Supabase: inter, nfe-recebidas-sync, infinitepay, proposta-enviar.
 
 ## Próximos passos
-0. Auditoria do REV de 27/10 (.claude/skills/rev/auditoria-2026-10-27.md): Auditoria financeira leve (colunas e período) e `select:` nas listas das telas do GER; depois `centavos()` única; /estoque × /produtos/pecas, lugar da Produção no menu e apagar KanbanPagar esperam a usuária.
+0. Auditoria do REV de 27/10 (.claude/skills/rev/auditoria-2026-10-27.md): Auditoria financeira leve (colunas e período) e `select:` nas listas das telas do GER; depois `centavos()` única; /estoque × /produtos/pecas espera a usuária (com o PRD).
 1. Com a tabela criada: funções `config_ajuste_salvar` e `cfg_num`, páginas de Configurações e as telas lendo o catálogo.
 2. Pedir "Pode publicar", avisar o ELO, marcar "Feito" em `.claude/configuravel`.
 3. E-mails automáticos e a cobrança fora da régua; depois dinheiro e prazos.
