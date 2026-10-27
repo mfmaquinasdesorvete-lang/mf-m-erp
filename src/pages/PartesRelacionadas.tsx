@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeftRight, Building2, Download, Pencil, Plus, User, Users } from "lucide-react";
 import { Button, Card, Field, Modal, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
-import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
+import { mesDoPeriodo, noPeriodo, periodoDoMes, rotuloPeriodo, SEM_PERIODO, semanaAtual, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { limpar, useRows, useSave } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
@@ -34,8 +34,8 @@ export default function PartesRelacionadas() {
   const { data: unidades = [] } = useRows<Unidade>("unidades", { select: "id, razao_social, cnpj", order: "nome", ascending: true, key: ["partes"] });
   const { data: partes = [], error: erroPartes } = useRows<Parte>("partes_relacionadas", { order: "nome", ascending: true });
 
-  // abre no mês atual; tocar num mês do "Mês a mês" escolhe o mês inteiro
-  const [faixa, setFaixa] = useState<Periodo>(() => periodoDoAtalho("mes", hoje()));
+  // abre na semana (pedido de 27/10); tocar num mês do "Mês a mês" escolhe o mês inteiro
+  const [faixa, setFaixa] = useState<Periodo>(() => semanaAtual(hoje()));
   const mes = mesDoPeriodo(faixa);
   const [grupo, setGrupo] = useState(""); // "" = todos, ENTRE ou o id da parte
   const [busca, setBusca] = useState("");

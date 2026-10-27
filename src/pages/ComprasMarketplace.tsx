@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Package, Receipt, ShoppingBag, Store, Wallet } from "lucide-react";
 import { Card, chip, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
-import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
+import { mesDoPeriodo, noPeriodo, periodoDoMes, rotuloPeriodo, SEM_PERIODO, semanaAtual, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
@@ -53,8 +53,8 @@ export default function ComprasMarketplace({ embutido }: { embutido?: boolean } 
     },
   });
 
-  // abre no mês atual; tocar num mês do "Mês a mês" escolhe o mês inteiro
-  const [faixa, setFaixa] = useState<Periodo>(() => periodoDoAtalho("mes", hoje()));
+  // abre na semana (pedido de 27/10); tocar num mês do "Mês a mês" escolhe o mês inteiro
+  const [faixa, setFaixa] = useState<Periodo>(() => semanaAtual(hoje()));
   const mes = mesDoPeriodo(faixa);
   const [qual, setQual] = useState<Marketplace | "">("");
   const [conta, setConta] = useState("");

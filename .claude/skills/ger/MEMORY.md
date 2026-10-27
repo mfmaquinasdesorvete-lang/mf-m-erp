@@ -32,6 +32,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Pagamentos de um prestador esperam a planilha do Tiny (TIN).
 
 ## Decisões da usuária
+- Tela com período abre em "Esta semana" (27/10, pelo ELO): Gastos separados e Início também. Ficam como estão: Cartão (abre no cartão tocado), Conferir itens das notas (fila do ano), Garantias e Propostas do Tiny (sem período).
 - Relatório de vendas para imprimir (botão "Relatório" em Vendas): vendas aprovadas, faturadas e entregues do período, cartões (faturamento, lucro, custo, ticket), gráfico por dia, por vendedor e a lista com total e lucro; lucro = total − frete − custo do cadastro, item sem custo marcado com * (27/10).
 - Nota do fornecedor liga sozinha à OC (mesmo fornecedor e valor até 2%); lista de Compras mostra o passo da OC (26/10).
 - Marcadores: juntar e excluir escondem o antigo (ativo = false), não apagam (migração 160). Juntados: Comprou Usada, Tiny, Técnicos My (26/10).

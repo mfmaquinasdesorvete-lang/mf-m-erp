@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { Building2, Car, CreditCard, Download, Landmark, MapPin, Receipt, ShoppingCart, User, Users, type LucideIcon } from "lucide-react";
 import { Button, Card, nomeMes, PageHeader, Table, Tabs } from "@/components/ui";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
-import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
+import { mesDoPeriodo, noPeriodo, periodoDoMes, rotuloPeriodo, SEM_PERIODO, semanaAtual, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { useAbaUrl } from "@/lib/abaUrl";
@@ -48,8 +48,8 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
   const { data: funcionariosTodos = [] } = useRows<Funcionario>("funcionarios", { select: "id, nome, apelido, ativo", order: "nome", ascending: true, key: ["nomes"] });
   const funcionarios = funcionariosTodos.filter((f) => f.ativo !== false);
 
-  // abre no mês atual; tocar num mês do "Mês a mês" escolhe o mês inteiro
-  const [faixa, setFaixa] = useState<Periodo>(() => periodoDoAtalho("mes", hoje()));
+  // abre na semana (pedido de 27/10); tocar num mês do "Mês a mês" escolhe o mês inteiro
+  const [faixa, setFaixa] = useState<Periodo>(() => semanaAtual(hoje()));
   const mes = mesDoPeriodo(faixa);
   const [conta, setConta] = useState("");
   const [grupo, setGrupo] = useState("");

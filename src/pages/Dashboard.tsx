@@ -131,11 +131,9 @@ export default function Dashboard() {
 function PainelGeral() {
   const { nome, pode, podeVer } = usePerfil();
   const navigate = useNavigate();
-  const [periodo, setPeriodo] = useState<Periodo>(() => {
-    // a tela inicial abre na semana (chave nova: o período guardado antes não vale mais)
-    try { const v = localStorage.getItem("mf-erp-periodo2") as Periodo | null; return v && PERIODOS.some((p) => p.id === v) ? v : "semana"; } catch { return "semana"; }
-  });
-  const escolher = (p: Periodo) => { setPeriodo(p); try { localStorage.setItem("mf-erp-periodo2", p); } catch { /* sem armazenamento */ } };
+  // a tela inicial sempre abre na semana (pedido de 27/10); trocar vale só até sair da tela
+  const [periodo, setPeriodo] = useState<Periodo>("semana");
+  const escolher = setPeriodo;
 
   const { filtrar } = useUnidade();
   // O Início baixa só as colunas que usa e só o que entra nas contas (os 6 meses do gráfico, o que está aberto e o que

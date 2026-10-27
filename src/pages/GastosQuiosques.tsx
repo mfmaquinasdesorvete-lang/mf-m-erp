@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, Hammer, PaintBucket, Receipt, Store, Wallet } from "lucide-react";
 import { Button, Card, chip, nomeMes, Stat, Table } from "@/components/ui";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
-import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
+import { mesDoPeriodo, noPeriodo, periodoDoMes, rotuloPeriodo, SEM_PERIODO, semanaAtual, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useMarcadores } from "@/components/nfe/Marcadores";
 import { useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -44,8 +44,8 @@ export default function GastosQuiosques() {
   const contas = filtrar(contasTodas);
   const { data: lancamentos = [] } = useRows<Lanc>("extrato_lancamentos", { order: "data", ascending: false });
 
-  // abre no mês atual; tocar num mês do "Mês a mês" escolhe o mês inteiro
-  const [faixa, setFaixa] = useState<Periodo>(() => periodoDoAtalho("mes", hoje()));
+  // abre na semana (pedido de 27/10); tocar num mês do "Mês a mês" escolhe o mês inteiro
+  const [faixa, setFaixa] = useState<Periodo>(() => semanaAtual(hoje()));
   const mes = mesDoPeriodo(faixa);
   const [grupo, setGrupo] = useState<GrupoQuiosque | "">("");
   const [busca, setBusca] = useState("");

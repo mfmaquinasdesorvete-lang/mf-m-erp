@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { Fuel, Receipt, Store, TrendingUp } from "lucide-react";
 import { Card, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
-import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
+import { mesDoPeriodo, noPeriodo, periodoDoMes, rotuloPeriodo, SEM_PERIODO, semanaAtual, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
@@ -29,8 +29,8 @@ export default function Combustivel({ embutido }: { embutido?: boolean } = {}) {
   const { data: notas = [] } = useRows<NotaPosto>("nfe_recebidas", { select: "id, emitente_nome, emitente_cnpj, valor_total, data_emissao, unidade_id", order: "data_emissao", key: ["postos"] });
   const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { select: "id, nome, nome_fantasia, cnpj, municipio, uf, receita", order: "nome", ascending: true, key: ["postos"] });
 
-  // abre no mês atual; tocar num mês do "Mês a mês" escolhe o mês inteiro
-  const [faixa, setFaixa] = useState<Periodo>(() => periodoDoAtalho("mes", hoje()));
+  // abre na semana (pedido de 27/10); tocar num mês do "Mês a mês" escolhe o mês inteiro
+  const [faixa, setFaixa] = useState<Periodo>(() => semanaAtual(hoje()));
   const mes = mesDoPeriodo(faixa);
   const [conta, setConta] = useState("");
   const [busca, setBusca] = useState("");
