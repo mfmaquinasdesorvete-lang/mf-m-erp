@@ -5,7 +5,7 @@ import {
   reprovacoesPorTipo, resultadoGeral, seloGiga, serieMensal, sugerirAterramento, sugerirTensao, PARAMETROS_VAZIOS,
   type Parametros, type SituacaoNs, type TesteGiga,
 } from "../testeGiga";
-import { acoesDoPapel, pode, podeVer } from "../permissoes";
+import { pode, podeVer } from "../permissoes";
 import { TEXTOS_PADRAO, textoPadrao } from "../textosPadrao";
 
 // dados inventados
@@ -247,16 +247,17 @@ describe("rastreabilidade", () => {
 });
 
 describe("permissões do teste do giga", () => {
-  it("lança: técnico e administrador", () => {
-    expect(pode("tecnico", "lancar_teste_giga")).toBe(true);
+  // desde 27/10 o técnico da equipe vê só as OS dele e o próprio cadastro; o teste é do papel "giga"
+  it("lança: giga e administrador", () => {
+    expect(pode("giga", "lancar_teste_giga")).toBe(true);
     expect(pode("admin", "lancar_teste_giga")).toBe(true);
+    expect(pode("tecnico", "lancar_teste_giga")).toBe(false);
     expect(pode("financeiro", "lancar_teste_giga")).toBe(false);
     expect(pode("vendas", "lancar_teste_giga")).toBe(false);
-    expect(acoesDoPapel("tecnico")).toContain("lancar_teste_giga");
   });
-  it("vê o painel: técnico e administrador (o financeiro vê só financeiro desde 27/10)", () => {
-    expect(podeVer("tecnico", "testegiga")).toBe(true);
+  it("vê o painel: giga e administrador (o financeiro vê só financeiro e o técnico só as OS dele, desde 27/10)", () => {
+    expect(podeVer("giga", "testegiga")).toBe(true);
     expect(podeVer("admin", "testegiga")).toBe(true);
-    for (const p of ["vendas", "financeiro", "contador", "expedicao", "marketplace"] as const) expect(podeVer(p, "testegiga")).toBe(false);
+    for (const p of ["tecnico", "vendas", "financeiro", "contador", "expedicao", "marketplace"] as const) expect(podeVer(p, "testegiga")).toBe(false);
   });
 });

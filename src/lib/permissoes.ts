@@ -4,7 +4,7 @@ export const PAPEIS: { value: Papel; label: string; descricao: string }[] = [
   { value: "admin", label: "Administrador", descricao: "Acesso total, usuários e configurações" },
   { value: "vendas", label: "Vendas", descricao: "Pedidos, PDV, clientes, cobranças e NF-e das vendas" },
   { value: "financeiro", label: "Financeiro", descricao: "Contas a pagar/receber, bancos, notas fiscais, fornecedores, relatórios e salários" },
-  { value: "tecnico", label: "Técnico", descricao: "Assistência técnica, garantias, produção e compras de peças" },
+  { value: "tecnico", label: "Técnico", descricao: "Técnico da equipe: só as OS dele e o próprio cadastro" },
   { value: "contador", label: "Contador", descricao: "Só consulta: notas fiscais, financeiro e o fechamento mensal (XML e planilhas)" },
   { value: "expedicao", label: "Expedição", descricao: "Separar, conferir, embalar e despachar os pedidos; etiquetas e DANFE" },
   { value: "marketplace", label: "Marketplaces", descricao: "Ajusta os cadastros dos produtos para os anúncios: título, descrição, fotos, EAN, categorias e medidas (sem preço, custo nem estoque)" },
@@ -42,8 +42,8 @@ const TELAS: Record<Exclude<Papel, "admin">, Tela[]> = {
   // aprovações, auditoria), as notas fiscais, os fornecedores, relatórios e margem, e os funcionários (salários)
   financeiro: ["conciliacao", "auditoria", "margem", "financeiro", "notas", "relatorios", "fornecedores", "funcionarios"],
   contador: ["contador", "notas", "financeiro", "conciliacao", "auditoria", "documentos"],
-  // técnico: só as OS (assistência), as garantias e o teste do giga
-  tecnico: ["assistencia", "garantias", "testegiga"],
+  // técnico: visão simplificada (pedido de 27/10): só as OS dele (filtradas na tela) e o próprio cadastro, no app
+  tecnico: ["assistencia"],
   // expedição: só separar e embalar e o fluxo dos pedidos
   expedicao: ["expedicao", "fluxo"],
   // só os cadastros dos produtos (lista, qualidade, marketplace e anúncios, categorias, tabelas de preço para consulta)
@@ -83,7 +83,7 @@ const ACOES: Record<Exclude<Papel, "admin">, Acao[]> = {
     "editar_financeiro", "contas_pagar", "emitir_nfe", "nfe_recebidas", "editar_producao", "receber_compras", "editar_transportadoras",
     "emitir_nfse", "cancelar_nfse", "configurar_nfse", "expedir",
   ],
-  tecnico: ["editar_os", "editar_clientes", "editar_equipamentos", "editar_producao", "lancar_teste_giga"],
+  tecnico: ["editar_os", "editar_equipamentos"],
   contador: [],
   expedicao: ["expedir"],
   // o banco segura preço, custo, estoque, fornecedor, tipo e ativar/desativar (perfil_marketplace)
@@ -138,4 +138,10 @@ const OCULTO_FIXO: MenuOculto = {
   compras: ["/producao", "/painel/notas", "/transferencias"],
   // a lista de entre contas e sócios é só do administrador, do financeiro e do contador (a própria tela bloqueia)
   vendas: ["/partes-relacionadas"],
+  // o técnico vê só a lista das OS (filtrada nas dele); o painel da assistência e o cadastro de todos os técnicos não
+  tecnico: ["/painel/posvenda", "/tecnicos"],
 };
+
+/** Só técnico (sem outro papel): vê só as OS dele e o próprio cadastro. */
+export const soTecnico = (papel: Papel | null | undefined, extras?: readonly string[] | null) =>
+  papel === "tecnico" && !(extras ?? []).some((p) => p !== "tecnico");

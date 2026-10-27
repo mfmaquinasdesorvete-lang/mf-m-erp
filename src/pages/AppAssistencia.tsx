@@ -6,6 +6,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, ChevronRight, LayoutGrid, MessageCircle, MoreHorizontal, PackageOpen, Search, Send, Stethoscope, ThumbsUp, User, Users, Wrench } from "lucide-react";
 import { InstalarApp } from "@/components/InstalarApp";
+import { MeuCadastroTecnico } from "@/components/tecnicos/MeuCadastroTecnico";
+import { soTecnico } from "@/lib/permissoes";
 import { useInvalidate, useRows } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
@@ -29,7 +31,9 @@ const gravar = (k: string, v: string) => { try { localStorage.setItem(k, v); } c
 const NIVEL = ["text-noite-fraco", "text-fixo-amber-400", "text-fixo-rose-400"];
 
 export default function AppAssistencia() {
-  const { nome, pode } = usePerfil();
+  const { nome, pode, papel, papeis_extras } = usePerfil();
+  // só técnico (pedido de 27/10): só as OS dele e o próprio cadastro, sem "Todas" nem o ERP completo
+  const soDele = soTecnico(papel, papeis_extras);
   const podeEditar = pode("editar_os");
   const navigate = useNavigate();
   const invalidar = useInvalidate();
@@ -46,7 +50,7 @@ export default function AppAssistencia() {
   const fila = useMemo(() => filtrar(todas).flatMap((o) => { const s = situacaoOS(o, dia); return s && s.etapa !== "entregue" ? [{ o, s }] : []; })
     .sort((a, b) => b.s.nivel - a.s.nivel || a.s.desde.localeCompare(b.s.desde)), [todas, filtrar, dia]);
   const minhas = fila.filter((x) => ehDoTecnico(x.o.tecnico, nome));
-  const base = aba === "todas" ? fila : minhas;
+  const base = aba === "todas" && !soDele ? fila : minhas;
   const lista = base.filter((x) => (!etapa || x.s.etapa === etapa) && (!busca.trim() || combina(`${x.o.numero} ${x.o.cliente?.nome ?? ""} ${x.o.cliente?.nome_fantasia ?? ""} ${x.o.equipamento} ${x.o.numero_serie ?? ""}`, busca.replace(/^#/, ""))));
 
   async function avancar(o: OS, s: SituacaoOS) {
@@ -114,7 +118,7 @@ export default function AppAssistencia() {
                 className="w-full rounded-2xl border border-white/15 bg-noite-cartao py-3 pl-11 pr-4 text-base placeholder:text-noite-apagado focus:border-fixo-teal-500 focus:outline-none" />
             </label>
 
-            {aba === "minhas" && !minhas.length && fila.length > 0 && (
+            {aba === "minhas" && !minhas.length && fila.length > 0 && !soDele && (
               <p className="mb-3 rounded-2xl border border-fixo-amber-400/30 bg-fixo-amber-400/10 p-3 text-sm text-fixo-amber-300">
                 Nenhuma OS com você como técnico. Veja em <button type="button" className="font-bold underline" onClick={() => setAba("todas")}>Todas</button>.
               </p>
@@ -164,23 +168,24 @@ export default function AppAssistencia() {
 
         {aba === "mais" && (
           <div className="space-y-3">
+            {soDele && <><h2 className="px-1 text-sm font-bold text-noite-medio">Meu cadastro</h2><MeuCadastroTecnico nome={nome} /></>}
             <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 p-4 text-sm">
               <span>Abrir sempre aqui pelo celular</span>
               <input type="checkbox" className="h-5 w-5 accent-fixo-teal-500" checked={sempre}
                 onChange={(e) => { setSempre(e.target.checked); gravar(CHAVE_APP_ASSISTENCIA, e.target.checked ? "1" : "0"); }} />
             </label>
             <InstalarApp />
-            <p className="px-1 text-xs text-noite-fraco">Checklist, laudo, peças, assinatura e NFS-e ficam em “Abrir OS”. Nova OS, garantias e o quadro completo ficam no ERP completo.</p>
-            <button type="button" onClick={() => navigate("/assistencia")} className="flex w-full items-center gap-3 rounded-2xl border border-white/10 p-4 text-left text-sm text-noite-medio">
+            <p className="px-1 text-xs text-noite-fraco">Checklist, laudo, peças, assinatura e NFS-e ficam em “Abrir OS”.{soDele ? "" : " Nova OS, garantias e o quadro completo ficam no ERP completo."}</p>
+            {!soDele && <button type="button" onClick={() => navigate("/assistencia")} className="flex w-full items-center gap-3 rounded-2xl border border-white/10 p-4 text-left text-sm text-noite-medio">
               <LayoutGrid size={18} /> <span className="flex-1">Abrir o ERP completo</span>
-            </button>
+            </button>}
           </div>
         )}
       </div>
 
       <nav aria-label="App da assistência" className="fixed inset-x-0 bottom-0 border-t border-white/10 bg-noite-fundo-2/95 backdrop-blur" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        <div className="mx-auto grid max-w-md grid-cols-3">
-          {([["minhas", "Minhas OS", User, minhas.length], ["todas", "Todas", Users, fila.length], ["mais", "Mais", MoreHorizontal, 0]] as const).map(([id, rot, Icone, n]) => (
+        <div className={`mx-auto grid max-w-md ${soDele ? "grid-cols-2" : "grid-cols-3"}`}>
+          {([["minhas", "Minhas OS", User, minhas.length], ["todas", "Todas", Users, fila.length], ["mais", soDele ? "Meu cadastro" : "Mais", MoreHorizontal, 0]] as const).filter(([id]) => !(soDele && id === "todas")).map(([id, rot, Icone, n]) => (
             <button key={id} type="button" onClick={() => { setAba(id); setEtapa(null); setBusca(""); }} aria-current={aba === id ? "page" : undefined}
               className={`relative flex flex-col items-center gap-0.5 py-2.5 text-xs ${aba === id ? "text-fixo-teal-400" : "text-noite-fraco"}`}>
               <Icone size={21} />{rot}

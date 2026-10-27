@@ -30,6 +30,8 @@ import { comUnidade, pdfOS } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Equipamento, FotoOS, Item, ItemChecklist, OrdemServico, Produto } from "@/lib/types";
 import { usePerfil } from "@/lib/auth";
+import { soTecnico } from "@/lib/permissoes";
+import { ehDoTecnico } from "@/lib/appCelular";
 import { DuvidaManutencao } from "@/components/DuvidaManutencao";
 import { useQuery } from "@tanstack/react-query";
 import { ClienteBusca } from "@/components/ClienteBusca";
@@ -76,13 +78,15 @@ const nova = (extra: Partial<OS> = {}): OS => ({
 });
 
 export default function Assistencia() {
-  const { pode } = usePerfil();
+  const { pode, papel, papeis_extras, nome } = usePerfil();
+  const soDele = soTecnico(papel, papeis_extras);
   const [duvida, setDuvida] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { filtrar } = useUnidade();
   const { data: ordensTodos = [], isLoading } = useRows<OSX>("ordens_servico", { select: SELECT });
-  const ordens = useMemo(() => filtrar(ordensTodos), [ordensTodos, filtrar]);
+  // o técnico (só técnico) vê só as OS em que ele é o técnico
+  const ordens = useMemo(() => filtrar(ordensTodos).filter((o) => !soDele || ehDoTecnico(o.tecnico, nome)), [ordensTodos, filtrar, soDele, nome]);
   const [mostrarFinalizadas, setMostrarFinalizadas] = useState(false);
   const [busca, setBusca] = useState("");
   const [marcador, setMarcador] = useState("");

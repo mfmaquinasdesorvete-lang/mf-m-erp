@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ehBannerDrFrost, linkInstagram } from "../tecnicos";
+import { acharCadastro, ehBannerDrFrost, linkInstagram } from "../tecnicos";
 
 describe("linkInstagram", () => {
   it("mantém o endereço completo do Instagram", () => {
@@ -20,5 +20,23 @@ describe("ehBannerDrFrost", () => {
   it("reconhece a imagem do anúncio", () => {
     expect(ehBannerDrFrost("https://drfrost.com.br/wp-content/uploads/2025/07/x-300x300.webp")).toBe(true);
     expect(ehBannerDrFrost("https://exemplo.supabase.co/storage/v1/object/public/tecnicos/logo.png")).toBe(false);
+  });
+});
+
+describe("acharCadastro", () => {
+  const lista = [
+    { nome: "Joao Parceiro", tipo: "parceiro" },
+    { nome: "João da Equipe", tipo: "interno" },
+    { nome: "Maria Souza", tipo: "interno" },
+  ];
+  it("acha pelo nome completo, sem acento", () => {
+    expect(acharCadastro(lista, "maria souza")?.nome).toBe("Maria Souza");
+  });
+  it("pelo primeiro nome, só entre os da equipe", () => {
+    expect(acharCadastro(lista, "João")?.nome).toBe("João da Equipe");
+  });
+  it("sem nome ou sem cadastro: nada", () => {
+    expect(acharCadastro(lista, "")).toBeNull();
+    expect(acharCadastro(lista, "Pedro")).toBeNull();
   });
 });

@@ -15,18 +15,23 @@ Os parceiros Dr. Frost têm a foto do anúncio. Não há pedido de técnicos em 
 - Linha do chat em `chats_claude` (ordem 34, cor laranja).
 
 ## Em andamento
-- Nada.
+- Visão simplificada do técnico (pedido de 27/10): o papel "tecnico" vê só "Ordens de serviço" (filtradas nas dele)
+  e o app da assistência com "Minhas OS" e "Meu cadastro"; preços, compras, estoque, produção, clientes e o teste do
+  giga saíram do papel. O SEG foi chamado para fechar o mesmo no banco (RLS).
 
 ## Esperando a usuária
 - Conferir no ERP no ar (computador e celular), em Cadastros → Técnicos:
   1. os ícones de Instagram e WhatsApp do cartão estão menores;
   2. no botão Lista, cada técnico mostra a etiqueta "desde" e as siglas dos estados em destaque.
   Os dois pedidos estão como "precisa de você" no Sobre e viram "feito" quando ela confirmar.
+- Visão do técnico: dos 2 usuários técnicos, 1 não tem cadastro em Técnicos com o mesmo nome (cadastrar para o
+  "Meu cadastro" aparecer); quem for fazer o teste do giga precisa do papel "Giga".
 
 ## Decisões da usuária
 - O cartão mostra só o necessário: nome, estado, WhatsApp (só o ícone), Instagram (só o ícone) e quantos clientes
   já atendeu; descrição, máquinas, e-mail e anúncio ficam ao abrir.
 - A foto do parceiro vem do anúncio no site Dr. Frost.
+- O técnico da equipe (login) vê só as OS dele e o próprio cadastro; os parceiros continuam sem login (27/10).
 - Mensagem para técnico (WhatsApp, e-mail) só com o ok dela; mudança em lote (unificar, inativar, mudar região) só
   depois de mostrar e confirmar.
 
