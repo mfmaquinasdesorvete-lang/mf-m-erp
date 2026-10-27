@@ -18,13 +18,15 @@ com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 - FIS fez (27/10, commit 9167ec3): índice certidoes_unidade_id_idx, conferido no banco. EmitirNfe e ComplianceFiscal continuam com clientes e produtos inteiros, de propósito: as conferências da NF-e (_shared) leem muitos campos e a consulta já vem do cache. Decisão aceita pelo REV; se um dia for prioridade, o FIS faz SELECT_CLIENTE_NFE com teste.
 - TRA fez (27/10, commit dabb127): os 4 índices de frete (conferidos no banco) e o FreteVenda baixando só id, peso e medidas dos produtos do pedido (vai na próxima publicação do site).
 - MKT fez (27/10, commit a4e7d80): índice ml_historico_conta_id_idx (conferido no banco); na tela do Mercado Livre os produtos só baixam com a aba Marketplace aberta (as colunas ficaram, a auditoria da aba usa quase todas). ligarAnuncio e separarCompatibilidade esperam a usuária.
-- Faltam responder: PRD e DSG.
+- PRD fez (27/10, commit 7b2de6e): SELECT_LISTA_PRODUTOS (`src/lib/produtosLista.ts`, sem os textos longos) em GestaoPrecos, KitComponentes, CatalogoConfig e config/Catalogo; ImportarProdutos só id, id_externo e sku. Produtos.tsx fica com "*" (o formulário precisa dos textos). Passei a ele as linhas certas dos painéis (PainelProdutos:44, PainelMaquinas:52).
+- /estoque e /produtos/pecas abrem Peças à venda de propósito (pedido da usuária, segundo o PRD): achado 12 fechado, não é para juntar.
+- Falta responder: DSG.
 - Ainda não enviados: PRD (2 e 6), FIS, TRA e MKT (9), DSG (16).
 
 ## Esperando a usuária
 - Rodar no SQL Editor a parte 2 de `20261101000081_banco_mais_rapido.sql` (3 `drop index` repetidos).
 - Confirmar se apaga: tabela `tmp_oc_plano_2310`, `KanbanPagar.tsx` e as funções exportadas sem uso (achados 9 a 11).
-- Decidir as duas rotas da mesma tela (`/estoque` e `/produtos/pecas`) e a área do item Produção.
+- Decidir a área do item Produção (as duas rotas da mesma tela são pedido dela, segundo o PRD).
 
 ## Decisões da usuária
 - Apagar o que está morto só com a confirmação dela.
