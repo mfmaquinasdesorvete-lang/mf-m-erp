@@ -55,7 +55,9 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
           </button>
         )}
         {algo && onLimpar && (
-          <button type="button" onClick={() => { onLimpar(); setPainel(null); }} aria-label="Limpar filtros" title="Limpar filtros" className="inline-flex h-10 items-center gap-1 px-2 text-sm font-semibold text-slate-600 hover:text-fg">
+          // celular: o "Limpar" só aparece com busca ou filtro; o período sozinho se troca no próprio botão (não sobra numa linha)
+          <button type="button" onClick={() => { onLimpar(); setPainel(null); }} aria-label="Limpar filtros" title="Limpar filtros"
+            className={`inline-flex h-10 items-center gap-1 px-2 text-sm font-semibold text-slate-600 hover:text-fg ${!busca && nFiltros === 0 ? "max-sm:hidden" : ""}`}>
             <X size={15} aria-hidden /> <span className="hidden sm:inline">Limpar</span>
           </button>
         )}

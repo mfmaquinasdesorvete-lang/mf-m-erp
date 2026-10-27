@@ -14,7 +14,7 @@ import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, fotoParaPdf, pdfOrcamento, pdfRelatorioVendas, type ItemFicha } from "@/lib/pdf";
 import { resumoVendas } from "@/lib/relatorioVendas";
 import { useConfig } from "@/lib/useConfig";
-import { Badge, Button, chip, Field, Modal, PageHeader, Table, Tabs, CLASSE_BOTAO, TOM_ACAO } from "@/components/ui";
+import { Badge, Button, chip, Field, MaisAcoes, Modal, PageHeader, Table, Tabs, CLASSE_BOTAO, TOM_ACAO } from "@/components/ui";
 import { osDoPedido } from "@/lib/osVideo";
 import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import { ItensEditor, totalItem, totalItens } from "@/components/ItensEditor";
@@ -325,11 +325,28 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       <PageHeader title={area === "maquinas" ? "Venda de Máquinas" : "Venda de Peças"}
         subtitle={area === "maquinas" ? "Propostas e vendas de máquinas: proposta, pedido, OP e nota fiscal. Com o histórico do Tiny da MF."
           : "Orçamentos e vendas de peças, do WhatsApp à entrega, com frete e nota fiscal."}
+        // topo enxuto (27/10, auditoria de design): a ação principal à vista; quadro/lista ao lado; Relatório e Exportar no "Mais"
         actions={vista === "erp" ? <>
-          <Button variant="secondary" disabled={!semSituacao.length || gerandoRel} onClick={imprimirRelatorio}
-            title="Relatório para imprimir: todas as vendas do período com o gráfico por dia, o total e o lucro"><Printer size={16} /> {gerandoRel ? "Montando…" : "Relatório"}</Button>
-          <Button variant="secondary" disabled={!lista.length} onClick={() => exportarPedidos(lista, infoDe)}><FileDown size={16} /> Exportar</Button>
-          {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} /> {area === "maquinas" ? "Nova proposta comercial" : "Novo orçamento"}</Button>}
+          {!destaque && (
+            <div className="hidden rounded-lg border border-slate-300 bg-surface p-0.5 shadow-sm sm:inline-flex" role="group" aria-label="Ver as vendas em">
+              {([["quadro", SquareKanban, "Quadro"], ["lista", List, "Lista"]] as const).map(([m, Icone, rotulo]) => (
+                <button key={m} aria-label={rotulo} type="button" aria-pressed={visual === m} onClick={() => setVisual(m)} title={m === "quadro" ? "Quadro Kanban: uma coluna por passo da venda" : "Lista com seleção e ações em lote"}
+                  className={`inline-flex min-h-9 items-center gap-1 rounded-md px-2.5 text-sm font-semibold ${visual === m ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+                  <Icone size={15} aria-hidden /><span className="hidden lg:inline">{rotulo}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <MaisAcoes>
+            {/* celular: quadro ou lista aqui dentro, para o título caber numa linha */}
+            {!destaque && <Button variant="secondary" className="sm:hidden" onClick={() => setVisual(visual === "quadro" ? "lista" : "quadro")}>
+              {visual === "quadro" ? <><List size={16} /> Ver em lista</> : <><SquareKanban size={16} /> Ver em quadro</>}</Button>}
+            <Button variant="secondary" disabled={!semSituacao.length || gerandoRel} onClick={imprimirRelatorio}
+              title="Relatório para imprimir: todas as vendas do período com o gráfico por dia, o total e o lucro"><Printer size={16} /> {gerandoRel ? "Montando…" : "Relatório"}</Button>
+            <Button variant="secondary" disabled={!lista.length} onClick={() => exportarPedidos(lista, infoDe)}><FileDown size={16} /> Exportar</Button>
+          </MaisAcoes>
+          {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} />
+            <span className="sm:hidden">Novo</span><span className="hidden sm:inline">{area === "maquinas" ? "Nova proposta comercial" : "Novo orçamento"}</span></Button>}
         </> : undefined} />
       {relatorio && <PdfViewer blob={relatorio} nome={`relatorio-vendas-${periodo.de || "tudo"}.pdf`} titulo="Relatório de vendas" onClose={() => setRelatorio(null)} />}
 
@@ -346,16 +363,6 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         onLimpar={() => { setDestaque(null); navigate(location.pathname, { replace: true, state: null }); }} />}
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nº, cliente, CPF ou CNPJ…"
         periodo={periodo} onPeriodo={setPeriodo} rotuloData="Data" nFiltros={nFiltros} onLimpar={limparFiltros}
-        direita={!destaque && (
-          <div className="inline-flex rounded-lg border border-slate-300 bg-surface p-0.5 shadow-sm" role="group" aria-label="Ver as vendas em">
-            {([["quadro", SquareKanban, "Quadro"], ["lista", List, "Lista"]] as const).map(([m, Icone, rotulo]) => (
-              <button key={m} aria-label={rotulo} type="button" aria-pressed={visual === m} onClick={() => setVisual(m)} title={m === "quadro" ? "Quadro Kanban: uma coluna por passo da venda" : "Lista com seleção e ações em lote"}
-                className={`inline-flex items-center gap-1 rounded-md px-2.5 py-2 text-sm font-semibold sm:py-1.5 ${visual === m ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>
-                <Icone size={15} aria-hidden /><span className="hidden sm:inline">{rotulo}</span>
-              </button>
-            ))}
-          </div>
-        )}
         filtros={<>
           <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
           {formasEnvio.length > 0 && (
@@ -396,7 +403,8 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       {!quadro && <>
       {/* Celular: cartões */}
       <div className="space-y-2 md:hidden">
-        {lista.length > 0 && (
+        {/* "Marcar todos" só depois de marcar o primeiro (no celular era uma linha a mais antes da lista) */}
+        {lista.length > 0 && selecionados.length > 0 && (
           <label className="flex items-center gap-2 px-1 text-sm text-slate-600">
             <input type="checkbox" className="h-5 w-5" checked={lista.every((p) => selecao.tem(p.id))} onChange={() => selecao.alternarTodos(lista.map((p) => p.id))} />
             Marcar todos da lista
@@ -528,7 +536,7 @@ function ChipsPagamento({ valor, onChange, lista, info }: {
 }) {
   const n = (s: SituacaoPagamento) => lista.filter((p) => info.get(p.id)?.pg?.situacao === s).length;
   return (
-    <div className="-mt-1 mb-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Pagamento">
+    <div className="faixa-chips -mt-1 mb-3 items-center" role="group" aria-label="Pagamento">
       <span className="mr-0.5 text-xs font-semibold text-slate-500">Pagamento:</span>
       {ORDEM_PAGAMENTO.map((s) => {
         const qtd = n(s);
