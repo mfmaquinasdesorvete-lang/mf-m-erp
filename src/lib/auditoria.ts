@@ -2,6 +2,7 @@
 import { avaliarCadastro } from "./qualidadeProdutos";
 import type { Produto } from "./types";
 import { pl } from "@/lib/format";
+import { conferenciasAuditor, CORTE_AUDITOR, dadoIncompletoPedido } from "./auditorFinanceiro";
 // Cada item é um INDÍCIO até alguém confirmar com documento ou extrato; nunca é prova sozinho.
 
 export type Excecao = {
@@ -13,11 +14,12 @@ export type TipoExcecao =
   | "recebimento_sem_origem" | "recebido_terceiros" | "recebido_a_menor" | "pagamento_fora_fluxo" | "cobranca_os_cancelada"
   | "parcelas_divergentes" | "nfe_sem_lancamento" | "acesso_sem_uso" | "administradores" | "checklist"
   | "produto_duplicado" | "produto_sem_custo" | "estoque_negativo" | "alteracao_produto"
-  | "pedido_sem_vendedor" | "entregue_sem_nfe" | "desconto_alto" | "alteracao_pedido";
+  | "pedido_sem_vendedor" | "entregue_sem_nfe" | "desconto_alto" | "alteracao_pedido"
+  | "venda_sem_recebimento" | "recebimento_sem_venda" | "taxa_cartao" | "despesa_fora_padrao" | "extrato_desatualizado" | "dado_incompleto";
 
 export const TIPOS: Record<TipoExcecao, { rotulo: string; criterio: string }> = {
   duplicidade: { rotulo: "Possível duplicidade", criterio: "Contas a pagar do mesmo fornecedor com o mesmo valor e vencimento em até 5 dias, ou com o mesmo número de documento." },
-  sem_documento: { rotulo: "Pagamento sem documento", criterio: "Conta paga sem número de documento, sem NF-e de fornecedor ligada e sem anexo (tarifas e juros bancários não entram)." },
+  sem_documento: { rotulo: "Pagamento sem documento", criterio: "Conta paga desde 01/10/2026 sem número de documento, sem NF-e de fornecedor ligada e sem anexo (tarifas e juros bancários não entram). As anteriores aparecem num aviso só." },
   valor_redondo: { rotulo: "Valor redondo incomum", criterio: "Pagamento de R$ 5.000 ou mais, múltiplo de R$ 1.000, sem documento nem NF-e." },
   alteracao: { rotulo: "Alteração após o lançamento", criterio: "Valor, vencimento ou baixa alterados depois de lançados, estorno de baixa ou cancelamento de conta (últimos 90 dias)." },
   baixa_sem_extrato: { rotulo: "Baixa sem conferência no extrato", criterio: "Conta dada como paga há mais de 7 dias que não aparece em nenhuma linha conciliada do extrato." },
@@ -43,6 +45,12 @@ export const TIPOS: Record<TipoExcecao, { rotulo: string; criterio: string }> = 
   entregue_sem_nfe: { rotulo: "Entregue sem NF-e", criterio: "Pedido faturado ou entregue sem NF-e autorizada em produção (a nota de teste não vale)." },
   desconto_alto: { rotulo: "Desconto alto", criterio: "Pedido com desconto acima de 20% do valor dos itens: confira quem autorizou." },
   alteracao_pedido: { rotulo: "Pedido alterado depois de aprovado", criterio: "Vendedor, comissão, origem ou observação alterados, ou pedido reaberto, depois da aprovação (últimos 90 dias): confira o motivo." },
+  venda_sem_recebimento: { rotulo: "Venda sem recebimento", criterio: "Pedido faturado ou entregue desde 01/10/2026 com parcela vencida há mais de 7 dias e não recebida (Configurações → Prazos e padrões)." },
+  recebimento_sem_venda: { rotulo: "Recebimento sem venda", criterio: "Entrada no banco desde 01/10/2026 marcada como \"ignorar\", sem conta a receber, sem conta a pagar e sem transferência." },
+  taxa_cartao: { rotulo: "Taxa do cartão", criterio: "Por conta e mês: bruto, taxas e líquido das vendas no cartão. Alerta quando a taxa efetiva passa da contratada (mais a tolerância) ou quando a taxa contratada não está cadastrada." },
+  despesa_fora_padrao: { rotulo: "Despesa fora do padrão", criterio: "Total pago a um fornecedor (ou categoria) no mês bem acima da média dos 6 meses anteriores. Suspeita estatística, não prova." },
+  extrato_desatualizado: { rotulo: "Extrato com buraco", criterio: "Conta bancária ativa com 7 dias seguidos ou mais sem extrato desde 01/10/2026: as conferências dela ficam com dado incompleto." },
+  dado_incompleto: { rotulo: "Dado incompleto", criterio: "Integração ausente (não é divergência): dados que não vieram do sistema anterior e por isso não dá para conferir." },
   alteracao_produto: { rotulo: "Alteração de produto", criterio: "Código, unidade, tipo, custo ou preço de produto alterado à mão (últimos 90 dias): confira o motivo." },
 };
 
@@ -52,9 +60,9 @@ type Conta = {
   unidade_id?: string | null; conta_bancaria_id?: string | null; documento?: string | null; nfe_recebida_id?: string | null; fornecedor_id?: string | null;
   categoria?: string; pedido_id?: string | null; os_id?: string | null; nota_fiscal_id?: string | null; created_at?: string;
 };
-type Lanc = { id: string; conta_bancaria_id: string; data: string; valor: number; status: string; descricao: string | null; conta_receber_id: string | null; conta_pagar_id: string | null };
+type Lanc = { id: string; conta_bancaria_id: string; data: string; valor: number; status: string; descricao: string | null; conta_receber_id: string | null; conta_pagar_id: string | null; par_transferencia_id?: string | null; observacao?: string | null };
 type Auditoria = { id: number; tabela: string; registro_id: string | null; acao: string; usuario: string | null; usuario_nome: string | null; campos: string[] | null; antes: any; depois: any; motivo: string | null; origem: string; created_at: string };
-type Banco = { id: string; nome: string; saldo_inicial: number; saldo_inicial_data: string };
+type Banco = { id: string; nome: string; saldo_inicial: number; saldo_inicial_data: string; ativo?: boolean | null };
 type Importacao = { conta_bancaria_id: string; saldo_final: number | null; saldo_final_data: string | null; periodo_inicio: string | null; periodo_fim: string | null };
 
 export type DadosAuditoria = {
@@ -65,6 +73,7 @@ export type DadosAuditoria = {
     numero_externo?: string | null;
     /** NF da venda emitida por outra empresa (empresa ligada): não é "sem NF-e" */
     nf_outra_numero?: string | null;
+    created_at?: string | null;
     notas?: { status: string; ambiente?: string | null }[] }[];
   ordens: { id: string; numero: number; status: string; em_garantia: boolean; valor_total: number }[];
   fornecedores: { id: string; nome: string }[];
@@ -72,7 +81,11 @@ export type DadosAuditoria = {
   /** ultimo_acesso: null = nunca entrou; ausente = não se sabe (sem permissão), e a regra não olha esse usuário */
   usuarios?: { user_id: string; nome: string; papel: string; ativo: boolean; ultimo_acesso?: string | null; created_at?: string }[];
   produtos?: Produto[];
+  /** formas de pagamento (taxa contratada do cartão) */
+  formas?: { meio: string; taxa_percentual: number | null; tarifa_fixa?: number | null; conta_bancaria_id: string | null; ativo?: boolean | null }[];
   hoje: string;
+  /** desde quando o ERP é usado no dia a dia; antes disso falta de dado é "dado incompleto" */
+  corte?: string;
 };
 
 /** Origem escrita na descrição da conta: "pedido Tiny nº 580" (um pedido que existe no ERP) ou "por conta de terceiros". */
@@ -129,9 +142,14 @@ export function calcularExcecoes(d: DadosAuditoria): Excecao[] {
 
   // 2 e 3. pagamento sem documento / valor redondo
   const comAnexo = new Set(d.documentos.filter((x) => x.entidade === "conta_pagar").map((x) => x.entidade_id));
+  const corte = d.corte ?? CORTE_AUDITOR;
+  let antigasSemDoc = 0;
   for (const c of pagar.filter((c) => c.status === "pago")) {
     const semDoc = !c.documento && !c.nfe_recebida_id && !comAnexo.has(c.id) && !["tarifas bancárias", "juros e multas", "comissoes"].includes(c.categoria ?? "");
-    if (semDoc) out.push({
+    // antes do corte quase nada tem comprovante (veio do Tiny): um aviso só, senão seriam milhares
+    const antiga = (c.data_pagamento ?? c.vencimento) < corte;
+    if (semDoc && antiga) antigasSemDoc++;
+    if (semDoc && !antiga) out.push({
       chave: `sem_documento:${c.id}`, tipo: "sem_documento", gravidade: Number(c.valor) >= 1000 ? "media" : "baixa", valor: Number(c.valor_pago ?? c.valor), data: c.data_pagamento ?? c.vencimento, link: "/financeiro",
       titulo: `${c.descricao}${forn(c.fornecedor_id) ? ` · ${forn(c.fornecedor_id)}` : ""}`, detalhe: `Pago em ${br(c.data_pagamento ?? c.vencimento)} · categoria ${c.categoria ?? "—"} · anexe a nota, o boleto ou o comprovante`,
     });
@@ -140,6 +158,12 @@ export function calcularExcecoes(d: DadosAuditoria): Excecao[] {
       titulo: `${brl(Number(c.valor))} · ${c.descricao}`, detalhe: "Valor redondo e alto sem documento de suporte: confirme o que foi pago e a quem.",
     });
   }
+
+  if (antigasSemDoc) out.push({
+    chave: `dado_incompleto:sem_documento:${corte}`, tipo: "dado_incompleto", gravidade: "baixa", link: "/financeiro",
+    titulo: `${antigasSemDoc} ${pl(antigasSemDoc, "conta paga", "contas pagas")} antes de ${br(corte)} sem documento`,
+    detalhe: "Vieram do sistema anterior sem comprovante: não dá para conferir uma a uma. Anexe só as que o contador pedir.",
+  });
 
   // 4. alterações após o lançamento (pelo histórico)
   const desde = new Date(Date.parse(d.hoje) - 90 * 864e5).toISOString().slice(0, 10);
@@ -295,6 +319,7 @@ export function calcularExcecoes(d: DadosAuditoria): Excecao[] {
     const soma = Math.round(parcelas.reduce((s, c) => s + Number(c.valor), 0) * 100) / 100;
     const dif = Math.round((soma - Number(p.valor_total)) * 100) / 100;
     if (parcelas.length && Math.abs(dif) <= 0.05) continue;
+    if (!parcelas.length && dadoIncompletoPedido(p, corte)) continue; // aviso único em "dado incompleto"
     out.push({
       chave: `parcelas_divergentes:${p.id}`, tipo: "parcelas_divergentes", gravidade: "media", valor: parcelas.length ? dif : Number(p.valor_total), link: "/financeiro",
       titulo: `Pedido #${p.numero}`, detalhe: parcelas.length
@@ -393,6 +418,11 @@ export function calcularExcecoes(d: DadosAuditoria): Excecao[] {
       detalhe: `${a.usuario_nome ?? "usuário"} em ${new Date(a.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · ${reaberto ? a.motivo : `motivo: ${a.motivo}`}`,
     });
   }
+
+  out.push(...conferenciasAuditor({
+    receber: d.receber, pagar: d.pagar, lancamentos: d.lancamentos, bancos: d.bancos, importacoes: d.importacoes, pedidos: d.pedidos,
+    formas: d.formas, fornecedores: d.fornecedores, hoje: d.hoje, corte,
+  }));
 
   const peso = { alta: 0, media: 1, baixa: 2 };
   return out.sort((a, b) => peso[a.gravidade] - peso[b.gravidade] || (b.data ?? "").localeCompare(a.data ?? ""));

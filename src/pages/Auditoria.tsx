@@ -21,6 +21,7 @@ import { HistoricoBusca } from "@/components/auditoria/HistoricoBusca";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { Destaque, FiltroAtivo, Pilula } from "@/components/auditoria/BuscaUi";
 import { useNomesRegistros, type Destino } from "@/components/auditoria/useAuditoria";
+import { HistoricoTratativa } from "@/components/auditoria/HistoricoTratativa";
 
 export type Tratativa = { id?: string; chave: string; tipo: string; titulo?: string | null; situacao: "indicio" | "confirmado" | "resolvido" | "descartado"; impacto: string | null; responsavel: string | null; prazo: string | null; observacao: string | null; updated_at?: string };
 
@@ -86,7 +87,8 @@ function useExcecoes() {
     filtro: (q) => q.in("tabela", ["contas_receber", "contas_pagar", "produtos", "pedidos"]).or("origem.eq.usuario,tabela.eq.pedidos"), key: ["excecoes"],
   });
   const { data: documentos = NENHUM } = useRows<any>("documentos", { select: "entidade, entidade_id" });
-  const { data: pedidos = NENHUM } = useRows<any>("pedidos", { select: "id, numero, numero_externo, status, unidade_id, valor_total, valor_produtos, desconto, vendedor_id, origem, nf_outra_numero, notas:notas_fiscais(status, ambiente)" });
+  const { data: pedidos = NENHUM } = useRows<any>("pedidos", { select: "id, numero, numero_externo, status, unidade_id, valor_total, valor_produtos, desconto, vendedor_id, origem, nf_outra_numero, created_at, notas:notas_fiscais(status, ambiente)" });
+  const { data: formas = NENHUM } = useRows<any>("formas_pagamento", { select: "meio, taxa_percentual, tarifa_fixa, conta_bancaria_id, ativo" });
   const { data: recebidas = NENHUM } = useRows<any>("nfe_recebidas", { select: "id, chave, emitente_nome, valor_total, data_emissao, situacao, processamento, conta_pagar_id, estoque_lancado, unidade_id" });
   const { data: usuariosCad = NENHUM } = useRows<any>("usuarios_erp", { select: "user_id, nome, papel, ativo, created_at" });
   // o último acesso vem do login (função do banco: só administrador, financeiro e contador); sem ele a regra de acesso fica de fora
@@ -110,7 +112,7 @@ function useExcecoes() {
     ...calcularExcecoes({
       receber: filtrar(receber), pagar: filtrar(pagar), lancamentos: lancamentos.filter((l: any) => idsBancos.has(l.conta_bancaria_id)), bancos: bancosU,
       importacoes: importacoes.filter((i: any) => idsBancos.has(i.conta_bancaria_id)), auditoria, documentos, pedidos: filtrar(pedidos), ordens: filtrar(ordens), fornecedores,
-      recebidas: filtrar(recebidas), usuarios, produtos, hoje: hoje(),
+      recebidas: filtrar(recebidas), usuarios, produtos, formas, hoje: hoje(),
     }),
     // itens do checklist marcados como não conformes viram exceção para tratar (responsável, prazo, evidência)
     ...tratativas.filter((t) => t.tipo === "checklist").map((t): Excecao => ({
@@ -118,7 +120,7 @@ function useExcecoes() {
       detalhe: `Competência ${t.chave.split(":")[1] ?? ""}`, data: t.updated_at?.slice(0, 10),
     })),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [receber, pagar, lancamentos, bancos, importacoes, auditoria, documentos, pedidos, ordens, fornecedores, recebidas, usuarios, produtos, tratativas, filtrar]);
+  ], [receber, pagar, lancamentos, bancos, importacoes, auditoria, documentos, pedidos, ordens, fornecedores, recebidas, usuarios, produtos, formas, tratativas, filtrar]);
 
   const trat = (e: Excecao): Tratativa => tratativas.find((t) => t.chave === e.chave) ?? { chave: e.chave, tipo: e.tipo, situacao: "indicio", impacto: null, responsavel: null, prazo: null, observacao: null };
   const fechada = (t: Tratativa) => t.situacao === "resolvido" || t.situacao === "descartado";
@@ -296,6 +298,7 @@ function TratarExcecao({ e, t, onClose }: { e: Excecao; t: Tratativa; onClose: (
           <Button>Salvar</Button>
         </div>
       </form>
+      {t.id && <HistoricoTratativa id={t.id} />}
     </Modal>
   );
 }

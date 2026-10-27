@@ -33,6 +33,17 @@ export const NUMEROS: ItemNumero[] = [
     explicacao: "Quantos dias entre uma parcela e outra no orçamento ou pedido novo." },
   { chave: "cobranca_whatsapp_janela", grupo: "Cobrança", rotulo: "Cobrança pelo WhatsApp atrasada ainda aparece por", unidade: "dias", padrao: 3, minimo: 0, maximo: 30, dono: "GER",
     explicacao: "Se a mensagem da régua não foi mandada no dia, ela continua na fila \"Cobrar hoje pelo WhatsApp\" por estes dias. Depois disso fica só a próxima etapa." },
+  // ---------- Auditoria (Auditor Financeiro, AUD) ----------
+  { chave: "auditor_dias_recebimento", grupo: "Auditoria", rotulo: "Venda sem recebimento: parcela vencida há mais de", unidade: "dias", padrao: 7, minimo: 0, maximo: 90, dono: "AUD",
+    explicacao: "Pedido faturado ou entregue com parcela vencida e não recebida há mais destes dias vira alerta." },
+  { chave: "auditor_tolerancia_taxa", grupo: "Auditoria", rotulo: "Taxa do cartão: tolerância acima da contratada", unidade: "%", padrao: 0.5, minimo: 0, maximo: 10, dono: "AUD",
+    explicacao: "Pontos percentuais que a taxa efetiva do mês pode passar da taxa cadastrada na forma de pagamento sem virar alerta." },
+  { chave: "auditor_fora_padrao_pct", grupo: "Auditoria", rotulo: "Despesa fora do padrão: acima da média em", unidade: "%", padrao: 50, minimo: 10, maximo: 500, dono: "AUD",
+    explicacao: "Quanto o total pago a um fornecedor no mês pode passar da média dos 6 meses anteriores sem virar alerta." },
+  { chave: "auditor_fora_padrao_minimo", grupo: "Auditoria", rotulo: "Despesa fora do padrão: diferença mínima", unidade: "R$", padrao: 1000, minimo: 0, maximo: 100000, dono: "AUD",
+    explicacao: "Diferenças menores que este valor não viram alerta, mesmo acima da média." },
+  { chave: "auditor_dias_extrato", grupo: "Auditoria", rotulo: "Extrato com buraco: dias seguidos sem extrato", unidade: "dias", padrao: 7, minimo: 1, maximo: 60, dono: "AUD",
+    explicacao: "Conta ativa com tantos dias seguidos sem extrato (desde a data de corte) vira aviso de dado incompleto." },
 ];
 
 export const MENSAGENS: ItemMensagem[] = [
