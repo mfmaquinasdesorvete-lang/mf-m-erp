@@ -52,6 +52,8 @@ Atualizado em 25/10/2026 pelo ELO.
 - O nome das pessoas no ERP é o do cadastro. Nome antigo que chega do Tiny ou do banco não é copiado para cadastros
   nem descrições. O texto original do extrato e da nota fica como veio, porque a conciliação depende dele.
 - WordPress não serve para o ERP. Pode servir no futuro só para o site institucional ou o blog.
+- Telas com filtro de período abrem em "Esta semana" (pedido nas Aprovações e nas notas emitidas, 27/10). Vale
+  para tela nova e para a tela que o chat dono mexer; a pessoa pode trocar o período na hora.
 - O nome da empresa nos textos para o cliente vem de Configurações → Empresa, nunca escrito à mão.
 - Visual de toda tela nova, conforme as diretrizes da usuária de 24/10 (chat DSG):
   - uma ação principal clara, com um botão cheio;
