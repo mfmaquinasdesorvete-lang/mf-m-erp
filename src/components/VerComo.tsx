@@ -61,15 +61,15 @@ export function EscolherVerComo() {
   );
 }
 
-/** Faixa fixa no alto enquanto simula. */
+/** Faixa fixa no alto enquanto simula (cores fixo-*: iguais no tema claro e no escuro). */
 export function FaixaVerComo() {
   const v = lerVerComo();
   if (!v) return null;
   return (
-    <div role="status" className="sticky top-0 z-[60] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-400 px-4 py-1.5 text-sm font-semibold text-amber-950">
+    <div role="status" className="sticky top-0 z-[60] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-fixo-amber-400 px-4 py-1.5 text-sm font-semibold text-fixo-slate-900">
       <span className="inline-flex items-center gap-1.5"><Eye size={16} aria-hidden /> Vendo como {v.nome}{v.user_id ? ` (${[v.papel, ...v.extras].map(rotuloPapel).join(" · ")})` : ""} · só para ver</span>
       <button type="button" onClick={() => sairVerComo()}
-        className="inline-flex items-center gap-1 rounded-md bg-amber-950 px-2.5 py-1 text-xs font-bold text-amber-50 hover:bg-amber-900">
+        className="inline-flex items-center gap-1 rounded-md bg-fixo-slate-900 px-2.5 py-1 text-xs font-bold text-fixo-slate-100 hover:opacity-90">
         <LogOut size={14} aria-hidden /> Voltar para a minha conta
       </button>
     </div>
