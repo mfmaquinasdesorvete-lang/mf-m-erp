@@ -20,10 +20,10 @@ Compras e custo
 
 Nota fiscal
 12. 95487ebf · NF-e não autoriza sozinha: tela "Conferir a NF-e" · Fiscal
-13. 21bd5e57 · NF-e menor que o pedido só com motivo permitido · Fiscal
-14. b369f5d6 · Emitir NF-e em lote · Fiscal
+13. (saiu em 27/10: 21bd5e57 voltou para "fazendo", corrigido e esperando o site)
+14. (saiu em 27/10: b369f5d6 só se testa emitindo de verdade; decisão dela com o FIS)
 15. 0117350c · Pedidos pagos sem nota saem da fila da NF-e · Vendas/Fiscal
-16. d15ad20d · Notas emitidas: transferências separadas das remessas · Fiscal
+16. (saiu em 27/10: d15ad20d voltou para "fazendo", corrigido e esperando o site)
 17. d606273b · Previsão de imposto de cada máquina no cadastro · Fiscal
 
 Cliente

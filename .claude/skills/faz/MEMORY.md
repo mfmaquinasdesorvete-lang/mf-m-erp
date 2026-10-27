@@ -12,6 +12,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Cobrar e conferir as 9 tarefas abaixo.
 
 ## Esperando a usuária (conferido no banco em 27/10)
+0. URGENTE (27/10, 17h, pelo CNF): reconectar a Hostinger em claude.ai → Conectores (o conector pede login). Trava
+   a publicação do site: e529b35 e c289b2c (FIS), 6fc224c (SEG), 7896712 (PRD). Quando voltar, avisar o FIS.
 1. SQL Editor: `sql/rodar-no-sql-editor.sql` — `config_ajustes` (GER), `recibos.de_funcionario` + gatilho e regra
    (FUN; achado do FAZ), `paginas_claude` (ELO; o ELO grava as 16 páginas depois), gatilho `produto_variacao` (PRD),
    3 índices repetidos (REV). Conferir: `to_regclass`, `pg_trigger`, coluna em `information_schema.columns`, `pg_indexes`.
@@ -38,13 +40,15 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Secrets não dá para ler daqui (as funções pedem login): conferir pelo "Testar conexão" ou pelo uso (dados novos).
 
 ## Do CNF (27/10)
-- O CNF parou o aviso diário: o resumo é só meu. "Pronto para conferir": `para-conferir.md` (29 itens, 3 por dia).
+- O CNF parou o aviso diário: o resumo é só meu. "Pronto para conferir": `para-conferir.md` (29 itens, 3 por dia; 10, 13, 14 e 16 saíram).
 - "Precisa de você": 76 itens em `pedidos_checklist` (`voce`); os 11 pessoais ficam com o CAR (não ler). Mais antigos
   (19 e 20/10) primeiro. Consulta: `select left(id::text,8), grupo, pedido_em, item from pedidos_checklist
   where situacao='voce' order by pedido_em`.
 
 - Decisão que espera por ela (no resumo): "Pode publicar" no chat continuação (GER) do conserto da função
   nfe-recebidas (o XML da nota de compra não ficava guardado; pedido a8d2634a).
+
+- Decisão dela (FIS): testar a NF-e em lote emitindo de verdade (b369f5d6).
 
 ## Próximos passos
 0. A partir de 28/10 08:40: resumo único da manhã (a tarefa agendada já tem o roteiro). Topo do resumo de 28/10

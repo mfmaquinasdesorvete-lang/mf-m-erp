@@ -7,6 +7,13 @@ Conferido no banco e no GitHub em 27/10: as funções do Supabase estão todas n
 
 ---
 
+## 0. URGENTE: entrar de novo na Hostinger (conector do Claude) — 1 minuto
+**O que é:** o acesso dos chats à Hostinger saiu (pede login de novo). Sem ele nenhum chat publica o site.
+**Por que importa:** 4 consertos estão prontos esperando ir ao ar (FIS: NF-e menor que o pedido e transferências ×
+remessas; SEG: botão Voltar do "Ver como"; PRD: avisos do painel de Produtos).
+**Onde:** claude.ai → Configurações → **Conectores** → Hostinger → **Conectar** (entrar com a sua conta da Hostinger).
+Depois disso o FIS publica; eu confiro e aviso.
+
 ## 1. Rodar um arquivo no SQL Editor do Supabase (5 coisas de uma vez) — ~3 minutos
 **O que é:** 5 partes do banco que os chats escreveram e não conseguem criar sozinhos (a ferramenta deles trava ao
 criar tabela ou apagar índice).
