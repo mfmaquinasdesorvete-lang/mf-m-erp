@@ -21,7 +21,7 @@ com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 - PRD fez (27/10, commit 7b2de6e): SELECT_LISTA_PRODUTOS (`src/lib/produtosLista.ts`, sem os textos longos) em GestaoPrecos, KitComponentes, CatalogoConfig e config/Catalogo; ImportarProdutos só id, id_externo e sku. Produtos.tsx fica com "*" (o formulário precisa dos textos). Passei a ele as linhas certas dos painéis (PainelProdutos:44, PainelMaquinas:52).
 - /estoque e /produtos/pecas abrem Peças à venda de propósito (pedido da usuária, segundo o PRD): achado 12 fechado, não é para juntar.
 - DSG fez (27/10, commit 92c3b57): App.tsx usa a peça Carregando de ui.tsx.
-- Os nove chats responderam. Na próxima publicação do site vão: SEG (Monitor), CLI (clientes), TRA (FreteVenda), MKT, PRD e DSG.
+- Os nove chats responderam. 27/10: publicado pelo REV o site com os consertos de SEG, CLI, TRA, MKT, PRD e DSG (index-BF--YF30.js, conferido na Hostinger). O GER ainda está fazendo a Auditoria financeira e as listas dele.
 - Ainda não enviados: PRD (2 e 6), FIS, TRA e MKT (9), DSG (16).
 
 ## Esperando a usuária
