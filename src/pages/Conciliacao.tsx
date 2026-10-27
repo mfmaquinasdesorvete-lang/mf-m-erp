@@ -534,6 +534,8 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
   async function escolher(f: File | null) {
     setArquivo(f); setRes(null); setMapa(null);
     if (!f) return;
+    // o campo aceita qualquer arquivo: com "accept" o iPhone apaga o .ofx (não conhece o tipo) e não deixa escolher
+    if (!/\.(ofx|csv|txt)$/i.test(f.name)) { setArquivo(null); return notifyError(new Error("Escolha o extrato em .ofx ou .csv (o arquivo que o banco gera para importar).")); }
     try {
       const r = await lerExtrato(f);
       setRes(r);
@@ -583,7 +585,7 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Arquivo do banco (.ofx ou .csv)">
             {arquivoInicial ? <div className="input truncate bg-slate-50">{arquivoInicial.name}</div>
-              : <input className="input" type="file" accept=".ofx,.OFX,.csv,.CSV,.txt" onChange={(e) => escolher(e.target.files?.[0] ?? null)} />}
+              : <input className="input" type="file" onChange={(e) => escolher(e.target.files?.[0] ?? null)} />}
           </Field>
           <Field label="Conta">
             <select className="input" value={conta} onChange={(e) => setConta(e.target.value)}>

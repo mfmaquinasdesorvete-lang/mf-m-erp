@@ -847,6 +847,8 @@ function ImportarModal({ contas, empresa, existentes, onClose, onFeito }: { cont
   async function ler(f: File | undefined) {
     if (!f) return;
     try {
+      // sem "accept" no campo (o iPhone apagava o .ofx): confere a terminação aqui
+      if (!/\.(ofx|csv|txt|pdf)$/i.test(f.name)) throw new Error("Escolha o extrato em .ofx, .csv ou .pdf.");
       setNome(f.name);
       // PDF (Itaú e outros que só entregam assim): lido aqui no navegador, o arquivo não sai do aparelho
       if (/\.pdf$/i.test(f.name) || f.type === "application/pdf") {
@@ -878,7 +880,7 @@ function ImportarModal({ contas, empresa, existentes, onClose, onFeito }: { cont
     <Modal open onClose={onClose} title="Importar extrato pessoal">
       <div className="space-y-3">
         <Field label="Conta"><select className="input" value={conta} onChange={(e) => setConta(e.target.value)}>{contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></Field>
-        <Field label="Arquivo do banco (OFX, CSV ou PDF)"><input type="file" accept=".ofx,.csv,.txt,.pdf,application/pdf" className="input" onChange={(e) => ler(e.target.files?.[0])} /></Field>
+        <Field label="Arquivo do banco (OFX, CSV ou PDF)"><input type="file" className="input" onChange={(e) => ler(e.target.files?.[0])} /></Field>
         {linhas && (
           <div className="rounded-xl bg-slate-50 p-3 text-sm">
             <b>{nome}</b>: {linhas.length} {pl(linhas.length, "lançamento", "lançamentos")} · entradas {brl(entradas)} · saídas {brl(saidas)}.
