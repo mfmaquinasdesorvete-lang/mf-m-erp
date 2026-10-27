@@ -26,6 +26,9 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
   entram depois).
 
 ## Esperando a usuária
+- Publicar a função nfe-recebidas (guarda o XML da nota do fornecedor; commit 7a2ef1b) — pedido a8d2634a volta a "feito" depois do teste.
+- Nota de peças sem OC (4 de 26/10): quer OC automática para as novas?
+- Prestador (a0f29e4a, daa9722f): extrato completo da OLIST de setembro e confirmar os dois empréstimos (estão cancelados no ERP).
 - Virada do Tiny: confirmar a data (proposta 09/11), passar as taxas das formas de pagamento e a lista do que a equipe ainda faz no Tiny.
 - Rodar no SQL Editor a criação da tabela `config_ajustes` (o MCP pede confirmação e expira). Depois eu crio as funções.
 - Apagar a tabela `tmp_oc_plano_2310` no SQL Editor (ela disse que vai apagar, 27/10).
@@ -57,6 +60,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Funções do Supabase: inter, nfe-recebidas-sync, infinitepay, proposta-enviar.
 
 ## Próximos passos
+- Teste da rodada de fechamento (CNF, 27/10): 17 testados (14 passaram, 3 voltaram); faltam 122 "feito" sem teste. Daqui o site não abre (rede): testar pelo banco de produção e pelo código no site.zip.
 0. Auditoria do REV de 27/10 (.claude/skills/rev/auditoria-2026-10-27.md): Auditoria financeira leve (colunas e período) e `select:` nas listas das telas do GER; depois `centavos()` única; /estoque × /produtos/pecas espera a usuária (com o PRD).
 1. Com a tabela criada: funções `config_ajuste_salvar` e `cfg_num`, páginas de Configurações e as telas lendo o catálogo.
 2. Pedir "Pode publicar", avisar o ELO, marcar "Feito" em `.claude/configuravel`.
