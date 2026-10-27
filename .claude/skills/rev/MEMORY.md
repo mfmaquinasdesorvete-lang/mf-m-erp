@@ -27,6 +27,7 @@ com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 - Ainda não enviados: PRD (2 e 6), FIS, TRA e MKT (9), DSG (16).
 
 ## Esperando a usuária
+- Reconectar a Hostinger (conector do claude.ai): o site de 27/10 (Produção em Fábrica e estoque, código sem uso apagado, painéis do PRD) ficou só montado na branch site (6d64801, index-i3QkU_Np.js), não está no ar. Ela já disse "Pode publicar"; quando voltar, publicar de novo (montar outra vez, porque a branch site pode ter mudado).
 - Rodar no SQL Editor a parte 2 de `20261101000081_banco_mais_rapido.sql` (3 `drop index` repetidos).
 - Rodar no SQL Editor: `drop table if exists public.tmp_oc_plano_2310;` (ela autorizou apagar em 27/10; pelo MCP o drop trava).
 
