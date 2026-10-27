@@ -25,10 +25,10 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 
 - Custos aprovados em 27/10: PC-VED-014 pela última compra e PC-VED-001 pela sugestão do fornecedor.
 
+- Painéis Produtos e Máquinas leves e avisos do Painel de Produtos abrindo no problema: no ar em 27/10 (index-BKEMOzUS).
+
 ## Em andamento
 - Rodada de fechamento (27/10): nada novo sem pedido dela; "feito" só depois de testar no ERP no ar.
-- Painéis Produtos e Máquinas com a lista leve (da7570c) e avisos do Painel de Produtos abrindo no problema (7896712):
-  entram na próxima publicação do site; depois, marcar feito os dois pedidos (lista leve e ee0a3b61).
 - 27/10: os pedidos antigos do assunto foram testados (select e site publicado) a pedido do CNF; o site do ERP não abre
   daqui, então teste de tela com clique fica com a usuária.
 - Variações (produto pai e variações): tela no ar (3b69c49) e campos no banco (20261025021635 e 20261025021646).
