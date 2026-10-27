@@ -1,5 +1,5 @@
 # MEMORY — FIS (ERP Line – Fiscal e contábil)
-Atualizado em 26/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 A emissão da NF-e, o DIFAL, as certidões e a previsão de imposto por máquina estão no ar. O que falta depende
@@ -34,6 +34,7 @@ guias e os parcelamentos que estão no e-mail do contador.
 - Importar o XML do diesel em NF-e recebidas.
 
 ## Decisões da usuária
+- As listas de notas (emitidas e recebidas) abrem na semana atual.
 - Tudo que não é da MF vai para o painel pessoal (CAR). A Soft Premium não é deste ERP: não buscar nada dela.
 - Marcadores só se somam; avisos nas notas usam o marcador "Rever com o contador" e a observação interna.
 - Funcionários (RH) é o chat FUN; a folha fiscal (eSocial, INSS, FGTS, DCTFWeb) fica no FIS.

@@ -9,8 +9,8 @@ import { ATALHOS, FILTRO_VAZIO, filtrosEmUso, periodoDoAtalho, type FiltroNota }
 const UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"];
 
 export function useFiltrosNotas() {
-  // a lista abre no mês atual (as notas do mês); "Limpar" volta para qualquer data
-  const [f, setF] = useState<FiltroNota>(() => ({ ...FILTRO_VAZIO, ...periodoDoAtalho("mes", hoje()) }));
+  // a lista abre na semana atual (pedido da usuária); "Limpar" volta para qualquer data
+  const [f, setF] = useState<FiltroNota>(() => ({ ...FILTRO_VAZIO, ...periodoDoAtalho("semana", hoje()) }));
   const [aberto, setAberto] = useState(false);
   return { f, setF, aberto, setAberto };
 }
