@@ -19,7 +19,7 @@ Data proposta: **segunda, 09/11/2026** (duas semanas para fechar a lista abaixo)
 ## O que precisa estar pronto antes da virada
 | # | O quê | Quem | Situação |
 |---|---|---|---|
-| 1 | Importar os recebimentos (parcelas, pagas e em aberto) dos pedidos do Tiny que estão sem conta a receber | TIN | a fazer |
+| 1 | Recebimentos dos pedidos do Tiny sem conta a receber: ela clica "Buscar recebimentos do Tiny" e "Atualizar cadastros do Tiny" (sem código novo); TIN confere o que sobrar | usuária + TIN | até 05/11 |
 | 2 | Contas a pagar e a receber em aberto no Tiny conferidas com as do ERP (nada só no Tiny) | TIN + GER | a fazer |
 | 3 | Taxas das formas de pagamento (cartão crédito/débito, Pix maquininha, boleto, marketplaces) | usuária informa, GER grava | a fazer |
 | 4 | Extratos em dia em todos os bancos ativos (ou desativar a conta que não é mais usada) e saldo de hoje conferido | usuária + ENT | a fazer |
@@ -27,7 +27,7 @@ Data proposta: **segunda, 09/11/2026** (duas semanas para fechar a lista abaixo)
 | 6 | Estoque: contagem feita e lançada (o estoque foi zerado) | usuária + GER | esperando |
 | 7 | Lista do que a equipe ainda faz no Tiny (perguntar a cada um) e onde fica no ERP | usuária + GER | a fazer |
 | 8 | Teste do começo ao fim no ERP no ar: pedido → NF → conta a receber → recebimento → conciliação | GER | depois de 1–5 |
-| 9 | Tiny só leitura: tirar as integrações que gravam (pedidos, notas) e avisar a equipe | usuária + TIN | no dia |
+| 9 | Na virada: última rodada dos três botões e a equipe para de lançar no Tiny (o ERP só lê do Tiny, não há integração para desligar) | usuária + TIN | no dia |
 
 ## Como o TIN propõe o dia (27/10)
 - Na véspera, a equipe para de lançar no Tiny.
