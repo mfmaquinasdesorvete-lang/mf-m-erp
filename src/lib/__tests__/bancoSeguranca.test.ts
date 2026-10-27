@@ -87,6 +87,7 @@ const AJUDANTES: Record<string, string> = {
   rateio_valido: "sim/não: o rateio fecha 100%",
   rosto_vigente: "sim/não: o login com o rosto já é obrigatório (data em configuracoes)",
   sessao_viva: "sim/não: a sessão de quem chama ainda existe (o administrador pode derrubar)",
+  so_tecnico: "sim/não: quem chama tem só o papel técnico (regra que tira dele compras, fornecedores etc.)",
   termo_ficha_cadastral: "texto do termo da ficha cadastral",
   unidade_matriz: "id da unidade matriz",
 };
