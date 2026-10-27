@@ -44,7 +44,9 @@ só. Seu trabalho é fazer com que nenhum deles esqueça quem é, o que faz e as
 | REV | Revisão (velocidade, links e repetidos) | Audita velocidade do site e do banco, links e itens mortos, telas e funções repetidas |
 
 Chat novo: escolha 3 letras que lembrem o assunto, sem repetir as de cima, e acrescente na tabela, no `CLAUDE.md`, na
-`chats_claude` e crie a skill.
+`chats_claude` e crie a skill. Título da sessão no formato "NN ícone SIGLA · Nome — o que faz", com o próximo
+número (o 22 é o DOC), e a mesma ordem em `chats_claude.ordem`; o `nome` da `chats_claude` não muda (o `aviso_claude`
+procura por ele).
 
 ## Como escrever a skill de um chat
 

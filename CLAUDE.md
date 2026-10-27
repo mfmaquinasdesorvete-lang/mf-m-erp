@@ -94,4 +94,5 @@
     no ar, em andamento, esperando a usuária, decisões, próximos passos; modelo em `.claude/memoria-modelo.md`). Ler as
     duas ao começar e atualizar a do chat no fim de cada pedido, no mesmo commit. Sem dados da empresa nem nomes de pessoas.
   - Ao abrir um chat novo, acrescentar a linha dele na tabela chats_claude (nome, sigla, o que faz, exemplos, sessao =
-    "session_…", cor), que aparece em Sobre → Chats, e pedir ao ELO a skill dele; chat encerrado fica com ativo = false.
+    "session_…", cor, ordem), que aparece em Sobre → Chats, e pedir ao ELO a skill dele; chat encerrado fica com ativo = false.
+    Título da sessão: "NN ícone SIGLA · Nome — o que faz", com o próximo número (mesmo número na ordem).

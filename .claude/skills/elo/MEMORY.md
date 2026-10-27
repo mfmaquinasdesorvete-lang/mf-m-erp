@@ -32,6 +32,8 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
 - IAD: "Pode publicar" do Resumir com IA dos documentos.
 
 ## Decisões da usuária
+- 27/10 (pelo GER): títulos das sessões numerados "NN ícone SIGLA · Nome — o que faz" (01 ELO … 22 DOC), mesma
+  ordem em `chats_claude.ordem`; o `nome` não muda. Chat novo usa o próximo número.
 - Auditor Financeiro IA (27/10): chat AUD, só leitura, começando pela MF; sorveterias depois, com o SOR.
 - Um chat por assunto. Chats e skills curtos, sem dados da empresa no repositório.
 - O ELO pode publicar o site pelos outros chats quando a Hostinger deles cair, sempre com o "Pode publicar".
