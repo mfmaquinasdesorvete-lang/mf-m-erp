@@ -21,11 +21,12 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
 - Site com HSTS e Permissions-Policy (`public/.htaccess`). GitHub Actions só lê o repositório.
 - Backup: trava de publicação durante a cópia e aviso urgente se o teste de restauração falhar
   (`scripts/backup/`; mudança também na `main`, porque o agendamento roda de lá).
+- "Ver como" da conta master (Retaguarda e olho no menu): o ERP com o menu e os botões de um papel ou pessoa; só
+  aparência, gravações travadas pelo fetch do Supabase enquanto simula (`src/lib/verComo.ts`, bd917a8).
 - Dados cadastrais reais da empresa fora do repositório; a demonstração e os testes usam fictícios (55a64e4).
 
 ## Em andamento
-- "Ver como" da conta master (Retaguarda e olho no menu): usa o ERP com o menu e os botões de um papel ou pessoa;
-  só aparência, gravações travadas pelo fetch do Supabase (`src/lib/verComo.ts`). Pronto, esperando o "Pode publicar".
+- Nada parado no meio.
 
 ## Esperando a usuária
 - Login com o rosto: um passo de configuração dela e o cadastro do rosto. Depois, marcar a data (+7 dias).
