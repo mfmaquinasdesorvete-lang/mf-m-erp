@@ -22,6 +22,10 @@ das épocas anteriores. Falta a usuária importar os documentos do Drive (a past
 
 ## Esperando a usuária
 - Aprovar a confirmação do Supabase para a migração dos recibos (ela já deu o "Pode publicar" em 26/10).
+- Rodada de fechamento: daqui não há login no ERP. Teste na tela feito por ela (ou por um chat com o computador dela):
+  Equipe (lista fechada e os 5 cartões), Crown Móveis (filtro e abrir pessoa), Importar pasta. Em 27/10 só o pedido
+  f7896949 voltou para "voce" com a conferência; d6ad60e5, c1a8249f e 9a0ff0ba seguem "feito" porque a gravação
+  pediu a confirmação dela no Supabase (refazer: voltar para "voce" com o que foi conferido).
 - Baixar no computador a pasta "ERP – Pastas dos funcionários" do Drive da MF e usar Importar pasta.
   Depois, conferir no banco quantos arquivos entraram por pessoa.
 - Pagamentos da época Crown com meses sem documento; os extratos daquela época no Drive podem completar.
