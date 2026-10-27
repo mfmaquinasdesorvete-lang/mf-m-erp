@@ -31,6 +31,7 @@ contas do mês, controle sem cobrança e a ficha das empresas. O que falta depen
 - Conferir uma conta de água em aberto em nome dela.
 
 ## Decisões da usuária
+- Toda tela com período abre em "Esta semana" (a carteira também; os outros períodos a um toque).
 - Dados pessoais não saem deste chat; repositório público só com regra e estrutura.
 - Uma das empresas dela fica fora deste ERP (vai ter um ERP próprio): não buscar nada dela.
 - Tudo que não é da MF fica no painel pessoal (ex.: DAS do MEI, certidões das outras empresas).

@@ -95,7 +95,8 @@ export default function Pessoal() {
   const { data: regras = [] } = useRows<RegraPessoal>("pessoal_regras", { order: "ordem", ascending: true });
   const navigate = useNavigate();
   const [aba, setAba] = useAbaUrl<"dinheiro" | "extratos" | "empresas" | "enderecos">("dinheiro", ["dinheiro", "extratos", "empresas", "enderecos"]);
-  const [periodo, setPeriodo] = useState<PeriodoId>("mes");
+  const [periodo, setPeriodo] = useState<PeriodoId>("semana");
+  const [dia, setDia] = useState(hoje());
   const [mesEscolhido, setMes] = useState<string | null>(null);
   const [livre, setLivre] = useState<Faixa>({ de: `${hoje().slice(0, 7)}-01`, ate: hoje() });
   const [conta, setConta] = useState("");
@@ -158,7 +159,7 @@ export default function Pessoal() {
   const repetidos = useMemo(() => repetidosDeArquivo(lancs), [lancs]);
 
   const daConta = useMemo(() => lancs.filter((l) => !conta || l.conta_id === conta), [lancs, conta]);
-  const faixa = faixaDoPeriodo(periodo, mes, lancs, hoje(), livre);
+  const faixa = faixaDoPeriodo(periodo, mes, lancs, hoje(), livre, dia);
   const anterior = faixaAnterior(periodo, mes, faixa);
   const passo = PERIODOS_PESSOAIS.find((p) => p.id === periodo)?.meses;
   const resumo = useMemo(() => resumoPeriodo(daConta, faixa, hoje(), fora), [daConta, faixa.de, faixa.ate, fora]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -340,7 +341,15 @@ export default function Pessoal() {
                   className={`rounded-lg px-2.5 py-1.5 text-sm font-semibold ${periodo === p.id ? "bg-surface text-fg shadow-card" : "text-slate-600 hover:text-fg"}`}>{p.rotulo}</button>
               ))}
             </div>
-            {passo ? (
+            {periodo === "semana" ? (
+              <div className="flex items-center gap-1">
+                <button type="button" className="botao-icone h-9 w-9" aria-label="Semana anterior" onClick={() => setDia(somarDiasPessoal(faixa.de, -7))}><ChevronLeft size={18} /></button>
+                <span className="min-w-0 text-sm font-bold text-fg">{rotuloPeriodo}</span>
+                <button type="button" className="botao-icone h-9 w-9" aria-label="Próxima semana"
+                  disabled={faixa.ate >= hoje()} onClick={() => setDia(somarDiasPessoal(faixa.de, 7))}><ChevronRight size={18} /></button>
+                {faixa.ate < hoje() && <button type="button" className="link-acao ml-1 text-xs" onClick={() => setDia(hoje())}>Esta semana</button>}
+              </div>
+            ) : passo ? (
               <div className="flex items-center gap-1">
                 <button type="button" className="botao-icone h-9 w-9" aria-label="Período anterior" onClick={() => setMes(somarMesPessoal(mes, -passo))}><ChevronLeft size={18} /></button>
                 <span className="min-w-0 text-sm font-bold text-fg">{rotuloPeriodo}</span>

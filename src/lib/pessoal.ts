@@ -76,10 +76,10 @@ export const proximos = (lancs: LancPessoal[], hoje: string) =>
 
 /* ------------------------------ períodos e painel ------------------------------ */
 
-export type PeriodoId = "mes" | "3m" | "6m" | "12m" | "ano" | "tudo" | "pers";
+export type PeriodoId = "semana" | "mes" | "3m" | "6m" | "12m" | "ano" | "tudo" | "pers";
 export type Faixa = { de: string; ate: string };
 export const PERIODOS_PESSOAIS: { id: PeriodoId; rotulo: string; meses?: number }[] = [
-  { id: "mes", rotulo: "Mês", meses: 1 }, { id: "3m", rotulo: "3 meses", meses: 3 }, { id: "6m", rotulo: "6 meses", meses: 6 },
+  { id: "semana", rotulo: "Semana" }, { id: "mes", rotulo: "Mês", meses: 1 }, { id: "3m", rotulo: "3 meses", meses: 3 }, { id: "6m", rotulo: "6 meses", meses: 6 },
   { id: "12m", rotulo: "12 meses", meses: 12 }, { id: "ano", rotulo: "Ano", meses: 12 }, { id: "tudo", rotulo: "Tudo" }, { id: "pers", rotulo: "Escolher datas" },
 ];
 
@@ -99,12 +99,21 @@ export const somarDiasPessoal = (dia: string, n: number) => {
 };
 const diasEntre = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 864e5);
 
+/** A semana (segunda a domingo) do dia. */
+export function faixaSemana(dia: string): Faixa {
+  const dow = new Date(`${dia}T12:00:00Z`).getUTCDay();
+  const de = somarDiasPessoal(dia, -((dow + 6) % 7));
+  return { de, ate: somarDiasPessoal(de, 6) };
+}
+
 /**
  * Datas do período. `mes` é o mês de referência (AAAA-MM): "Mês" é ele; 3/6/12 meses terminam nele; "Ano" é o ano dele.
- * "Tudo" vai do primeiro ao último lançamento (ou hoje); "Escolher datas" usa `livre`.
+ * "Semana" é a de `dia` (sem ele, a de hoje); "Tudo" vai do primeiro ao último lançamento (ou hoje); "Escolher datas"
+ * usa `livre`.
  */
-export function faixaDoPeriodo(id: PeriodoId, mes: string, lancs: LancPessoal[], hoje: string, livre?: Faixa): Faixa {
+export function faixaDoPeriodo(id: PeriodoId, mes: string, lancs: LancPessoal[], hoje: string, livre?: Faixa, dia?: string): Faixa {
   const p = PERIODOS_PESSOAIS.find((x) => x.id === id);
+  if (id === "semana") return faixaSemana(dia ?? hoje);
   if (id === "ano") return { de: `${mes.slice(0, 4)}-01-01`, ate: `${mes.slice(0, 4)}-12-31` };
   if (p?.meses) return { de: `${somarMesPessoal(mes, 1 - p.meses)}-01`, ate: fimDoMes(mes) };
   if (id === "pers" && livre?.de && livre?.ate) return livre.de <= livre.ate ? livre : { de: livre.ate, ate: livre.de };
