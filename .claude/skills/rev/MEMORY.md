@@ -20,7 +20,8 @@ com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 - MKT fez (27/10, commit a4e7d80): índice ml_historico_conta_id_idx (conferido no banco); na tela do Mercado Livre os produtos só baixam com a aba Marketplace aberta (as colunas ficaram, a auditoria da aba usa quase todas). ligarAnuncio e separarCompatibilidade esperam a usuária.
 - PRD fez (27/10, commit 7b2de6e): SELECT_LISTA_PRODUTOS (`src/lib/produtosLista.ts`, sem os textos longos) em GestaoPrecos, KitComponentes, CatalogoConfig e config/Catalogo; ImportarProdutos só id, id_externo e sku. Produtos.tsx fica com "*" (o formulário precisa dos textos). Passei a ele as linhas certas dos painéis (PainelProdutos:44, PainelMaquinas:52).
 - /estoque e /produtos/pecas abrem Peças à venda de propósito (pedido da usuária, segundo o PRD): achado 12 fechado, não é para juntar.
-- Falta responder: DSG.
+- DSG fez (27/10, commit 92c3b57): App.tsx usa a peça Carregando de ui.tsx.
+- Os nove chats responderam. Na próxima publicação do site vão: SEG (Monitor), CLI (clientes), TRA (FreteVenda), MKT, PRD e DSG.
 - Ainda não enviados: PRD (2 e 6), FIS, TRA e MKT (9), DSG (16).
 
 ## Esperando a usuária
