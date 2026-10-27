@@ -43,6 +43,9 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
   (19 e 20/10) primeiro. Consulta: `select left(id::text,8), grupo, pedido_em, item from pedidos_checklist
   where situacao='voce' order by pedido_em`.
 
+- Decisão que espera por ela (no resumo): "Pode publicar" no chat continuação (GER) do conserto da função
+  nfe-recebidas (o XML da nota de compra não ficava guardado; pedido a8d2634a).
+
 ## Próximos passos
 0. A partir de 28/10 08:40: resumo único da manhã (a tarefa agendada já tem o roteiro). Topo do resumo de 28/10
    (pedido do ELO, lista do FIS em 5827327): 1) 14 pedidos entregues sem nota (9 de outubro já pagos e 5 do Tiny,

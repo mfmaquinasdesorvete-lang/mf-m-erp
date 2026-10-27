@@ -15,7 +15,7 @@ Dinheiro
 
 Compras e custo
 9. 7f35a5e5 · Toda compra de peças com ordem de compra (valor divergente com marcador) · Compras
-10. a8d2634a · Só a compra à vista muda o custo · Compras
+10. (saiu em 27/10: a8d2634a voltou para "fazendo"; o GER espera o "Pode publicar" do conserto da nfe-recebidas)
 11. bd07864a · Ordem de compra anda sozinha (pago, nota, despacho) · Compras
 
 Nota fiscal
