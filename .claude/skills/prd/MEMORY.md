@@ -36,6 +36,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- Preço do PC-MEC-002 "Cubo + Separador do Cubo" (achado do MKT, 27/10): custa menos que o PC-MEC-018 "Separador do
+  Cubo" sozinho e não é kit (sem componentes). Saber se o nome está errado (só o cubo?) ou se o preço está errado.
 - Planilha de custo, peso, medidas e foto das peças que vendem (mandada em 24/10).
 - Planilha de custo dos 36 sem custo (26/10): usinadas = valor da tornearia de fora por peça (+ material se a MF
   fornece); compradas = custo por unidade. O Tiny não tem esse custo (backup zerado; API só com o login dela).
