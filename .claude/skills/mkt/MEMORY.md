@@ -25,6 +25,7 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
 - EAN do compressor 1/5 (a categoria exige); a Condensadora Arame precisa de outra categoria (caiu em peça de carro).
 - Foto nova do CLP: a logo My Frost está impressa no aparelho (as fotos do Canva têm a logo).
 - Prints de outras fotos com a logo, se ela achar (o Cachorrinho já foi trocado em 25/10).
+- Pôr 3 ou 4 fotos na galeria de uma peça para o teste real das várias fotos (loja e "Mandar fotos para os anúncios").
 - Contar os anéis do pistão dos kits de vedação (kits 7, 11 e 15).
 - Notas fiscais das vendas antigas do Mercado Livre sem NF (ela importa os XML).
 
