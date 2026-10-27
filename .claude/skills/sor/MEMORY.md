@@ -13,7 +13,9 @@ Nada de código novo deste chat esperando publicação.
 - Período das licenças com "Esta semana" e "Este mês"; a tela e o painel abrem em "Esta semana" (27/10).
 
 ## Em andamento
-- Nada parado no meio.
+- Marcas no INPI (27/10): aba "Marcas no INPI" na tela e seção no painel, com alerta de prazo (60 dias da RPI) e de
+  RPI sem conferir há mais de 7 dias. Código pronto; falta criar a tabela `licenciados_marcas` no banco (migração
+  20261101000180, a gravação pediu a aprovação dela), cadastrar as 2 marcas e publicar o site com o "Pode publicar".
 
 ## Esperando a usuária
 - Yozzy Natal: rascunho dos pagamentos que a dona mandou. Falta ela dizer se a linha "Loja 50 mil" é a soma das

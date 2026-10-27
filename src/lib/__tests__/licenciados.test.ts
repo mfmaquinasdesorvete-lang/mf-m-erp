@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  entradasCartao, entradasPessoais, faixaLic, lojaDoTexto, nomeNoExtrato, nomesComTermo, resumoLojas, serieMensalLojas, sugestoes,
+  alertaMarca, prazo60, entradasCartao, entradasPessoais, faixaLic, lojaDoTexto, nomeNoExtrato, nomesComTermo, resumoLojas, serieMensalLojas, sugestoes,
   type Loja, type PagamentoLoja,
 } from "../licenciados";
 import type { ContaPessoal, LancPessoal } from "../pessoal";
@@ -111,5 +111,20 @@ describe("resumo das lojas e série mensal", () => {
     expect(nomesComTermo(["FULANO"], "fulano")).toEqual(["FULANO"]);
     expect(nomesComTermo(["FULANO"], "M C A L")).toEqual(["FULANO", "M C A L"]);
     expect(nomesComTermo([], "ab")).toEqual([]);
+  });
+});
+
+describe("marcas no INPI", () => {
+  it("prazo de 60 dias corridos da publicação na RPI", () => {
+    expect(prazo60("2026-03-17")).toBe("2026-05-16");
+  });
+  it("alerta: prazo vencido, prazo perto, RPI sem conferir, nada", () => {
+    const base = { situacao: "exigencia" as const, conferida_em: "2026-10-26" };
+    expect(alertaMarca({ ...base, prazo_resposta: "2026-10-20" }, "2026-10-27")?.nivel).toBe("vencido");
+    expect(alertaMarca({ ...base, prazo_resposta: "2026-11-05" }, "2026-10-27")?.texto).toBe("faltam 9 dias para responder");
+    expect(alertaMarca({ ...base, prazo_resposta: "2027-01-10" }, "2026-10-27")).toBeNull();
+    expect(alertaMarca({ situacao: "exame", prazo_resposta: null, conferida_em: "2026-10-01" }, "2026-10-27")?.nivel).toBe("conferir");
+    expect(alertaMarca({ situacao: "exame", prazo_resposta: null, conferida_em: null }, "2026-10-27")?.nivel).toBe("conferir");
+    expect(alertaMarca({ situacao: "concedida", prazo_resposta: null, conferida_em: null }, "2026-10-27")).toBeNull();
   });
 });

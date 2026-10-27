@@ -320,3 +320,40 @@ export function noFiltroLoja(s: SituacaoLoja, f: FiltroLoja): boolean {
   if (f === "abrir") return s === "negociando" || s === "implantacao";
   return s === f;
 }
+
+// ── Marcas no INPI (pedido de 27/10): a situação de cada pedido de registro e os alertas. O INPI publica tudo na RPI,
+// toda terça; exigência, oposição e indeferimento dão 60 dias para responder. O INPI não manda boleto: a GRU sai só no site.
+export type SituacaoMarca = "deposito" | "oposicao" | "exame" | "exigencia" | "deferida" | "concedida" | "indeferida" | "recurso" | "arquivada";
+export type MarcaInpi = {
+  id: string; nome: string; marca: MarcaLoja; processo: string | null; classe: string | null; titular: string | null;
+  situacao: SituacaoMarca; publicada_em: string | null; fim_oposicao: string | null; ultimo_despacho: string | null;
+  despacho_em: string | null; prazo_resposta: string | null; conferida_em: string | null; observacoes: string | null;
+};
+export const SITUACOES_MARCA: { id: SituacaoMarca; nome: string }[] = [
+  { id: "deposito", nome: "Depositada" }, { id: "oposicao", nome: "No prazo de oposição" }, { id: "exame", nome: "Aguardando exame de mérito" },
+  { id: "exigencia", nome: "Exigência (responder)" }, { id: "deferida", nome: "Deferida" }, { id: "concedida", nome: "Concedida (certificado)" },
+  { id: "indeferida", nome: "Indeferida" }, { id: "recurso", nome: "Em recurso" }, { id: "arquivada", nome: "Arquivada" },
+];
+export const nomeSituacaoMarca = (s: string) => SITUACOES_MARCA.find((x) => x.id === s)?.nome ?? s;
+/** Dias para conferir a RPI de novo (ela sai toda terça). */
+export const DIAS_CONFERIR_RPI = 7;
+const diasEntre = (de: string, ate: string) => Math.round((Date.parse(`${ate}T00:00:00Z`) - Date.parse(`${de}T00:00:00Z`)) / 86_400_000);
+/** O alerta da marca hoje: prazo para responder (vencido ou em até 15 dias) vem primeiro; depois, RPI sem conferir há mais de 7 dias. */
+export function alertaMarca(m: Pick<MarcaInpi, "situacao" | "prazo_resposta" | "conferida_em">, hoje: string):
+  { nivel: "vencido" | "prazo" | "conferir"; texto: string } | null {
+  if (["concedida", "arquivada"].includes(m.situacao)) return null;
+  if (m.prazo_resposta) {
+    const d = diasEntre(hoje, m.prazo_resposta);
+    if (d < 0) return { nivel: "vencido", texto: `prazo para responder venceu há ${-d} ${-d === 1 ? "dia" : "dias"}` };
+    if (d <= 15) return { nivel: "prazo", texto: d === 0 ? "prazo para responder vence hoje" : `faltam ${d} ${d === 1 ? "dia" : "dias"} para responder` };
+  }
+  if (!m.conferida_em) return { nivel: "conferir", texto: "conferir a RPI (nunca conferida)" };
+  const sem = diasEntre(m.conferida_em, hoje);
+  if (sem > DIAS_CONFERIR_RPI) return { nivel: "conferir", texto: `conferir a RPI (última vez há ${sem} dias)` };
+  return null;
+}
+/** Prazo de 60 dias corridos contados da publicação na RPI (exigência, oposição, indeferimento). */
+export function prazo60(publicacao: string): string {
+  const [a, m, d] = publicacao.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + 60)).toISOString().slice(0, 10);
+}

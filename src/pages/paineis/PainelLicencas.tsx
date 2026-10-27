@@ -3,7 +3,7 @@
 // MF ≠ My Frost: estes números não entram nos painéis, no DRE nem no contador da MF; aqui é só leitura da carteira.
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, IceCreamCone, Receipt, Store, Wallet } from "lucide-react";
+import { AlertTriangle, BadgeCheck, IceCreamCone, Receipt, Store, Wallet } from "lucide-react";
 import { Section } from "@/components/ui";
 import { Secoes } from "@/components/Secoes";
 import { Colunas, Ranking } from "@/components/Charts";
@@ -11,8 +11,8 @@ import { CabecalhoPainel, CartaoPainel, type Cartao } from "@/components/painel/
 import { useRows } from "@/lib/data";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import {
-  faixaLic, nomeModelo, nomeSituacao, PERIODOS_LIC, resumoLojas, serieMensalLojas, valePagamento,
-  type Loja, type MaquinaLoja, type PagamentoLoja, type PeriodoLic,
+  alertaMarca, faixaLic, nomeModelo, nomeSituacao, nomeSituacaoMarca, PERIODOS_LIC, resumoLojas, serieMensalLojas, valePagamento,
+  type Loja, type MaquinaLoja, type MarcaInpi, type PagamentoLoja, type PeriodoLic,
 } from "@/lib/licenciados";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -27,6 +27,7 @@ export default function PainelLicencas() {
   const { data: lojas = [] } = useRows<Loja>("licenciados_lojas", { order: "ordem", ascending: true });
   const { data: pagamentos = [] } = useRows<PagamentoLoja>("licenciados_pagamentos", { order: "data", ascending: false });
   const { data: maquinas = [] } = useRows<MaquinaLoja>("licenciados_maquinas", { order: "data_compra", ascending: false });
+  const { data: marcas = [] } = useRows<MarcaInpi>("licenciados_marcas", { order: "nome", ascending: true });
   const [periodo, setPeriodo] = useState<PeriodoLic>("semana");
 
   const dia = hoje();
@@ -63,7 +64,7 @@ export default function PainelLicencas() {
       <CabecalhoPainel icone={IceCreamCone} area="My Frost Sorveterias" titulo="Licenças My Frost"
         resumo="Unidades licenciadas, quanto cada licença combinou e pagou, o que falta e as máquinas nas unidades. Separado da MF: não entra no DRE nem no contador."
         acoes={
-          <div role="tablist" aria-label="Período" className="grid grid-cols-4 gap-0.5 rounded-xl bg-black/15 p-1 ring-1 ring-white/15">
+          <div role="tablist" aria-label="Período" className="grid grid-cols-3 gap-0.5 rounded-xl sm:grid-cols-6 bg-black/15 p-1 ring-1 ring-white/15">
             {PERIODOS_LIC.map((p) => (
               <button key={p.id} type="button" role="tab" aria-selected={periodo === p.id} onClick={() => setPeriodo(p.id)}
                 className={`min-h-[36px] whitespace-nowrap rounded-lg px-2.5 text-xs font-bold transition ${periodo === p.id ? "bg-white text-modulo-texto shadow" : "text-white/85 hover:bg-white/10"}`}>
@@ -136,6 +137,29 @@ export default function PainelLicencas() {
                     </span>
                   </li>
                 ))}
+              </ul>
+            )}
+          </Section>
+        ) },
+        { id: "marcas", titulo: "Marcas no INPI", conteudo: (
+          <Section title="Marcas no INPI" className="h-full" actions={<span className="text-xs text-slate-500">a RPI sai toda terça</span>}>
+            {!marcas.length ? <p className="py-6 text-center text-sm text-slate-500">Nenhuma marca cadastrada.</p> : (
+              <ul className="space-y-2">
+                {marcas.filter((m) => m.situacao !== "arquivada").map((m) => {
+                  const a = alertaMarca(m, dia);
+                  return (
+                    <li key={m.id}>
+                      <button type="button" onClick={() => navigate("/licenciados?aba=marcas")}
+                        className={`linha-clicavel flex w-full items-start gap-2 rounded-xl border p-2.5 text-left text-sm ${a ? (a.nivel === "conferir" ? "border-amber-200 bg-amber-50 text-amber-900" : "border-red-200 bg-red-50 text-red-800") : "border-slate-200"}`}>
+                        {a ? <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden /> : <BadgeCheck size={16} className="mt-0.5 shrink-0 text-emerald-700" aria-hidden />}
+                        <span className="min-w-0">
+                          <b className="text-fg">{m.nome}</b>
+                          <span className="block text-xs">{[nomeSituacaoMarca(m.situacao), a?.texto ?? "em dia"].join(" · ")}</span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </Section>

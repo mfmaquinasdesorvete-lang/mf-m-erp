@@ -14,6 +14,7 @@ import { useAparencia } from "@/lib/aparencia";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import type { Equipamento } from "@/lib/types";
 import { CustosAba, FichaUnidade, MaquinasAba, UnidadesLista } from "@/components/licenciados/Unidades";
+import { MarcasAba } from "@/components/licenciados/Marcas";
 import { confirmar } from "@/components/Dialogos";
 import { Colunas, Ranking } from "@/components/Charts";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -42,7 +43,7 @@ const NENHUM = "00000000-0000-0000-0000-000000000000";
 // rosa e turquesa da marca My Frost (fundo forte, letra branca: iguais nos dois temas)
 const ROSA = "#c2185b", TURQUESA = "#67e8e2";
 const nomeProprio = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
-type Aba = "unidades" | "custos" | "maquinas" | "pagamentos" | "quiosques";
+type Aba = "unidades" | "custos" | "maquinas" | "pagamentos" | "quiosques" | "marcas";
 // montagem dos quiosques (MDF, tinta, ferragens): era a aba Quiosques de Gastos separados, no Financeiro
 const GastosQuiosques = lazy(() => import("./GastosQuiosques"));
 
@@ -72,7 +73,7 @@ export default function Licenciados() {
     key: ["licenciados-extrato", idsInfinite.join()],
   });
 
-  const [aba, setAba] = useAbaUrl<Aba>("unidades", ["unidades", "custos", "maquinas", "pagamentos", "quiosques"]);
+  const [aba, setAba] = useAbaUrl<Aba>("unidades", ["unidades", "custos", "maquinas", "pagamentos", "quiosques", "marcas"]);
   const [ficha, setFicha] = useState<string | null>(null);
   const [periodo, setPeriodo] = useState<PeriodoLic>("semana");
   const [lojaSel, setLojaSel] = useState("");
@@ -258,12 +259,13 @@ export default function Licenciados() {
       <Tabs<Aba> value={aba} onChange={setAba} options={[
         { value: "unidades", label: `Unidades · ${lojas.length}` }, { value: "custos", label: "Custos de montar" },
         { value: "maquinas", label: "Máquinas" }, { value: "pagamentos", label: lista.length ? `Pagamentos · ${lista.length} para conferir` : "Pagamentos" },
-        { value: "quiosques", label: "Quiosques" },
+        { value: "quiosques", label: "Quiosques" }, { value: "marcas", label: "Marcas no INPI" },
       ]} />
 
       {aba === "unidades" && (isLoading ? <p className="text-sm text-slate-500">Carregando…</p> : <UnidadesLista dados={dados} onAbrir={(l) => setFicha(l.id)} onEditar={(l) => setEditLoja({ loja: l })} onNova={() => setEditLoja({ loja: novaLoja() })} />)}
       {aba === "custos" && <CustosAba dados={dados} onAbrir={(l) => setFicha(l.id)} />}
       {aba === "maquinas" && <MaquinasAba dados={dados} onAbrir={(l) => setFicha(l.id)} />}
+      {aba === "marcas" && <MarcasAba />}
       {aba === "quiosques" && (
         <Suspense fallback={<p className="text-sm text-slate-500">Carregando…</p>}>
           <p className="mb-3 text-sm text-slate-500">Montagem dos quiosques: MDF, fitas de borda, tinta e ferragens das notas com o marcador Quiosques, e os pagamentos dessas lojas nos extratos.</p>
