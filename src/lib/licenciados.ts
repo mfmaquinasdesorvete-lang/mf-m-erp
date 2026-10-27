@@ -3,6 +3,7 @@
 // DRE, na conciliação ou nos painéis da MF. Os pagamentos vêm das entradas altas dos extratos pessoais e das vendas
 // altas no cartão das InfinitePay (sugestões que a pessoa confere e liga à loja) ou são lançados à mão.
 import { daEmpresa, type ContaPessoal, type Empresa, type LancPessoal } from "./pessoal";
+import { periodoDoAtalho } from "./filtroNotas";
 
 export type SituacaoLoja = "negociando" | "implantacao" | "ativa" | "fechando" | "pausada" | "encerrada" | "mudou";
 export type ModeloLoja = "quiosque" | "loja" | "loja_cafeteria";
@@ -284,11 +285,13 @@ export function serieMensalLojas(pagamentos: PagamentoLoja[], ateMes: string, n 
   });
 }
 
-export type PeriodoLic = "12m" | "ano" | "anterior" | "tudo";
+export type PeriodoLic = "semana" | "mes" | "12m" | "ano" | "anterior" | "tudo";
 export const PERIODOS_LIC: { id: PeriodoLic; rotulo: string }[] = [
-  { id: "12m", rotulo: "12 meses" }, { id: "ano", rotulo: "Este ano" }, { id: "anterior", rotulo: "Ano passado" }, { id: "tudo", rotulo: "Tudo" },
+  { id: "semana", rotulo: "Esta semana" }, { id: "mes", rotulo: "Este mês" }, { id: "12m", rotulo: "12 meses" }, { id: "ano", rotulo: "Este ano" }, { id: "anterior", rotulo: "Ano passado" }, { id: "tudo", rotulo: "Tudo" },
 ];
 export function faixaLic(id: PeriodoLic, hoje: string): { de: string; ate: string } {
+  if (id === "semana") return periodoDoAtalho("semana", hoje);
+  if (id === "mes") return periodoDoAtalho("mes", hoje);
   const ano = Number(hoje.slice(0, 4));
   if (id === "ano") return { de: `${ano}-01-01`, ate: `${ano}-12-31` };
   if (id === "anterior") return { de: `${ano - 1}-01-01`, ate: `${ano - 1}-12-31` };

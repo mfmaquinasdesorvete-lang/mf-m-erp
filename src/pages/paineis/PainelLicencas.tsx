@@ -27,7 +27,7 @@ export default function PainelLicencas() {
   const { data: lojas = [] } = useRows<Loja>("licenciados_lojas", { order: "ordem", ascending: true });
   const { data: pagamentos = [] } = useRows<PagamentoLoja>("licenciados_pagamentos", { order: "data", ascending: false });
   const { data: maquinas = [] } = useRows<MaquinaLoja>("licenciados_maquinas", { order: "data_compra", ascending: false });
-  const [periodo, setPeriodo] = useState<PeriodoLic>("12m");
+  const [periodo, setPeriodo] = useState<PeriodoLic>("semana");
 
   const dia = hoje();
   const faixa = faixaLic(periodo, dia);

@@ -106,6 +106,8 @@ describe("resumo das lojas e série mensal", () => {
   it("períodos e termos guardados na loja", () => {
     expect(faixaLic("12m", "2026-10-18")).toEqual({ de: "2025-11-01", ate: "2026-10-18" });
     expect(faixaLic("anterior", "2026-10-18")).toEqual({ de: "2025-01-01", ate: "2025-12-31" });
+    expect(faixaLic("semana", "2026-10-28")).toEqual({ de: "2026-10-26", ate: "2026-11-01" });
+    expect(faixaLic("mes", "2026-10-28")).toEqual({ de: "2026-10-01", ate: "2026-10-28" });
     expect(nomesComTermo(["FULANO"], "fulano")).toEqual(["FULANO"]);
     expect(nomesComTermo(["FULANO"], "M C A L")).toEqual(["FULANO", "M C A L"]);
     expect(nomesComTermo([], "ab")).toEqual([]);

@@ -74,7 +74,7 @@ export default function Licenciados() {
 
   const [aba, setAba] = useAbaUrl<Aba>("unidades", ["unidades", "custos", "maquinas", "pagamentos", "quiosques"]);
   const [ficha, setFicha] = useState<string | null>(null);
-  const [periodo, setPeriodo] = useState<PeriodoLic>("12m");
+  const [periodo, setPeriodo] = useState<PeriodoLic>("semana");
   const [lojaSel, setLojaSel] = useState("");
   const [minimo, setMinimo] = useState(1000);
   const [busca, setBusca] = useState("");

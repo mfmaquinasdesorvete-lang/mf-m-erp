@@ -1,5 +1,5 @@
 # MEMORY — SOR (ERP Line – My Frost Sorveterias e Yozzy)
-Atualizado em 25/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 A tela das sorveterias está no ar e as lojas estão cadastradas (My Frost e Yozzy).
@@ -10,6 +10,7 @@ Nada de código novo deste chat esperando publicação.
 - Tela das sorveterias (botão rosa, só a conta master), unidades com contrato, máquinas, custos e pagamentos (#332).
 - Marca myfrost/yozzy e sócios por unidade (migração `20261101000066_licenciados_marca_socios.sql`).
 - Painel das licenças (só leitura).
+- Período das licenças com "Esta semana" e "Este mês"; a tela e o painel abrem em "Esta semana" (27/10).
 
 ## Em andamento
 - Nada parado no meio.
@@ -30,6 +31,7 @@ Nada de código novo deste chat esperando publicação.
 - As vendas no cartão de junho na Infinite SP são licença da Yozzy Natal.
 - Os repasses da loja de Paulínia que caíram na conta do filho dela (quando a loja era dela) não se ligam à loja.
 - Funcionários das lojas My Frost e Yozzy ficam com o SOR; os da MF com o FUN (23/10).
+- Toda tela com filtro de período abre em "Esta semana"; ela troca na hora (27/10).
 
 ## Onde está
 - Telas: `src/pages/Licenciados.tsx`, `src/components/licenciados/Unidades.tsx`, `src/pages/paineis/PainelLicencas.tsx`.
