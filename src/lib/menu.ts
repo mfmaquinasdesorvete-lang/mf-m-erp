@@ -220,11 +220,20 @@ export function soDaMaster(tela: Tela, to?: string) {
   return tela === "configuracoes" && !(to && LIVRES_FORA_DA_RETAGUARDA.includes(to));
 }
 
+/**
+ * O resto da Retaguarda (auditoria, bancos e integrações, importar dados): entre os administradores, só a master abre
+ * (pedido de 27/10). Quem tem o papel do dia a dia (financeiro com a auditoria e os bancos) continua abrindo.
+ */
+export const RETAGUARDA_SO_MASTER_ENTRE_ADMINS = ["/auditoria", "/configuracoes/bancos", "/importar"];
+export function soDaMasterParaAdmin(papel: string, to?: string) {
+  return papel === "admin" && !!to && RETAGUARDA_SO_MASTER_ENTRE_ADMINS.includes(to);
+}
+
 export function useVisivel() {
   const { papel, papeis_extras, master } = usePerfil();
   const { data: cfg } = useConfig();
   const oculto = (cfg?.menu_oculto ?? {}) as MenuOculto;
-  const ve = (tela: Tela, to?: string) => (master || !soDaMaster(tela, to))
+  const ve = (tela: Tela, to?: string) => (master || (!soDaMaster(tela, to) && !soDaMasterParaAdmin(papel, to)))
     && itemVisivel(papel, papeis_extras, tela, to && todosItens.some((i) => i.to === to) ? to : undefined, oculto);
   return { ve, item: (i: { tela: Tela; to: string }) => ve(i.tela, i.to) };
 }
