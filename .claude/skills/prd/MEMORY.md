@@ -27,7 +27,10 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 
 ## Em andamento
 - Rodada de fechamento (27/10): nada novo sem pedido dela; "feito" só depois de testar no ERP no ar.
-- Painéis Produtos e Máquinas com a lista leve (da7570c): entram na próxima publicação do site; depois, marcar feito.
+- Painéis Produtos e Máquinas com a lista leve (da7570c) e avisos do Painel de Produtos abrindo no problema (7896712):
+  entram na próxima publicação do site; depois, marcar feito os dois pedidos (lista leve e ee0a3b61).
+- 27/10: os pedidos antigos do assunto foram testados (select e site publicado) a pedido do CNF; o site do ERP não abre
+  daqui, então teste de tela com clique fica com a usuária.
 - Variações (produto pai e variações): tela no ar (3b69c49) e campos no banco (20261025021635 e 20261025021646).
   A regra fica na tela (erroVariacao em src/lib/variacoes.ts); o gatilho 20261101000140 não foi aplicado (trava).
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
