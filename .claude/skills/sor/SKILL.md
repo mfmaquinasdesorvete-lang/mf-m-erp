@@ -54,3 +54,6 @@ Cuido das lojas My Frost Sorveterias (licenciadas e próprias) e das Yozzy, semp
 - A marca é `myfrost` ou `yozzy`; unidade com "Yozzy" no nome fica marcada yozzy.
 - Sócios: no máximo 12 por unidade (regra do banco).
 - O painel das licenças é só leitura da carteira das lojas.
+- Marcador Quiosques nas notas de entrada: o gatilho `nfe_recebida_marcar_quiosque` marca sozinho toda nota nova de um
+  fornecedor que já tenha uma nota com esse marcador. Não marcar nota de fornecedor de peças (ex.: refrigeração) só por
+  um item de quiosque, senão as notas de peças dele passam a cair nos quiosques.

@@ -23,6 +23,8 @@ Nada de código novo deste chat esperando publicação.
 - 5 pagamentos de licença sem loja.
 - Máquinas pelo PDF (garantia de 2 anos e preventivas) e máquinas das lojas no painel com aviso de preventiva.
 - Endereço da Piracicaba 02; CEP de Americana e Campinas.
+- Freezers dos quiosques: 4 freezers verticais numa nota do fornecedor de refrigeração (abr/2026), sem marcador. Ela diz
+  se entram no custo dos quiosques (lançar como custo da loja, sem pôr o marcador na nota).
 - Plano fiscal das sorveterias (#332, veio do FIS): ainda não começou.
 
 ## Decisões da usuária
