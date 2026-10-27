@@ -1,5 +1,5 @@
 # MEMORY — TRA (ERP Line – Transportadoras)
-Atualizado em 26/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 A cotação de frete (equipe e loja) está no ar e já cota pelo Mercado Envios (conta do Mercado Livre da MF).
@@ -18,7 +18,9 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
 - Aba CT-e mais clara (26/10, b50d074): cartão do frete pago do mês, "O que fazer", faturas por transportadora, abas em 3 grupos.
 
 ## Em andamento
-- Nada sendo programado agora.
+- Rodada de fechamento (desde 27/10): nada novo sem pedido dela; só terminar, consertar e testar.
+- Pronto e não publicado: frete do pedido (FreteVenda) baixa só peso e medidas dos produtos do pedido (dabb127).
+  Vai ao ar na próxima publicação do site que ela autorizar.
 
 ## Esperando a usuária
 - Mandar os 6 rascunhos do Gmail pedindo a tabela de frete atualizada (São Miguel, Rodonaves, Braspress, Aceville,
@@ -26,6 +28,7 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
 - Rodonaves: o acesso cadastrado é recusado ("login ou senha inválidos"); pedir o usuário da API, não o do site.
 - Braspress: o acesso de API antigo é de outro CNPJ; pedir um para o CNPJ da MF e cadastrar nos secrets.
 - Melhor Envio: cadastrar o token nos secrets, se for usar.
+- Depois de cada acesso cadastrado: clicar em "Testar conexão" no cadastro da transportadora; aí eu testo uma cotação real.
 
 ## Decisões da usuária
 - Correios só pelo Melhor Envio (não há contrato direto).
