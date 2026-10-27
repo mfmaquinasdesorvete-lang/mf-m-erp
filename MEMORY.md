@@ -8,7 +8,7 @@ Atualizado em 25/10/2026 pelo ELO.
 
 ## O que é
 - ERP da MF Máquinas, fábrica de máquinas de sorvete com assistência técnica. Ela tem duas unidades, SC (matriz e
-  fábrica) e SP (filial), e é do Lucro Real. O ERP está substituindo o Tiny.
+  fábrica) e SP (filial), e é do Lucro Real. O ERP substituiu o Tiny (desde 28/09/2026).
 - **MF ≠ My Frost.** A My Frost é a empresa anterior: os dados dela ficam separados e aparecem com tarja ou aviso. As
   lojas My Frost Sorveterias e Yozzy são outro assunto (SOR).
 
@@ -53,6 +53,8 @@ Atualizado em 25/10/2026 pelo ELO.
   catálogo fica em `supabase/functions/_shared/ajustes.ts`. Valor fixo novo no código deve usar essa base.
 - O nome das pessoas no ERP é o do cadastro. Nome antigo que chega do Tiny ou do banco não é copiado para cadastros
   nem descrições. O texto original do extrato e da nota fica como veio, porque a conciliação depende dele.
+- O Tiny não é mais usado desde 28/09/2026 (confirmado por ela em 27/10): toda venda e nota nova é só no ERP. Do Tiny
+  só se trazem dados antigos; depois do backup final, ela decide quando cancelar a assinatura.
 - WordPress não serve para o ERP. Pode servir no futuro só para o site institucional ou o blog.
 - Telas com filtro de período abrem em "Esta semana" (pedido nas Aprovações e nas notas emitidas, 27/10). Vale
   para tela nova e para a tela que o chat dono mexer; a pessoa pode trocar o período na hora.
