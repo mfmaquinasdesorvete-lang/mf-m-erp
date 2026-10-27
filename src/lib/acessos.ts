@@ -47,9 +47,6 @@ export function minutosParado(a: Pick<Acesso, "entrou_em" | "ultimo_sinal_em" | 
   return Math.max(0, Math.min(Number(a.minutos_inativo ?? 0), total));
 }
 
-/** Como a entrada terminou: "saiu" (apertou Sair) ou "fechou" (fechou a tela ou ficou sem sinal). */
-export const comoSaiu = (a: Pick<Acesso, "saiu_em">) => (a.saiu_em ? "saiu" : "fechou");
-
 const BRASILIA = { timeZone: "America/Sao_Paulo" } as const;
 const diaBr = (d: Date) => d.toLocaleDateString("pt-BR", BRASILIA);
 

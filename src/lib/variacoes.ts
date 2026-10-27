@@ -13,13 +13,6 @@ export function variacoesPorPai<T extends ProdutoVariacao>(produtos: T[]): Map<s
   return m;
 }
 
-/** Nome completo da variação para pedido, nota e anúncio: "Kit de Borrachas O-Rings - 3 Sabores". */
-export function nomeComVariacao(pai: Pick<ProdutoVariacao, "descricao"> | undefined, filho: Pick<ProdutoVariacao, "descricao" | "variacao">): string {
-  const v = (filho.variacao ?? "").trim();
-  if (!pai || !v) return filho.descricao;
-  return filho.descricao.toLowerCase().includes(v.toLowerCase()) ? filho.descricao : `${pai.descricao} - ${v}`;
-}
-
 /** Erro no cadastro da variação (vazio = está certo): não pode ser variação de si mesma, o pai tem de ser um produto
  *  pai, e o produto pai não pode ser variação de outro. */
 export function erroVariacao(r: Pick<ProdutoVariacao, "id" | "agrupador" | "produto_pai_id">, produtos: ProdutoVariacao[]): string {

@@ -40,8 +40,6 @@ export function filtrarDecisao<T extends ContaDecisao>(l: T[], f: FiltroDecisao,
   return l.filter((c) => c.status === "aberto" && c.decisao === "nao_pagar");
 }
 
-/** Por que não pagar: o motivo do bloqueio do fornecedor (golpe) ou o que quem decidiu escreveu. */
-export const motivoNaoPagar = (c: ContaDecisao) => (c.fornecedor?.bloqueado ? c.fornecedor.bloqueio_motivo : c.decisao_motivo) ?? null;
 
 /** Rótulo curto da decisão para mostrar na lista. */
 export function rotuloDecisao(c: ContaDecisao, hoje: string): { texto: string; tom: Tom; dica: string } | null {
@@ -183,10 +181,6 @@ export function situacaoPagar(c: ContaLista, hoje: string): { texto: string; tom
 // Quadro (Kanban): uma coluna por passo. Arrastar para outra coluna faz a ação que a coluna pede, com as mesmas
 // travas da lista (aprovação, golpe, motivo do "não pagar"); "atrasadas" não recebe conta (é o dia que passou).
 
-/** nomes antigos (o quadro e os testes usavam "coluna") */
-export type ColunaPagar = PassoPagar;
-export const COLUNAS_PAGAR = PASSOS_PAGAR;
-export const colunaPagar = passoPagar;
 
 export type AcaoArrastar = "limpar" | "pagar_hoje" | "agendar" | "nao_pagar" | "registrar";
 /** O que acontece ao soltar a conta na coluna: a ação, ou o motivo de não poder (null = mesma coluna, nada a fazer). */

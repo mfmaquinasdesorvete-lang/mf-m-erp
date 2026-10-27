@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  agruparRegioes, aplicarAumento, chaveRegiao, chaveUf, diasUteis, diasUteisDoMes, ehDiaUtil, ehFeriado, faixa, faltaPorDia, fimDoMes, hojeBrasil,
+  agruparRegioes, chaveRegiao, chaveUf, diasUteis, diasUteisDoMes, ehDiaUtil, ehFeriado, faixa, faltaPorDia, fimDoMes, hojeBrasil,
   lerChaveRegiao, lerNumero, mesesAte, normalizarLinhas, pctAtingido, planilhaMetas, projecao, rankingVendedores, regiaoDaUf,
   resumoMeta, rotuloRegiao, serieMetas, somarMeses, UFS, variacao, type LinhaApuracao,
 } from "../metas";
@@ -126,12 +126,6 @@ describe("campos e cópia de metas", () => {
     expect(lerNumero("1.5")).toBe(1.5);
     expect(lerNumero("")).toBeNull();
     expect(lerNumero("abc")).toBeNaN();
-  });
-  it("aplica o aumento: valor com centavos, máquinas arredondadas", () => {
-    expect(aplicarAumento(10000, 10)).toBe(11000);
-    expect(aplicarAumento(3333.33, 5)).toBe(3500);
-    expect(aplicarAumento(5, 10, true)).toBe(6);
-    expect(aplicarAumento(3, 10, true)).toBe(3);
   });
 });
 

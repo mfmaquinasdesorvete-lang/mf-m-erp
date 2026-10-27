@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bicosDoModelo, lerSerieMF, proximaPreventiva6m, serieMF } from "../serieMaquina";
+import { bicosDoModelo, proximaPreventiva6m, serieMF } from "../serieMaquina";
 
 describe("nº de série MF", () => {
   it("monta pelo exemplo: Top 300, NF 72315 de outubro/2023", () => {
@@ -12,9 +12,7 @@ describe("nº de série MF", () => {
     expect(bicosDoModelo("Máquina Expressa MF-150 Balcão")).toBe(1);
     expect(bicosDoModelo("Peça qualquer")).toBeNull();
   });
-  it("lê a série de volta e recusa o que não segue a regra", () => {
-    expect(lerSerieMF("031023315")).toEqual({ bicos: 3, mes: 10, ano: 2023, finalNF: "315" });
-    expect(lerSerieMF("031325315")).toBeNull();
+  it("recusa a série sem data", () => {
     expect(serieMF(3, null, 1)).toBeNull();
   });
   it("preventiva de 6 em 6 meses a partir da compra", () => {

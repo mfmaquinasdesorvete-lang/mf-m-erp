@@ -222,7 +222,6 @@ export function montarEtiqueta(f: FonteEtiqueta, modelo: ModeloEtiqueta = MODELO
 // Edição: só os campos que a pessoa mudou ficam guardados por cima. O resto continua vindo do ERP,
 // então o rastreio ou a NF-e que chegam depois aparecem na próxima impressão.
 // ---------------------------------------------------------------------
-export const CAMPOS_GRUPO = ["remetente", "destinatario", "nota"] as const;
 
 export function lerCampo(d: EtiquetaDados, caminho: string): unknown {
   const [a, b] = caminho.split(".");

@@ -175,12 +175,6 @@ export function lerNumero(txt: string | number | null | undefined): number | nul
 /** Número para o campo de digitação: 1234.5 → "1234,5". */
 export const numeroCampo = (v: number | null | undefined) => (v == null ? "" : String(v).replace(".", ","));
 
-/** Meta com o aumento (copiar do mês anterior): R$ com centavos; máquinas arredondadas. */
-export function aplicarAumento(valor: number, pct: number, inteiro = false) {
-  const v = valor * (1 + pct / 100);
-  return inteiro ? Math.round(v) : r2(v);
-}
-
 /* ------------------------- Linhas da apuração ------------------------- */
 
 /** Uma linha de metas_apuracao (empresa, vendedor, estado "UF:XX" ou região "REG:Nome"). */

@@ -70,19 +70,6 @@ export function saldoConta(c: ContaPessoal, lancs: LancPessoal[], ate?: string):
   return Math.round((Number(c.saldo_inicial) + s) * 100) / 100;
 }
 
-/** Entradas, saídas e saídas por categoria do mês (AAAA-MM), sem as transferências entre as próprias contas. */
-export function resumoMes(lancs: LancPessoal[], mes: string) {
-  const doMes = lancs.filter((l) => vale(l) && l.data.startsWith(mes) && l.categoria !== "Transferências" && l.categoria !== "Cartão (fatura)");
-  const entrou = doMes.filter((l) => l.valor > 0).reduce((t, l) => t + Number(l.valor), 0);
-  const saiu = -doMes.filter((l) => l.valor < 0).reduce((t, l) => t + Number(l.valor), 0);
-  const porCategoria = new Map<string, number>();
-  for (const l of doMes) if (l.valor < 0) porCategoria.set(l.categoria ?? "Outros", (porCategoria.get(l.categoria ?? "Outros") ?? 0) - Number(l.valor));
-  return {
-    entrou: Math.round(entrou * 100) / 100, saiu: Math.round(saiu * 100) / 100,
-    categorias: [...porCategoria].map(([nome, valor]) => ({ nome, valor: Math.round(valor * 100) / 100 })).sort((a, b) => b.valor - a.valor),
-  };
-}
-
 /** Previstos (contas a pagar e a receber pessoais) a partir de hoje, do mais perto ao mais longe. */
 export const proximos = (lancs: LancPessoal[], hoje: string) =>
   lancs.filter((l) => !l.anulado && l.situacao === "previsto" && l.data >= hoje).sort((a, b) => a.data.localeCompare(b.data));

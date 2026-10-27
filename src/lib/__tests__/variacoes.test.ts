@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { erroVariacao, nomeComVariacao, opcoesPai, variacoesPorPai } from "../variacoes";
+import { erroVariacao, opcoesPai, variacoesPorPai } from "../variacoes";
 
 const pai = { id: "p", descricao: "Kit de Borrachas O-Rings", agrupador: true };
 const lista = [pai,
@@ -10,10 +10,6 @@ const lista = [pai,
 describe("variações", () => {
   it("agrupa as variações ativas do pai, em ordem", () => {
     expect(variacoesPorPai(lista).get("p")?.map((x) => x.id)).toEqual(["b", "a"]);
-  });
-  it("monta o nome completo sem repetir a variação", () => {
-    expect(nomeComVariacao(pai, { descricao: "Kit de Borrachas O-Rings - 3 Sabores", variacao: "3 Sabores" })).toBe("Kit de Borrachas O-Rings - 3 Sabores");
-    expect(nomeComVariacao(pai, { descricao: "Kit O-Rings", variacao: "A 200" })).toBe("Kit de Borrachas O-Rings - A 200");
   });
   it("só produto pai ativo vira opção", () => {
     expect(opcoesPai(lista)).toEqual([{ value: "p", label: "Kit de Borrachas O-Rings" }]);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  acertarSaldo, categoriaDe, daEmpresa, faixaAnterior, faixaDoPeriodo, proximos, recebidosDaEmpresa, resumoMes, resumoPeriodo, saldoConta, serieMensal, serieSaldo, ultimoLancamento,
+  acertarSaldo, categoriaDe, daEmpresa, faixaAnterior, faixaDoPeriodo, proximos, recebidosDaEmpresa, resumoPeriodo, saldoConta, serieMensal, serieSaldo, ultimoLancamento,
   type ContaPessoal, type LancPessoal,
 } from "../pessoal";
 
@@ -21,14 +21,6 @@ describe("painel pessoal", () => {
     const lancs = [l({ valor: -100 }), l({ valor: 50, data: "2026-09-30" }), l({ valor: -30, situacao: "previsto" }), l({ valor: -40, anulado: true }), l({ valor: 200, data: "2026-10-10" })];
     expect(saldoConta(conta, lancs)).toBe(1100);
     expect(saldoConta(conta, lancs, "2026-10-06")).toBe(900);
-  });
-
-  it("resumo do mês sem transferências entre as próprias contas e fatura do cartão", () => {
-    const r = resumoMes([l({ valor: 5000, categoria: "Salário e pró-labore" }), l({ valor: -300, categoria: "Mercado" }), l({ valor: -100, categoria: "Mercado" }),
-      l({ valor: -80, categoria: "Saúde" }), l({ valor: -1000, categoria: "Transferências" }), l({ valor: -900, categoria: "Cartão (fatura)" }), l({ valor: -50, data: "2026-09-01" })], "2026-10");
-    expect(r.entrou).toBe(5000);
-    expect(r.saiu).toBe(480);
-    expect(r.categorias[0]).toEqual({ nome: "Mercado", valor: 400 });
   });
 
   it("próximos: só previstos de hoje em diante, em ordem", () => {

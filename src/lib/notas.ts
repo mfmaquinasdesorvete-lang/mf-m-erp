@@ -1,5 +1,5 @@
 // Situação das notas fiscais com ícone, cor e texto (a cor nunca vem sozinha), e as abas das listas.
-import { Ban, CircleCheck, CircleX, Clock, FlaskConical, Hourglass, LoaderCircle, PackageSearch, TriangleAlert, Truck, Undo2, type LucideIcon } from "lucide-react";
+import { Ban, CircleCheck, CircleX, Clock, Hourglass, LoaderCircle, PackageSearch, TriangleAlert, Truck, type LucideIcon } from "lucide-react";
 
 export type Situacao = { chave: string; rotulo: string; Icone: LucideIcon; cor: string };
 
@@ -37,8 +37,6 @@ export function situacaoRecebida(n: { situacao: string; processamento: string; c
   }
 }
 
-export const IconeTeste = FlaskConical;
-export const IconeDevolucao = Undo2;
 
 /** Abas da lista de emitidas (como no Tiny), com o filtro de cada uma. */
 export const ABAS_EMITIDAS: { valor: string; rotulo: string; filtro: (n: NotaEmitidaBase) => boolean }[] = [

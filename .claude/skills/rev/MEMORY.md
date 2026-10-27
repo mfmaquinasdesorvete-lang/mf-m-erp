@@ -28,11 +28,12 @@ com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 
 ## Esperando a usuária
 - Rodar no SQL Editor a parte 2 de `20261101000081_banco_mais_rapido.sql` (3 `drop index` repetidos).
-- Confirmar se apaga: tabela `tmp_oc_plano_2310`, `KanbanPagar.tsx` e as funções exportadas sem uso (achados 9 a 11).
-- Decidir a área do item Produção (as duas rotas da mesma tela são pedido dela, segundo o PRD).
+- Rodar no SQL Editor: `drop table if exists public.tmp_oc_plano_2310;` (ela autorizou apagar em 27/10; pelo MCP o drop trava).
 
 ## Decisões da usuária
 - Apagar o que está morto só com a confirmação dela.
+- 27/10: autorizou apagar o que a auditoria achou sem uso. Apagados: KanbanPagar.tsx, BotaoFiltros e PainelFiltros, grupoInfo, notifyDesfazer, motivoNaoPagar, COLUNAS_PAGAR/colunaPagar, IconeTeste/IconeDevolucao, CAMPOS_GRUPO, embedVideo, comoSaiu, aplicarAumento, atendimentosMyFrost (e TIPOS_ATENDIMENTO), resumoMes, lerSerieMF, nomeComVariacao (com os testes deles). VISOES_PAGAR ficou: o teste do naVisaoPagar usa o tipo dele.
+- 27/10: "Produção" vai para a área Fábrica e estoque (feito no menu.ts).
 
 ## Onde está
 - Relatório: `.claude/skills/rev/auditoria-2026-10-27.md`.

@@ -131,9 +131,3 @@ export async function enviarMidia(produtoId: string, arquivo: File, tipo: TipoMi
   return data as Midia;
 }
 
-/** Link do vídeo: YouTube vira o endereço de "embed" (os outros abrem como link). */
-export function embedVideo(url: string | null | undefined): string | null {
-  const s = String(url ?? "").trim();
-  const m = s.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/i);
-  return m ? `https://www.youtube-nocookie.com/embed/${m[1]}` : null;
-}

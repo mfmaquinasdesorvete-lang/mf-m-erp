@@ -21,15 +21,6 @@ export function serieMF(bicos: number | null | undefined, dataNF: string | null 
   return `${String(bicos).padStart(2, "0")}${mes}${ano}${n.slice(-3).padStart(3, "0")}`;
 }
 
-/** Lê o nº de série de volta: bicos, mês/ano da NF e final da NF (para conferir uma plaqueta) */
-export function lerSerieMF(serie: string | null | undefined) {
-  const s = String(serie ?? "").replace(/\D/g, "");
-  if (s.length !== 9) return null;
-  const mes = Number(s.slice(2, 4));
-  if (mes < 1 || mes > 12) return null;
-  return { bicos: Number(s.slice(0, 2)), mes, ano: 2000 + Number(s.slice(4, 6)), finalNF: s.slice(6) };
-}
-
 /** Preventiva de 6 em 6 meses a partir da compra (NF ou proposta): a próxima data que ainda não passou de 30 dias */
 export function proximaPreventiva6m(base: string | null | undefined, hoje: string, meses = 6): string | null {
   if (!base) return null;

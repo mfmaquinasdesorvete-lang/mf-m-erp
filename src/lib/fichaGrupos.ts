@@ -14,7 +14,6 @@ export const GRUPOS: { id: GrupoFicha; nome: string; dica: string; barra: string
   { id: "acabamento", nome: "Acabamento e embalagem", dica: "adesivos, manual, caixa, plástico", barra: "bg-purple-500", chip: "bg-purple-100 text-purple-800", borda: "border-l-purple-500" },
   { id: "outros", nome: "Outros", dica: "o que não se encaixa acima", barra: "bg-slate-400", chip: "bg-slate-100 text-slate-700", borda: "border-l-slate-400" },
 ];
-export const grupoInfo = (id: GrupoFicha) => GRUPOS.find((g) => g.id === id) ?? GRUPOS[GRUPOS.length - 1];
 export const ehGrupo = (v: unknown): v is GrupoFicha => GRUPOS.some((g) => g.id === v);
 
 const sem = (s: string | null | undefined) => (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();

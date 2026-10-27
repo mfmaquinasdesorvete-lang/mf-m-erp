@@ -31,7 +31,7 @@ describe("acessos ao ERP", () => {
   });
 });
 
-import { comoSaiu, minutosParado } from "../acessos";
+import { minutosParado } from "../acessos";
 describe("saída e tempo parado", () => {
   const a = { entrou_em: "2026-10-21T11:00:00Z", ultimo_sinal_em: "2026-10-21T11:30:00Z", minutos_inativo: 12, saiu_em: null };
   it("tempo parado nunca passa da duração", () => {
@@ -40,8 +40,6 @@ describe("saída e tempo parado", () => {
     expect(minutosParado({ ...a, minutos_inativo: null })).toBe(0);
   });
   it("quem apertou Sair saiu e não aparece usando agora", () => {
-    expect(comoSaiu({ saiu_em: "2026-10-21T11:30:00Z" })).toBe("saiu");
-    expect(comoSaiu(a)).toBe("fechou");
     expect(online({ ...a, saiu_em: "2026-10-21T11:30:00Z" }, Date.parse("2026-10-21T11:31:00Z"))).toBe(false);
     expect(online(a, Date.parse("2026-10-21T11:31:00Z"))).toBe(true);
   });

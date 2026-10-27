@@ -8,8 +8,6 @@ export function notify(texto: string, tipo: Aviso["tipo"] = "ok", acao?: AcaoAvi
   window.dispatchEvent(new CustomEvent<Aviso>("erp-aviso", { detail: { id: Date.now() + Math.random(), texto, tipo, acao } }));
 }
 
-/** Aviso de que deu certo com o botão "Desfazer" (fica mais tempo na tela para dar tempo de voltar atrás). */
-export const notifyDesfazer = (texto: string, desfazer: () => void) => notify(texto, "ok", { rotulo: "Desfazer", fazer: desfazer });
 
 const ultimoAviso = new Map<string, number>();
 

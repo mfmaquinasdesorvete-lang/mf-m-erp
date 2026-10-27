@@ -75,7 +75,6 @@ export const grupos: Grupo[] = [
       { to: "/garantias", tela: "garantias", label: "Garantias e preventivas", curto: "Garantias", icon: ShieldCheck, busca: "preventiva manutenção equipamento" },
       { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado modelos ficha manuais garantia" },
       { to: "/teste-giga", tela: "testegiga", label: "Teste do giga (REG-006)", curto: "Giga", icon: PlugZap, busca: "teste do giga reg-006 reg 006 qualidade bancada aterramento continuidade tensão suportável rigidez dielétrica hipot funcional número de série ns reteste reprovada aprovada first pass yield manual hg371 gigateste programação do equipamento" },
-      { to: "/producao", tela: "producao", label: "Produção", curto: "Produção", icon: Factory, busca: "ordem de produção op quadro montagem fábrica ficha técnica atrasada peça faltando" },
     ],
   },
   {
@@ -83,6 +82,7 @@ export const grupos: Grupo[] = [
     itens: [
       { to: "/painel/producao", tela: "producao", label: "Painel da fábrica", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos produção estoque mínimo peça faltando compras" },
       { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto máquina peça de reposição componente insumo inventário ncm categoria kit contagem estoque painel das máquinas painel dos produtos" },
+      { to: "/producao", tela: "producao", label: "Produção", curto: "Produção", icon: Factory, busca: "ordem de produção op quadro montagem fábrica ficha técnica atrasada peça faltando" },
       { to: "/compras", tela: "producao", label: "Compras e cotações", curto: "Compras", icon: ShoppingBag, busca: "pedido de compra ordem de compra oc cotação fornecedor reposição de estoque necessidades de compra estoque virtual mínimo máximo whatsapp sc sp" },
       { to: "/acompanhamento-compras", tela: "producao", label: "Acompanhamento de compras", curto: "Chegando", icon: Truck, busca: "pedido de peças peça pedida ordem de compra oc nota do fornecedor transporte transportadora ct-e rastreio a caminho chegou atrasada" },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },
