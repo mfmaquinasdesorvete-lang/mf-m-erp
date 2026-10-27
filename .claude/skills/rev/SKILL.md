@@ -61,3 +61,4 @@ Audito o ERP inteiro: o que está lento, o que está morto (link, botão, tela, 
 - `__ERP_HISTORICO__` (e os outros `define` do vite) é colado inteiro em cada lugar que o escreve: ler só de
   `src/lib/historicoGit.ts`.
 - Tabela "sem uso no código" pode ser usada só por função do banco: conferir `pg_proc.prosrc` e as views antes de chamar de morta.
+- Não cortar colunas de cliente e produto na emissão da NF-e (EmitirNfe, ComplianceFiscal): as conferências de `_shared/nfe-*` leem muitos campos e o corte só falha na SEFAZ. Lá, só com uma constante coberta por teste (FIS).
