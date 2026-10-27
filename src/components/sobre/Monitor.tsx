@@ -30,7 +30,9 @@ export function useSaude() {
   return useQuery({
     queryKey: ["saude_sistema"],
     queryFn: async () => { const { data, error } = await supabase.rpc("saude_sistema"); if (error) throw error; return data as Saude; },
-    refetchInterval: 60_000,
+    // a conta leva de 2 a 8 s no banco: a cada 5 min basta (o vigia de hora em hora avisa no sino o que parar)
+    refetchInterval: 300_000,
+    staleTime: 60_000,
   });
 }
 
