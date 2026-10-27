@@ -60,3 +60,8 @@ bate e mostra as provas. Só leitura: nunca altera lançamento, baixa, pagamento
 - Transferência entre contas achada só pelo valor já juntou pares errados: conferir que as duas pontas são da MF.
 - Recebido "por conta de terceiros" (licenciamento) não é receita da MF: tratar à parte.
 - No cartão, o recebido a menor costuma ser a taxa: comparar com a taxa da forma de pagamento antes de alertar.
+- Antes de 01/10/2026 (`CORTE_AUDITOR`) os dados vieram do Tiny incompletos: falta de parcela ou de comprovante ali é
+  um aviso só de "dado incompleto", nunca um alerta por registro.
+- A OLIST cobra tarifa de Pix, boleto e lembretes no mesmo extrato: só a tarifa que fala de cartão/crédito/débito
+  entra na taxa do cartão.
+- Anexo de conta a pagar em `documentos` usa `entidade = 'conta_pagar'` (singular), não o nome da tabela.
