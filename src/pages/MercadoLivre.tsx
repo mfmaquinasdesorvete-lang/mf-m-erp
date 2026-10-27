@@ -29,7 +29,6 @@ export default function MercadoLivre() {
   const navigate = useNavigate();
   const { search } = useLocation();
   // aba Marketplace (antes "Anúncios" em Produtos): a qualidade dos cadastros para anunciar
-  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const podeMudar = tem("financeiro", "marketplace");
   const veVendas = tem("vendas", "financeiro");
   const { conta, anuncios, carregando, erro } = useAnunciosML();
@@ -38,6 +37,8 @@ export default function MercadoLivre() {
   const invalidar = useInvalidate();
   const conectando = useRetornoConexao();
   const atual: Aba = aba ?? (conta || carregando ? (veVendas ? "painel" : "anuncios") : "conta");
+  // a auditoria usa quase todas as colunas do cadastro: só baixa os produtos quando a aba Marketplace está aberta
+  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true, enabled: atual === "marketplace" });
   const envioLigado = !!conta && (!!conta.enviar_estoque || !!conta.enviar_preco);
   const atencao = anuncios.filter((a) => a.situacao === "aguardando" || a.situacao === "erro").length;
 
