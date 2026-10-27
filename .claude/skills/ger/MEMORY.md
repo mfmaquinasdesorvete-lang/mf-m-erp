@@ -6,6 +6,7 @@ Vendas, compras, financeiro, assistência e estoque funcionando no ar. O trabalh
 do código" (levar regras e mensagens para Configurações), parado esperando a tabela nova no banco.
 
 ## No ar
+- 27/10 (site 63df953): sino só com a equipe, Responder visível, avisos no Ver como, Fluxo sem o Tiny, extrato .ofx pelo iPhone; avisos do Claude e de Segurança só para a master (migração 177). Falta testar no ar.
 - Máquinas: o selo "N clientes" do modelo abre a lista de quem tem a máquina, e o cliente abre a ficha (25/10).
 - Acompanhamento de compras (Fábrica e estoque): peça pedida → OC → nota → transporte → chegou (973698c,
   função `acompanhamento_compras`).
@@ -26,7 +27,6 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
   entram depois).
 
 ## Esperando a usuária
-- Reconectar a Hostinger para publicar (montado, não no ar): sino só com a equipe e Responder visível (26d288e), avisos no Ver como (2675a18), Fluxo sem o Tiny (93d69f1). A regra do banco dos avisos (migração 177) já está valendo.
 - Nota de peças sem OC (4 de 26/10): quer OC automática para as novas?
 - Prestador (a0f29e4a, daa9722f): extrato completo da OLIST de setembro e confirmar os dois empréstimos (estão cancelados no ERP).
 - Virada do Tiny: confirmar a data (proposta 09/11), passar as taxas das formas de pagamento e a lista do que a equipe ainda faz no Tiny.
