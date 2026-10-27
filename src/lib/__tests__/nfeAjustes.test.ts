@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aplicarAjustes, conferirMotivo } from "../../../supabase/functions/_shared/nfe-ajustes";
+import { aplicarAjustes, conferirMotivo, faturamentoDoPedido } from "../../../supabase/functions/_shared/nfe-ajustes";
 
 const itens = [{ id: "a", descricao: "Peça A", quantidade: 2, valor_unitario: 10, valor_total: 20 }, { id: "b", descricao: "Peça B", quantidade: 1, valor_unitario: 5, valor_total: 5 }];
 
@@ -29,5 +29,22 @@ describe("conferirMotivo", () => {
   });
   it("nota menor com motivo aceito devolve o texto para registrar", () => {
     expect(conferirMotivo(400, 4000, "entrega_parcial")).toMatch(/Entrega parcial/);
+  });
+});
+
+describe("faturamentoDoPedido (entrega parcial)", () => {
+  it("soma só as NF-e autorizadas de produção e calcula o restante", () => {
+    const f = faturamentoDoPedido(6091, [
+      { status: "autorizada", ambiente: "producao", valor_total: 580 },
+      { status: "autorizada", ambiente: "homologacao", valor_total: 6091 },
+      { status: "cancelada", ambiente: "producao", valor_total: 6091 },
+    ]);
+    expect(f).toEqual({ jaEmitido: 580, restante: 5511, emAndamento: false });
+  });
+  it("nota na SEFAZ trava uma nova", () => {
+    expect(faturamentoDoPedido(100, [{ status: "processando", valor_total: 100 }]).emAndamento).toBe(true);
+  });
+  it("sem nota: restante é o pedido todo", () => {
+    expect(faturamentoDoPedido(150, [])).toEqual({ jaEmitido: 0, restante: 150, emAndamento: false });
   });
 });

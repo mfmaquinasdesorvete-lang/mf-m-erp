@@ -34,7 +34,10 @@ export async function aplicarRetornoNfe(db: SupabaseClient, nota: { id: string; 
     if (status === "autorizada") {
       await db.from("pedidos").update({ status: "faturado" }).eq("id", nota.pedido_id).eq("status", "aprovado");
     } else if (status === "cancelada") {
-      await db.from("pedidos").update({ status: "aprovado" }).eq("id", nota.pedido_id).eq("status", "faturado");
+      // entrega parcial: se outra NF-e do pedido continua autorizada, o pedido segue faturado
+      const { count } = await db.from("notas_fiscais").select("id", { count: "exact", head: true })
+        .eq("pedido_id", nota.pedido_id).eq("status", "autorizada").or("ambiente.is.null,ambiente.neq.homologacao").neq("id", nota.id);
+      if (!count) await db.from("pedidos").update({ status: "aprovado" }).eq("id", nota.pedido_id).eq("status", "faturado");
     }
   }
   return data;

@@ -21,6 +21,7 @@ import { ItensEditor, totalItem, totalItens } from "@/components/ItensEditor";
 import { limpar, useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, pl, somarDias, whatsappLink } from "@/lib/format";
+import { faturamentoDoPedido } from "../../supabase/functions/_shared/nfe-ajustes";
 import { MEIOS_VENDA, useFormasPagamento } from "@/lib/formasPagamento";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
@@ -107,7 +108,7 @@ const FORMAS = [
 // com as contas a receber (do pedido e das notas dele), os envios e a transportadora: pagamento e envio na lista
 const CONTA = "id,status,valor,valor_pago,vencimento,data_pagamento,forma_pagamento";
 const TRANSP = "nome,nome_fantasia,tipo,rastreio_url";
-const SELECT = `*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id,status,numero,serie,chave,ambiente,contas:contas_receber(${CONTA})), `
+const SELECT = `*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id,status,numero,serie,chave,ambiente,valor_total,contas:contas_receber(${CONTA})), `
   + `contas:contas_receber(${CONTA}), envios:envios(id,status,created_at,transportadora_nome,codigo_rastreio,coletado_em,entregue_em,transportadora:transportadoras(${TRANSP})), `
   + `transportadora:transportadoras(${TRANSP})`;
 
@@ -1048,6 +1049,9 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
   }
 
   const temNotaValida = p.notas?.some((n) => n.ambiente !== "homologacao" && (n.status === "autorizada" || n.status === "processando"));
+  // entrega parcial: já tem NF-e, mas de menos que o pedido; o restante sai em outra NF-e
+  const fat = faturamentoDoPedido(Number(p.valor_total ?? 0), (p.notas ?? []) as { status: string; ambiente?: string | null; valor_total?: number | null }[]);
+  const faltaFaturar = temNotaValida && !fat.emAndamento && fat.jaEmitido > 0 && fat.restante > 0.009;
   // NF-e cancelada com a venda ainda aprovada: o pedido não se perdeu, só falta faturar de novo
   const notaCancelada = !temNotaValida && (p.status === "aprovado" || p.status === "entregue")
     ? p.notas?.filter((n) => n.ambiente !== "homologacao" && n.status === "cancelada").slice(-1)[0] : undefined;
@@ -1237,6 +1241,10 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
           )}
           {pode("emitir_nfe") && (p.status === "aprovado" || p.status === "entregue") && !temNotaValida && !p.nf_outra_numero && (
             <Button type="button" tom="fiscal" onClick={() => emitirNfe()} disabled={ocupado}><FileText size={16} /> Emitir NF-e</Button>
+          )}
+          {pode("emitir_nfe") && faltaFaturar && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && !p.nf_outra_numero && (
+            <Button type="button" tom="fiscal" onClick={() => setConferirNfe(true)} disabled={ocupado}
+              title={`Já tem NF-e de ${brl(fat.jaEmitido)}; falta ${brl(fat.restante)}`}><FileText size={16} /> Emitir NF-e do restante ({brl(fat.restante)})</Button>
           )}
           {p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && (
             <Button type="button" tom="logistica" title="Conferir, editar e imprimir as etiquetas de transporte e de volume"

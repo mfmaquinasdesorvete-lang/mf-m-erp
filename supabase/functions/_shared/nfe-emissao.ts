@@ -11,7 +11,7 @@ import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
 import { codigoUnidade, focusProducao } from "./focusnfe.ts";
 import { pendenciaCbenef } from "./nfe-conferencia.ts";
 import { pendenciasTransferencia } from "./nfe-transferencia.ts";
-import { type AjustesNfe, aplicarAjustes, conferirMotivo, problemaIeDestinatario } from "./nfe-ajustes.ts";
+import { type AjustesNfe, aplicarAjustes, conferirMotivo, faturamentoDoPedido, problemaIeDestinatario } from "./nfe-ajustes.ts";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -90,16 +90,19 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
   try { pedido.itens = aplicarAjustes(pedido.itens, ajustes); } catch (e) { throw new HttpError(400, (e as Error).message); }
   if (ajustes?.desconto != null) { if (!(Number(ajustes.desconto) >= 0)) throw new HttpError(400, "desconto inválido"); pedido.desconto = Number(ajustes.desconto); }
   if (ajustes?.frete != null) { if (!(Number(ajustes.frete) >= 0)) throw new HttpError(400, "frete inválido"); pedido.frete = Number(ajustes.frete); }
-  if (!["aprovado", "entregue"].includes(pedido.status)) {
+  const { data: existentes } = await db.from("notas_fiscais").select("status, ambiente, valor_total").eq("pedido_id", pedidoId);
+  const fat = faturamentoDoPedido(Number(pedido.valor_total), existentes ?? []);
+  if (fat.emAndamento) throw new HttpError(400, "pedido já possui NF-e em processamento: aguarde a resposta da SEFAZ");
+  // já tem NF-e: só a do restante (entrega parcial), escolhendo os itens na tela "Conferir a NF-e"
+  if (fat.jaEmitido > 0) {
+    if (fat.restante <= 0.009) throw new HttpError(400, "pedido já possui NF-e do valor todo");
+    if (!ajustes) throw new HttpError(400, `o pedido já tem NF-e de R$ ${fat.jaEmitido.toFixed(2).replace(".", ",")}: emita o restante pela tela Conferir a NF-e`);
+  }
+  if (!["aprovado", "entregue"].includes(pedido.status) && !(fat.jaEmitido > 0 && pedido.status === "faturado")) {
     throw new HttpError(400, "só é possível emitir NF-e de pedidos aprovados");
   }
   const u = pedido.unidade;
   exigirEmitente(u);
-
-  const { data: existentes } = await db.from("notas_fiscais").select("status, ambiente").eq("pedido_id", pedidoId);
-  if (existentes?.some((n: any) => n.ambiente !== "homologacao" && ["autorizada", "processando", "contingencia"].includes(n.status))) {
-    throw new HttpError(400, "pedido já possui NF-e autorizada ou em processamento");
-  }
 
   const c = pedido.cliente;
   const doc = onlyDigits(c.cpf_cnpj);
@@ -162,8 +165,13 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
   };
   const valorNota = r2(pedido.itens.reduce((t: number, i: any) => t + Number(i.valor_total), 0) - Number(pedido.desconto || 0) + Number(pedido.frete || 0));
   let motivo: string | null = null;
-  if (ajustes) { try { motivo = conferirMotivo(valorNota, Number(pedido.valor_total), ajustes.motivo); } catch (e) { throw new HttpError(400, (e as Error).message); } }
-  if (motivo) await db.from("pedido_ocorrencias").insert({ pedido_id: pedidoId, autor_nome: "Emissão de NF-e", texto: `NF-e de R$ ${valorNota.toFixed(2).replace(".", ",")} para pedido de R$ ${Number(pedido.valor_total).toFixed(2).replace(".", ",")}. Motivo: ${motivo}` });
+  // a conta é contra o que falta faturar (o pedido todo, se ainda não tem NF-e)
+  const base = fat.jaEmitido > 0 ? fat.restante : Number(pedido.valor_total);
+  if (fat.jaEmitido > 0 && valorNota > base + 0.009) {
+    throw new HttpError(400, `a NF-e (R$ ${valorNota.toFixed(2).replace(".", ",")}) passa do que falta faturar no pedido (R$ ${base.toFixed(2).replace(".", ",")})`);
+  }
+  if (ajustes) { try { motivo = conferirMotivo(valorNota, base, ajustes.motivo); } catch (e) { throw new HttpError(400, (e as Error).message); } }
+  if (motivo) await db.from("pedido_ocorrencias").insert({ pedido_id: pedidoId, autor_nome: "Emissão de NF-e", texto: `NF-e de R$ ${valorNota.toFixed(2).replace(".", ",")} para ${fat.jaEmitido > 0 ? "o restante" : "pedido"} de R$ ${base.toFixed(2).replace(".", ",")}. Motivo: ${motivo}` });
 
   // Cada tentativa usa uma referência nova, para poder reenviar após erro de validação.
   const referencia = `pedido-${pedido.numero}-${(existentes?.length ?? 0) + 1}`;

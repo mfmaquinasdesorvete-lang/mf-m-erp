@@ -30,6 +30,19 @@ export function conferirMotivo(valorNota: number, valorPedido: number, motivo?: 
   return texto;
 }
 
+type NotaDoPedido = { status: string; ambiente?: string | null; valor_total?: number | string | null };
+
+/**
+ * Quanto do pedido já tem NF-e de produção (autorizada) e quanto falta: depois de uma entrega parcial o restante sai
+ * em outra NF-e do mesmo pedido. Nota em processamento trava uma nova até a SEFAZ responder.
+ */
+export function faturamentoDoPedido(valorPedido: number, notas: NotaDoPedido[]) {
+  const validas = notas.filter((n) => n.ambiente !== "homologacao");
+  const emAndamento = validas.some((n) => ["processando", "contingencia"].includes(n.status));
+  const jaEmitido = r2(validas.filter((n) => n.status === "autorizada").reduce((t, n) => t + Number(n.valor_total ?? 0), 0));
+  return { jaEmitido, restante: r2(Math.max(0, valorPedido - jaEmitido)), emAndamento };
+}
+
 /** Aplica os ajustes nos itens do pedido; recusa item de outro pedido e números inválidos. */
 export function aplicarAjustes(itens: any[], ajustes?: AjustesNfe | null) {
   if (!ajustes?.itens?.length) return itens;

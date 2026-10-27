@@ -9,7 +9,7 @@ import { brl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { confirmarSeTeste } from "@/lib/ambienteNfe";
-import { MOTIVOS_NOTA_MENOR, problemaIeDestinatario } from "../../../supabase/functions/_shared/nfe-ajustes";
+import { faturamentoDoPedido, MOTIVOS_NOTA_MENOR, problemaIeDestinatario } from "../../../supabase/functions/_shared/nfe-ajustes";
 
 type Item = { id: string; descricao: string; quantidade: number; valor_unitario: number; numero_serie?: string | null };
 type PedidoNfe = {
@@ -33,8 +33,14 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
   const [info, setInfo] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [motivo, setMotivo] = useState("");
+  // entrega parcial: o que já tem NF-e autorizada; esta nota é do restante
+  const [jaEmitido, setJaEmitido] = useState(0);
 
   useEffect(() => {
+    supabase.from("notas_fiscais").select("status, ambiente, valor_total").eq("pedido_id", pedidoId).then(({ data, error }) => {
+      if (error) return notifyError(error);
+      setJaEmitido(faturamentoDoPedido(0, data ?? []).jaEmitido);
+    });
     supabase.from("pedidos").select("id, numero, valor_total, desconto, frete, observacoes, vendedor, forma_pagamento, cliente:clientes(nome, nome_fantasia, cpf_cnpj, inscricao_estadual, contribuinte_icms, tipo_pessoa), unidade:unidades(informacoes_complementares, telefone, whatsapp), " +
       "itens:pedido_itens(id, descricao, quantidade, valor_unitario, numero_serie)").eq("id", pedidoId).single()
       .then(({ data, error }) => {
@@ -49,9 +55,12 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
   }, [pedidoId]);
 
   const total = useMemo(() => r2(itens.reduce((s, i) => s + num(i.quantidade) * num(i.valor), 0) - num(desconto) + num(frete)), [itens, desconto, frete]);
-  const mudou = !!p && Math.abs(total - Number(p.valor_total)) > 0.009;
+  // a conta é contra o que falta faturar (o pedido todo, se ainda não tem NF-e)
+  const base = p ? Math.max(0, r2(Number(p.valor_total) - jaEmitido)) : 0;
+  const mudou = !!p && !jaEmitido && Math.abs(total - base) > 0.009;
   // nota menor que a venda: só nos casos que a lei permite, com o motivo registrado no pedido
-  const menor = !!p && total < Number(p.valor_total) - 0.009;
+  const menor = !!p && total < base - 0.009;
+  const passou = !!p && jaEmitido > 0 && total > base + 0.009;
   // IE errada = recusa certa da SEFAZ: avisa aqui, antes de gastar um envio
   const problemaIe = p?.cliente ? problemaIeDestinatario(p.cliente.cpf_cnpj, p.cliente.inscricao_estadual, p.cliente.tipo_pessoa === "PJ" && Number(p.cliente.contribuinte_icms) === 1) : null;
   const set = (k: number, campo: "descricao" | "quantidade" | "valor", v: string) => setItens((l) => l.map((x, j) => (j === k ? { ...x, [campo]: v } : x)));
@@ -60,6 +69,7 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
     if (!p) return;
     if (itens.some((i) => !(num(i.quantidade) > 0) || num(i.valor) < 0 || !i.descricao.trim())) return notify("Confira os itens: descrição, quantidade maior que zero e valor", "erro");
     if (menor && !motivo) return notify("A NF-e ficou menor que o pedido: escolha o motivo", "erro");
+    if (passou) return notify(`A NF-e passa do que falta faturar (${brl(base)}): ajuste os itens`, "erro");
     setEnviando(true);
     try {
       if (!(await confirmarSeTeste())) return;
@@ -80,6 +90,12 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
         <div className="space-y-4">
           <p className="text-sm text-slate-600">A nota só vai para a SEFAZ quando você apertar <b>Emitir NF-e</b>. Confira e ajuste o que precisar
             {p.cliente?.nome ? <> · cliente <b>{p.cliente.nome}</b></> : null}.</p>
+          {jaEmitido > 0 && (
+            <p className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
+              Este pedido já tem NF-e de <b>{brl(jaEmitido)}</b> (entrega parcial). Esta nota é do restante: <b>{brl(base)}</b>.
+              Deixe só os itens que faltam sair, com as quantidades que faltam.
+            </p>
+          )}
           <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full min-w-[620px] text-sm">
               <thead className="bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -126,6 +142,7 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
               </Field>
             </div>
           )}
+          {passou && <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-900">A nota ({brl(total)}) passa do que falta faturar ({brl(base)}): tire os itens que já saíram na outra NF-e.</p>}
           {mudou && (
             <p className="flex gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
               <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden />
@@ -135,7 +152,7 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
           )}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button onClick={emitir} disabled={enviando || (menor && !motivo) || !!problemaIe}><FileText size={16} /> {enviando ? "Enviando…" : "Emitir NF-e"}</Button>
+            <Button onClick={emitir} disabled={enviando || (menor && !motivo) || passou || !!problemaIe}><FileText size={16} /> {enviando ? "Enviando…" : "Emitir NF-e"}</Button>
           </div>
         </div>
       )}
