@@ -30,3 +30,13 @@ Cliente
 18. 2156fcf3 · Máquina vendida com NF-e entra sozinha na ficha do cliente, com o nº de série · Clientes
 19. 398101b0 · Ficha 360: máquinas, compras, valores e nota (chave de 44) · Clientes
 20. e9ded9b5 · Clientes com nome ou CPF/CNPJ iguais: unificar · Clientes
+
+Telas (depois dos 20; os chats não abrem o ERP no ar)
+21. 09c2fe76 · Central dos chats · ELO
+22. 7da06c20 · Aba Chats · ELO
+23. 7a65d8db · Esquemas · ELO
+24. 6aee2cfc · PDF e ZIP dos esquemas · ELO
+25. ab783d49 · Handoff · ELO
+26. 227414b3 · Monitor "Tem coisa parada" · SEG
+27. 64893f26 · Ícones menores no cartão do técnico · TEC
+28. bd20c739 · "Desde" e siglas no modo Lista dos técnicos · TEC

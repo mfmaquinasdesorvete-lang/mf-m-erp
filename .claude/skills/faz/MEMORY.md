@@ -38,7 +38,7 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Secrets não dá para ler daqui (as funções pedem login): conferir pelo "Testar conexão" ou pelo uso (dados novos).
 
 ## Do CNF (27/10)
-- O CNF parou o aviso diário: o resumo é só meu. "Pronto para conferir": `para-conferir.md` (20 itens, 3 por dia).
+- O CNF parou o aviso diário: o resumo é só meu. "Pronto para conferir": `para-conferir.md` (28 itens, 3 por dia).
 - "Precisa de você": 76 itens em `pedidos_checklist` (`voce`); os 11 pessoais ficam com o CAR (não ler). Mais antigos
   (19 e 20/10) primeiro. Consulta: `select left(id::text,8), grupo, pedido_em, item from pedidos_checklist
   where situacao='voce' order by pedido_em`.
