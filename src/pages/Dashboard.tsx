@@ -20,6 +20,7 @@ import type { Equipamento, Necessidade, OrdemProducao, OrdemServico, Pedido, Ped
 import { vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
 import { ordenarAtencao, type ItemAtencao } from "@/lib/prioridadeInicio";
 import { AcessoRapido } from "@/components/painel/AcessoRapido";
+import { Secoes } from "@/components/Secoes";
 import { ResumoDono, veResumoDono } from "@/components/painel/ResumoDono";
 import { EquipeOnline } from "@/components/painel/EquipeOnline";
 
@@ -327,18 +328,18 @@ function PainelGeral() {
         </p>
       </div>
 
-      {/* 0a. Celular (24/10, modelo enviado pela usuária): um cartão azul liso com os 4 números do período, lado a lado;
-          tocar num número abre a tela dele. No computador continuam os cartões coloridos mais abaixo. */}
-      {!veResumoDono(nome) && <ResumoCelular titulo={`Resumo ${per.id === "hoje" ? "de hoje" : per.id === "mes" ? "do mês" : per.id === "semana" ? "da semana" : "de 30 dias"}`}
-        periodo={periodo} onPeriodo={escolher} itens={kpis} onAbrir={(c) => navigate(c.to, { state: c.state })} />}
-
-      {/* 0b. Acesso rápido (23/10): as telas do dia a dia numa faixa de bolinhas que rola para o lado */}
-      <AcessoRapido avisos={{ "/notas": k.nfeConferir, "/financeiro": k.qtdReceberVencido, "/estoque": k.estoqueBaixo.length, "/garantias": lembretes.length, "/assistencia": k.osAtrasadas }} />
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        {/* 1. Para resolver agora: o primeiro lugar do olhar (urgentes primeiro, poucos de cada vez) */}
-        {temAtencao && (
-          <section id="resolver" aria-label="Para resolver agora" className="cartao scroll-mt-20 p-3 sm:p-5 xl:col-span-2"
+      {/* 1-5 (27/10): as seções do Início em <Secoes>: a pessoa pode mudar a ordem no "Organizar" (fica no perfil dela).
+          A ordem padrão segue o mapa de atenção: acesso rápido, o que resolver agora, os números, a tendência, os detalhes. */}
+      <Secoes pagina="inicio" secoes={[
+        { id: "resumo", titulo: "Resumo (celular)", largo: true, soCelular: true, conteudo: !veResumoDono(nome) && (
+          <ResumoCelular titulo={`Resumo ${per.id === "hoje" ? "de hoje" : per.id === "mes" ? "do mês" : per.id === "semana" ? "da semana" : "de 30 dias"}`}
+            periodo={periodo} onPeriodo={escolher} itens={kpis} onAbrir={(c) => navigate(c.to, { state: c.state })} />
+        ) },
+        { id: "acesso", titulo: "Acesso rápido", largo: true, conteudo: (
+          <AcessoRapido avisos={{ "/notas": k.nfeConferir, "/financeiro": k.qtdReceberVencido, "/estoque": k.estoqueBaixo.length, "/garantias": lembretes.length, "/assistencia": k.osAtrasadas }} />
+        ) },
+        { id: "resolver", titulo: "Para resolver agora", conteudo: temAtencao && (
+          <section id="resolver" aria-label="Para resolver agora" className="cartao h-full scroll-mt-20 p-3 sm:p-5"
             style={fila.urgentes ? { borderColor: "rgb(var(--red-200))" } : undefined}>
             <div className="mb-3 flex items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-sm font-bold text-fg">
@@ -364,35 +365,31 @@ function PainelGeral() {
               </button>
             )}
           </section>
-        )}
-
-        {/* 2. Números do período: o período só vale para estes cartões, por isso fica junto deles */}
-        <section aria-label="Números do período" className={`max-sm:hidden ${temAtencao ? "xl:col-span-3" : "xl:col-span-5"}`}>
+        ) },
+        { id: "numeros", titulo: "Números do período (computador)", soComputador: true, conteudo: (
+        <section aria-label="Números do período" className="max-sm:hidden">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Números {per.id === "hoje" ? "de hoje" : per.id === "mes" ? "do mês" : per.id === "semana" ? "da semana" : "dos últimos 30 dias"}</h2>
             {periodoTabs}
           </div>
-          <div className={`grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4 ${temAtencao ? "" : "lg:grid-cols-4"}`}>
+          <div className={"grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4"}>
             {kpis.map((c) => <KpiCard key={c.id} c={c} anterior={per.anterior} onClick={() => navigate(c.to, { state: c.state })} />)}
           </div>
           {kpis.some((c) => c.delta !== undefined) && <p className="mt-2 text-xs text-slate-500 sm:hidden">% comparado com {per.anterior}</p>}
         </section>
-      </div>
-
-      {/* 4. Tendência: os últimos 6 meses e o que está para entrar */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        {podeVer("pedidos") && (
-          <Section title="Vendas x Recebido" className="xl:col-span-3" recolhivel resumo={brlCurto(k.serie[5]?.valores[0] ?? 0)}
+        ) },
+        { id: "vendas", titulo: "Vendas x Recebido", conteudo: podeVer("pedidos") && (
+          <Section title="Vendas x Recebido" recolhivel resumo={brlCurto(k.serie[5]?.valores[0] ?? 0)}
             actions={podeVer("relatorios") && <Link to="/relatorios" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Relatórios</Link>}>
             <Area dados={k.serie} series={podeVer("financeiro")
               ? [{ nome: "Vendas", cor: "var(--serie-1)" }, { nome: "Recebido", cor: "var(--serie-3)" }]
               : [{ nome: "Vendas", cor: "var(--serie-1)" }]}
               altura={230} />
           </Section>
-        )}
-
-        {podeVer("financeiro") ? (
-          <Section title="Contas a receber" className={podeVer("pedidos") ? "xl:col-span-2" : "xl:col-span-5"} recolhivel resumo={brlCurto(k.receber30 + k.receberDepois + k.receberVencido)}
+        ) },
+        { id: "contas", titulo: podeVer("financeiro") ? "Contas a receber" : "Assistência técnica agora", conteudo: (
+podeVer("financeiro") ? (
+          <Section title="Contas a receber" recolhivel resumo={brlCurto(k.receber30 + k.receberDepois + k.receberVencido)}
             actions={<Link to="/financeiro" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Abrir</Link>}>
             <Rosca total="Em aberto" fatias={[
               { rotulo: "Vence em 30 dias", valor: k.receber30, cor: "var(--serie-1)" },
@@ -401,16 +398,13 @@ function PainelGeral() {
             ]} />
           </Section>
         ) : (
-          <Section title="Assistência técnica agora" className={podeVer("pedidos") ? "xl:col-span-2" : "xl:col-span-5"} recolhivel resumo={`${k.osAbertas} OS`}
+          <Section title="Assistência técnica agora" recolhivel resumo={`${k.osAbertas} OS`}
             actions={<Link to="/assistencia" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Abrir</Link>}>
             <Rosca total="Ordens" fatias={k.osPorSituacao} formatar={(v) => `${v} OS`} />
           </Section>
-        )}
-      </div>
-
-      {/* 5. Detalhes da fábrica e das máquinas vendidas */}
-      <div className={`grid grid-cols-1 gap-4 ${podeVer("producao") ? "xl:grid-cols-2" : ""}`}>
-        {podeVer("producao") && (
+        )
+        ) },
+        { id: "fabrica", titulo: "Fábrica", conteudo: podeVer("producao") && (
           <Section title="Fábrica" actions={<Link to="/producao" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Abrir produção</Link>}>
             <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-2 sm:gap-2">
               <Mini icon={Factory} cor="var(--kpi-azul)" label="OPs abertas" valor={k.opsAbertas} sub={`${k.maquinasEmProducao} ${pl(k.maquinasEmProducao, "máquina", "máquinas")}`} onClick={() => navigate("/producao")} />
@@ -419,7 +413,8 @@ function PainelGeral() {
               <Mini icon={Truck} cor="var(--kpi-laranja)" label="A caminho" valor={k.comprasCaminho} sub={k.comprasAtrasadas ? `${k.comprasAtrasadas} ${pl(k.comprasAtrasadas, "atrasada", "atrasadas")}` : "no prazo"} onClick={() => navigate("/compras", { state: { aba: "compras" } })} />
             </div>
           </Section>
-        )}
+        ) },
+        { id: "garantias", titulo: "Garantias das máquinas vendidas", conteudo: (
         <Section title="Garantias das máquinas vendidas" actions={<Link to="/garantias" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Ver todas</Link>}>
           <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-2 sm:gap-2">
             <Mini icon={ShieldCheck} cor="var(--kpi-verde)" label="Em garantia" valor={k.emGarantia} onClick={() => navigate("/garantias")} />
@@ -428,7 +423,8 @@ function PainelGeral() {
             <Mini icon={AlarmClock} cor="var(--kpi-rosa)" label="Preventiva atrasada" valor={k.prevAtrasada} onClick={() => navigate("/garantias", { state: { lembretes: true } })} />
           </div>
         </Section>
-      </div>
+        ) },
+      ]} />
     </div>
   );
 }
