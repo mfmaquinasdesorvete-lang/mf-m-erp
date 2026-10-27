@@ -78,3 +78,11 @@ describe("cada papel só com o que é dele (27/10)", () => {
     for (const t of ["documentos", "scrum", "pedidos"] as const) expect(podeVer("expedicao", t)).toBe(false);
   });
 });
+
+describe("administrador tela por tela (Usuários → Perfis)", () => {
+  it("o administrador deixa de ver o que a master escondeu dele; os outros papéis não mudam", () => {
+    expect(itemVisivel("admin", [], "pedidos", "/pedidos", {})).toBe(true);
+    expect(itemVisivel("admin", [], "pedidos", "/pedidos", { admin: ["/pedidos"] })).toBe(false);
+    expect(itemVisivel("vendas", [], "pedidos", "/pedidos", { admin: ["/pedidos"] })).toBe(true);
+  });
+});

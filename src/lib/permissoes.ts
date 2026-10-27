@@ -114,14 +114,15 @@ export const telasDoPapel = (p: Papel): Tela[] => (p === "admin" ? (Object.keys(
 export const acoesDoPapel = (p: Papel): Acao[] => (p === "admin" ? (Object.keys(ACOES_ROTULO) as Acao[]) : ACOES[p]);
 
 /** Itens do menu escondidos por papel (Usuários → Perfis): { vendas: ["/comissoes", …] }. Só esconde: o que o papel não acessa continua fora. */
-export type MenuOculto = Partial<Record<Exclude<Papel, "admin">, string[]>>;
+/** Itens escondidos por papel (Usuários → Perfis). "admin" vale para o administrador que não é a conta master. */
+export type MenuOculto = Partial<Record<Papel, string[]>>;
 
 /**
- * A pessoa vê este item? Admin vê tudo. Para os demais, basta um dos papéis (principal ou adicional)
+ * A pessoa vê este item? Admin vê tudo o que a master não escondeu dele (a master vê tudo: menu.ts). Para os demais, basta um dos papéis (principal ou adicional)
  * ter a tela e não ter escondido o item (`to`).
  */
 export const itemVisivel = (papel: Papel | null | undefined, extras: readonly string[] | null | undefined, tela: Tela, to: string | undefined, oculto: MenuOculto) =>
-  papel === "admin" || papeisDe(papel, extras).some((p) => TELAS[p].includes(tela) && !(to && ((oculto[p] ?? []).includes(to) || (OCULTO_FIXO[p] ?? []).includes(to))));
+  papel === "admin" ? !(to && (oculto.admin ?? []).includes(to)) : papeisDe(papel, extras).some((p) => TELAS[p].includes(tela) && !(to && ((oculto[p] ?? []).includes(to) || (OCULTO_FIXO[p] ?? []).includes(to))));
 
 /** Representante externo: entra só no portal (/portal). */
 export const ehRepresentante = (papel: Papel | string | null | undefined) => papel === "representante";

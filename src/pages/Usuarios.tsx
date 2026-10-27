@@ -2,7 +2,7 @@
 // senha provisória (troca obrigatória no primeiro acesso), vínculo com o cadastro de vendedor e o que cada papel pode.
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Camera, Check, Copy, KeyRound, LogOut, Megaphone, MessageCircle, Minus, Pencil, Plus, RefreshCw, ScanFace, ShieldCheck } from "lucide-react";
+import { Camera, Check, Copy, KeyRound, Lock, LogOut, Megaphone, MessageCircle, Minus, Pencil, Plus, RefreshCw, ScanFace, ShieldCheck } from "lucide-react";
 import { FotoUsuario, reduzirFoto } from "@/components/FotoUsuario";
 import { useNotificacoes } from "@/components/Notificacoes";
 import { PainelAcessos } from "@/components/usuarios/Acessos";
@@ -20,7 +20,7 @@ import { useConfig } from "@/lib/useConfig";
 import {
   ACOES_ROTULO, PAPEIS, PAPEIS_ADICIONAIS, PAPEIS_INTERNOS, TELAS_ROTULO, acoesDoPapel, podeVer, rotuloPapel, telasDoPapel, type MenuOculto, type Papel, type Tela,
 } from "@/lib/permissoes";
-import { grupos, itensForaDoMenu, type Item } from "@/lib/menu";
+import { grupos, itensForaDoMenu, soDaMaster, soDaMasterParaAdmin, type Item } from "@/lib/menu";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { gerarSenha } from "@/lib/senhas";
 import { usaRosto } from "@/lib/rosto";
@@ -558,14 +558,16 @@ function MatrizPermissoes() {
   const faz = useMemo(() => Object.fromEntries(PAPEIS_INTERNOS.map((p) => [p.value, new Set<string>(acoesDoPapel(p.value))])), []);
   const areas = [...grupos.map((g) => ({ ...g, titulo: g.titulo || "Início" })), { id: "outras", titulo: "Outras telas (engrenagem e botões)", itens: itensForaDoMenu }];
 
-  function alternar(p: Exclude<Papel, "admin">, to: string, ver: boolean) {
+  /** Tela da Retaguarda: entre os administradores, só a master abre (não dá para liberar aqui). */
+  const soMaster = (i: Item) => soDaMaster(i.tela, i.to) || soDaMasterParaAdmin("admin", i.to);
+  function alternar(p: Papel, to: string, ver: boolean) {
     const lista = new Set(atual[p] ?? []);
     if (ver) lista.delete(to); else lista.add(to);
     setOculto({ ...atual, [p]: [...lista].sort() });
   }
-  function area(p: Exclude<Papel, "admin">, itens: Item[], ver: boolean) {
+  function area(p: Papel, itens: Item[], ver: boolean) {
     const lista = new Set(atual[p] ?? []);
-    for (const i of itens) if (telasDoPapel(p).includes(i.tela)) { if (ver) lista.delete(i.to); else lista.add(i.to); }
+    for (const i of itens) if (telasDoPapel(p).includes(i.tela) && !(p === "admin" && soMaster(i))) { if (ver) lista.delete(i.to); else lista.add(i.to); }
     setOculto({ ...atual, [p]: [...lista].sort() });
   }
   async function salvar() {
@@ -586,7 +588,8 @@ function MatrizPermissoes() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-slate-600">
-        Escolha o que aparece no menu de cada perfil. Desmarcar só esconde a tela; o que cada perfil pode ver e alterar nos dados continua valendo no banco de dados.
+        Tudo de permissões num lugar só: o que aparece no menu de cada perfil, inclusive do administrador (a conta master
+        vê tudo; as telas da Retaguarda são só dela). Desmarcar só esconde a tela; o que cada perfil pode ver e alterar nos dados continua valendo no banco de dados.
         <b> —</b> quer dizer que o perfil não acessa aqueles dados: para liberar, dê um <b>papel adicional</b> à pessoa (aba Usuários).
       </p>
       <Card className="overflow-x-auto">
@@ -594,6 +597,7 @@ function MatrizPermissoes() {
           <caption className="px-4 pt-3 text-left font-semibold">O que aparece no menu</caption>
           <thead className="sticky top-0 bg-surface"><tr className="border-b border-slate-200">
             <th className="th" />
+            <th scope="col" className="th text-center">Master (você)</th>
             <th scope="col" className="th text-center">Administrador</th>
             {perfis.map((p) => <th key={p.value} scope="col" className="th text-center">{p.label}</th>)}
           </tr></thead>
@@ -602,6 +606,19 @@ function MatrizPermissoes() {
               <tr className="bg-slate-50/80">
                 <th scope="rowgroup" className="td text-left text-xs font-bold uppercase tracking-wide text-slate-500">{g.titulo}</th>
                 <td className="td" />
+                {(() => {
+                  const seus = g.itens.filter((i) => !soMaster(i));
+                  const todosVisiveis = seus.length > 0 && seus.every((i) => !(atual.admin ?? []).includes(i.to));
+                  return (
+                    <td className="td text-center">
+                      {editavel && seus.length > 1 && (
+                        <button type="button" onClick={() => area("admin", g.itens, !todosVisiveis)} className="link-acao text-2xs">
+                          {todosVisiveis ? "esconder área" : "mostrar área"}
+                        </button>
+                      )}
+                    </td>
+                  );
+                })()}
                 {perfis.map((p) => {
                   const seus = g.itens.filter((i) => telasDoPapel(p.value).includes(i.tela));
                   const todosVisiveis = seus.length > 0 && seus.every((i) => !(atual[p.value] ?? []).includes(i.to));
@@ -620,6 +637,12 @@ function MatrizPermissoes() {
                 <tr key={i.to} className="border-b border-slate-100 last:border-0">
                   <th scope="row" className="td text-left font-normal"><span className="inline-flex items-center gap-2"><i.icon size={15} className="text-slate-400" aria-hidden />{i.label}</span></th>
                   <td className="td text-center"><Marca ok /></td>
+                  <td className="td text-center">
+                    {soMaster(i) ? <span className="inline-flex items-center gap-1 text-2xs font-semibold text-slate-500" title="Retaguarda: entre os administradores, só a conta master abre"><Lock size={12} aria-hidden /> só master</span>
+                      : editavel ? <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--brand))]" checked={!(atual.admin ?? []).includes(i.to)} aria-label={`${i.label} para o administrador`}
+                          onChange={(e) => alternar("admin", i.to, e.target.checked)} />
+                      : <Marca ok={!(atual.admin ?? []).includes(i.to)} />}
+                  </td>
                   {perfis.map((p) => {
                     const acessa = telasDoPapel(p.value).includes(i.tela);
                     const ve = acessa && !(atual[p.value] ?? []).includes(i.to);

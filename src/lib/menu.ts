@@ -233,7 +233,8 @@ export function useVisivel() {
   const { papel, papeis_extras, master } = usePerfil();
   const { data: cfg } = useConfig();
   const oculto = (cfg?.menu_oculto ?? {}) as MenuOculto;
-  const ve = (tela: Tela, to?: string) => (master || (!soDaMaster(tela, to) && !soDaMasterParaAdmin(papel, to)))
-    && itemVisivel(papel, papeis_extras, tela, to && todosItens.some((i) => i.to === to) ? to : undefined, oculto);
+  // a conta master vê tudo; os outros, o que o papel abre e não foi escondido em Usuários → Perfis
+  const ve = (tela: Tela, to?: string) => master || (!soDaMaster(tela, to) && !soDaMasterParaAdmin(papel, to)
+    && itemVisivel(papel, papeis_extras, tela, to && todosItens.some((i) => i.to === to) ? to : undefined, oculto));
   return { ve, item: (i: { tela: Tela; to: string }) => ve(i.tela, i.to) };
 }

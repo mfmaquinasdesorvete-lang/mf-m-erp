@@ -26,6 +26,9 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
 - Dados cadastrais reais da empresa fora do repositório; a demonstração e os testes usam fictícios (55a64e4).
 
 ## Em andamento
+- Esperando a Hostinger voltar para publicar (montado, não no ar): Retaguarda só da master entre os administradores
+  (auditoria, bancos, importar; 54ee0a5), cada papel só com o seu (financeiro 43c3fc8; técnico, vendas, expedição
+  bc04a72) e a tela única de permissões (coluna Master e Administrador editável em Usuários → Perfis).
 - Repositório privado (decisão dela, 27/10): CI já roda por lote (a cada 3 h, se mudou). Chave de leitura da Hostinger
   gerada; falta ela cadastrar como deploy key no GitHub. Depois: trocar para privado e o deploy da Hostinger passa a
   usar o endereço SSH do repositório (avisar todos os chats pelo ELO).
@@ -44,6 +47,9 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
 - O rosto passa a ser obrigatório 7 dias depois da data marcada.
 - Certificados digitais: guardados numa pasta só, não compartilhada, sem a senha no nome; os vencidos saíram.
 - A main fica igual à paineis-no-ar (27/10); o app da loja em Flutter ficou só na reserva.
+- Cada papel só com o que é dele (27/10): técnico = assistência, garantias, giga; expedição = separação e fluxo;
+  vendas sem produção/compras, fornecedores, assistência e financeiro; financeiro = área financeira, notas,
+  fornecedores, relatórios e margem, funcionários. O administrador (não master) é escolhido tela por tela pela master.
 - Repositório privado, com CI por lote para caber na cota do GitHub.
 - O histórico do git não é reescrito por dados cadastrais que já são públicos (Receita e notas).
 
