@@ -152,11 +152,11 @@ export default function PainelProdutos() {
 
   const atencao: ItemAtencao[] = [
     k.vaiFaltar.length > 0 && { icone: PackageX, cor: "var(--kpi-rosa)", texto: `${k.vaiFaltar.length} ${pl(k.vaiFaltar.length, "produto", "produtos")} acabam antes de chegar reposição`, sub: k.vaiFaltar.slice(0, 3).map((x) => x.p.descricao).join(" · "), to: "/compras", state: { aba: "reposicao" } },
-    k.abaixoCusto.length > 0 && { icone: TrendingDown, cor: "var(--kpi-rosa)", texto: `${k.abaixoCusto.length} ${pl(k.abaixoCusto.length, "produto", "produtos")} com preço abaixo do custo`, sub: "cada venda dá prejuízo", to: "/estoque" },
-    k.negativo.length > 0 && { icone: AlertTriangle, cor: "var(--kpi-rosa)", texto: `${k.negativo.length} ${pl(k.negativo.length, "produto", "produtos")} com estoque negativo`, sub: "falta lançar entrada ou houve baixa errada", to: "/estoque" },
-    k.semPreco.length > 0 && { icone: CircleDollarSign, cor: "var(--kpi-laranja)", texto: `${k.semPreco.length} ${pl(k.semPreco.length, "produto", "produtos")} à venda sem preço`, to: "/estoque" },
-    k.semNcm.length > 0 && { icone: FileWarning, cor: "var(--kpi-laranja)", texto: `${k.semNcm.length} ${pl(k.semNcm.length, "produto", "produtos")} sem NCM válido`, sub: "a NF-e é rejeitada", to: "/estoque" },
-    k.semCusto.length > 0 && { icone: Gauge, cor: "var(--kpi-roxo)", texto: `${k.semCusto.length} ${pl(k.semCusto.length, "produto", "produtos")} sem custo`, sub: "sem custo não dá para saber a margem", to: "/estoque" },
+    k.abaixoCusto.length > 0 && { icone: TrendingDown, cor: "var(--kpi-rosa)", texto: `${k.abaixoCusto.length} ${pl(k.abaixoCusto.length, "produto", "produtos")} com preço abaixo do custo`, sub: "cada venda dá prejuízo", to: "/estoque?aba=qualidade&problema=abaixo_custo" },
+    k.negativo.length > 0 && { icone: AlertTriangle, cor: "var(--kpi-rosa)", texto: `${k.negativo.length} ${pl(k.negativo.length, "produto", "produtos")} com estoque negativo`, sub: "falta lançar entrada ou houve baixa errada", to: "/estoque?aba=qualidade&problema=estoque_negativo" },
+    k.semPreco.length > 0 && { icone: CircleDollarSign, cor: "var(--kpi-laranja)", texto: `${k.semPreco.length} ${pl(k.semPreco.length, "produto", "produtos")} à venda sem preço`, to: "/estoque?aba=qualidade&problema=preco_zerado" },
+    k.semNcm.length > 0 && { icone: FileWarning, cor: "var(--kpi-laranja)", texto: `${k.semNcm.length} ${pl(k.semNcm.length, "produto", "produtos")} sem NCM válido`, sub: "a NF-e é rejeitada", to: "/estoque?aba=qualidade&problema=sem_ncm" },
+    k.semCusto.length > 0 && { icone: Gauge, cor: "var(--kpi-roxo)", texto: `${k.semCusto.length} ${pl(k.semCusto.length, "produto", "produtos")} sem custo`, sub: "sem custo não dá para saber a margem", to: "/estoque?aba=qualidade&problema=custo_zerado" },
   ].filter(Boolean) as ItemAtencao[];
 
   const filtros = fCategoria ? [{ rotulo: "Categoria", valor: fCategoria, limpar: () => setFCategoria(null) }] : [];
