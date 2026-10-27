@@ -2,7 +2,7 @@
 Atualizado em 27/10/2026.
 
 ## Estado agora
-São 20 chats ativos (REV, o mais novo, em 27/10), cada um com sigla, skill e memória. Desde 24/10 a fila de publicação confere a Hostinger
+São 21 chats ativos (REV e AUD, os mais novos, em 27/10), cada um com sigla, skill e memória. Desde 24/10 a fila de publicação confere a Hostinger
 antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dependente do código.
 
 ## No ar
@@ -31,6 +31,7 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
 - IAD: "Pode publicar" do Resumir com IA dos documentos.
 
 ## Decisões da usuária
+- Auditor Financeiro IA (27/10): chat AUD, só leitura, começando pela MF; sorveterias depois, com o SOR.
 - Um chat por assunto. Chats e skills curtos, sem dados da empresa no repositório.
 - O ELO pode publicar o site pelos outros chats quando a Hostinger deles cair, sempre com o "Pode publicar".
 - Nome das pessoas: o do cadastro do ERP. O texto original do banco e da nota fica como veio.

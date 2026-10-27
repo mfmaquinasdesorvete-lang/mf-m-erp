@@ -68,6 +68,9 @@
     chats parados e mostra o painel. Quando ele cobrar, responder a ele com send_message (o que deu certo, o que falta).
   - DOC "ERP Line – Documentos (.md)": documentos em Markdown na pasta docs/ (módulos, processos, guias), gerados a partir
     do código e sem dados da empresa (o repositório é público).
+  - AUD "ERP Line – Auditor financeiro": o Auditor Financeiro IA da MF, só leitura: cruza vendas, recebimentos, contas,
+    extratos e taxas, acha o que não bate e mostra as provas; fila de alertas. A origem das entradas fica no ENT e o
+    lançamento e a correção no "continuação"; as sorveterias entram depois, com o SOR.
   - REV "ERP Line – Revisão (velocidade, links e repetidos)": audita o ERP todo: o que está lento (site e banco),
     links, botões, telas e código mortos, e telas, menus e funções repetidas. Leva cada conserto ao chat dono; clientes
     e produtos repetidos (dados) ficam no CLI e no PRD.

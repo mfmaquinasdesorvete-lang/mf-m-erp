@@ -110,4 +110,5 @@ Atualizado em 25/10/2026 pelo ELO.
 | IAD | IA do dia a dia |
 | CNF | conferência dos pedidos |
 | DOC | documentos em Markdown (`docs/`) |
+| AUD | Auditor Financeiro IA da MF (só leitura) |
 | REV | revisão: velocidade, links e itens mortos, repetidos |
