@@ -23,6 +23,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 - Listas leves (achado do REV de 27/10): Preços, Kits, Catálogo e Importar baixam só as colunas que usam
   e os painéis Produtos e Máquinas (`SELECT_LISTA_PRODUTOS` em src/lib/produtosLista.ts, no ar em index-D4bgblTr). O cadastro segue com "*" porque abre o formulário pela lista.
 
+- Custos aprovados em 27/10: PC-VED-014 pela última compra e PC-VED-001 pela sugestão do fornecedor.
+
 ## Em andamento
 - Variações (produto pai e variações): tela no ar (3b69c49) e campos no banco (20261025021635 e 20261025021646).
   A regra fica na tela (erroVariacao em src/lib/variacoes.ts); o gatilho 20261101000140 não foi aplicado (trava).
