@@ -26,16 +26,26 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
 - Dados cadastrais reais da empresa fora do repositório; a demonstração e os testes usam fictícios (55a64e4).
 
 ## Em andamento
-- Nada parado no meio.
+- "Ver como": defeito do botão Voltar no tema escuro corrigido (6fc224c), falta publicar.
+- Repositório privado (decisão dela, 27/10): CI já roda por lote (a cada 3 h, se mudou). Chave de leitura da Hostinger
+  gerada; falta ela cadastrar como deploy key no GitHub. Depois: trocar para privado e o deploy da Hostinger passa a
+  usar o endereço SSH do repositório (avisar todos os chats pelo ELO).
+- #103 (duas etapas) e #104 (dados mascarados): o rascunho antigo está só na branch `main-antiga-2026-10-27`
+  (DuasEtapas.tsx, duasEtapas.ts, SaidaAutomatica.tsx e a migração seguranca_acesso). A migração nunca rodou e NÃO pode
+  rodar como está: ela volta is_erp_user, tem_papel etc. para a versão sem rosto_ok e sem sessao_viva.
 
 ## Esperando a usuária
 - Login com o rosto: um passo de configuração dela e o cadastro do rosto. Depois, marcar a data (+7 dias).
 - Pendências de segurança abertas (ver no banco, `seguranca_auditoria`).
+- GitHub: cadastrar a chave de leitura da Hostinger em Settings → Deploy keys (só leitura) antes de deixar privado.
+- Drive da conta principal também tem certificados digitais espalhados em pastas antigas: decidir se organiza igual.
 
 ## Decisões da usuária
 - O rosto vale para administrador e financeiro, como nos bancos. Quem perde o celular pede ao outro administrador.
 - O rosto passa a ser obrigatório 7 dias depois da data marcada.
 - Certificados digitais: guardados numa pasta só, não compartilhada, sem a senha no nome; os vencidos saíram.
+- A main fica igual à paineis-no-ar (27/10); o app da loja em Flutter ficou só na reserva.
+- Repositório privado, com CI por lote para caber na cota do GitHub.
 - O histórico do git não é reescrito por dados cadastrais que já são públicos (Receita e notas).
 
 ## Onde está
@@ -48,6 +58,7 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
   AJUDANTES; função nova sem conferência de papel faz o teste falhar).
 
 ## Próximos passos
+0. Workflows agendados (backup, CI) rodam pelo arquivo da main: ao mudar um workflow na paineis-no-ar, levar à main.
 1. Quando a usuária terminar o passo do rosto: marcar `rosto_obrigatorio_em` para 7 dias depois e avisar a equipe.
 2. Trabalhar as pendências "atenção" da aba Segurança, uma por vez, com o "Pode publicar".
 3. Ideia oferecida: o teste de restauração do backup comparar também o conteúdo e os arquivos.
