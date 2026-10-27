@@ -53,6 +53,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Funções do Supabase: inter, nfe-recebidas-sync, infinitepay, proposta-enviar.
 
 ## Próximos passos
+0. Auditoria do REV de 27/10 (.claude/skills/rev/auditoria-2026-10-27.md): Auditoria financeira leve (colunas e período) e `select:` nas listas das telas do GER; depois `centavos()` única; /estoque × /produtos/pecas, lugar da Produção no menu e apagar KanbanPagar esperam a usuária.
 1. Com a tabela criada: funções `config_ajuste_salvar` e `cfg_num`, páginas de Configurações e as telas lendo o catálogo.
 2. Pedir "Pode publicar", avisar o ELO, marcar "Feito" em `.claude/configuravel`.
 3. E-mails automáticos e a cobrança fora da régua; depois dinheiro e prazos.
