@@ -11,7 +11,8 @@ import { OcorrenciasVenda } from "@/components/vendas/OcorrenciasVenda";
 import { CheckCircle2, ChevronRight, Copy, Send, Sparkles, FileCheck2, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Undo2, Wrench, XCircle } from "lucide-react";
 import { ConciliarVendas } from "@/components/vendas/ConciliarVendas";
 import { PdfViewer } from "@/components/PdfViewer";
-import { comUnidade, fotoParaPdf, pdfOrcamento, type ItemFicha } from "@/lib/pdf";
+import { comUnidade, fotoParaPdf, pdfOrcamento, pdfRelatorioVendas, type ItemFicha } from "@/lib/pdf";
+import { resumoVendas } from "@/lib/relatorioVendas";
 import { useConfig } from "@/lib/useConfig";
 import { Badge, Button, chip, Field, Modal, PageHeader, Table, Tabs, CLASSE_BOTAO, TOM_ACAO } from "@/components/ui";
 import { osDoPedido } from "@/lib/osVideo";
@@ -54,7 +55,7 @@ import { gravarSincronizado, NOME_CAMPO } from "@/lib/sincronizacao";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
 import { BarraFiltros, ChipsSituacao, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
 import { AplicarMarcadores } from "@/components/nfe/Marcadores";
-import { noPeriodoOuPendente, SEM_PERIODO, semanaAtual, somar, type Periodo } from "@/lib/filtroLista";
+import { noPeriodoOuPendente, rotuloPeriodo, SEM_PERIODO, semanaAtual, somar, type Periodo } from "@/lib/filtroLista";
 import { urlFotoProduto } from "@/lib/catalogo";
 import {
   contasDaVenda, envioDaVenda, meioDaVenda, pagamentoDaVenda, ROTULO_PAGAMENTO, sinaisDaVenda,
@@ -291,15 +292,43 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const [excluindo, setExcluindo] = useState(false);
   const excluirSelecionados = () => setExcluindo(true);
 
+  // relatório para imprimir (pedido de 27/10): as vendas do período com o gráfico por dia, o total e o lucro
+  const [relatorio, setRelatorio] = useState<Blob | null>(null);
+  const [gerandoRel, setGerandoRel] = useState(false);
+  async function imprimirRelatorio() {
+    if (!cfgPedidos) return;
+    setGerandoRel(true);
+    try {
+      const ids = [...new Set(semSituacao.flatMap((p) => (p.itens ?? []).map((i) => i.produto_id)).filter((x): x is string => !!x))];
+      const custos = new Map<string, number>();
+      for (let i = 0; i < ids.length; i += 300) {
+        const { data, error } = await supabase.from("produtos").select("id, preco_custo").in("id", ids.slice(i, i + 300));
+        if (error) throw error;
+        for (const c of data ?? []) custos.set(c.id, Number(c.preco_custo ?? 0));
+      }
+      const resumo = resumoVendas(semSituacao.map((p) => ({
+        numero: p.numero, created_at: p.created_at, status: p.status, cliente: p.cliente?.nome ?? "", vendedor: p.vendedor ?? null,
+        valor_total: Number(p.valor_total ?? 0), frete: Number(p.frete ?? 0),
+        itens: (p.itens ?? []).map((i) => ({ produto_id: i.produto_id ?? null, quantidade: Number(i.quantidade) })),
+      })), periodo, (id) => custos.get(id) ?? null);
+      const filtros = [rotuloPeriodo(periodo, hoje()), "aprovadas, faturadas e entregues", busca && `busca "${busca}"`, marcador && "com marcador"].filter(Boolean).join(" · ");
+      setRelatorio(await pdfRelatorioVendas({ titulo: area === "maquinas" ? "Vendas de máquinas" : "Vendas de peças", filtros, resumo,
+        rotuloStatus: (st) => ROTULO_STATUS[st as (typeof STATUS)[number]] ?? st }, cfgPedidos));
+    } catch (e) { notifyError(e); } finally { setGerandoRel(false); }
+  }
+
   return (
     <div>
       <PageHeader title={area === "maquinas" ? "Venda de Máquinas" : "Venda de Peças"}
         subtitle={area === "maquinas" ? "Propostas e vendas de máquinas: proposta, pedido, OP e nota fiscal. Com o histórico do Tiny da MF."
           : "Orçamentos e vendas de peças, do WhatsApp à entrega, com frete e nota fiscal."}
         actions={vista === "erp" ? <>
+          <Button variant="secondary" disabled={!semSituacao.length || gerandoRel} onClick={imprimirRelatorio}
+            title="Relatório para imprimir: todas as vendas do período com o gráfico por dia, o total e o lucro"><Printer size={16} /> {gerandoRel ? "Montando…" : "Relatório"}</Button>
           <Button variant="secondary" disabled={!lista.length} onClick={() => exportarPedidos(lista, infoDe)}><FileDown size={16} /> Exportar</Button>
           {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} /> {area === "maquinas" ? "Nova proposta comercial" : "Novo orçamento"}</Button>}
         </> : undefined} />
+      {relatorio && <PdfViewer blob={relatorio} nome={`relatorio-vendas-${periodo.de || "tudo"}.pdf`} titulo="Relatório de vendas" onClose={() => setRelatorio(null)} />}
 
       {area === "maquinas" && <Tabs value={vista} onChange={setVista} options={[{ value: "erp", label: "Propostas e vendas" }, { value: "tiny", label: "Propostas do Tiny (MF)" }]} />}
       {area === "maquinas" && vista === "tiny" ? (

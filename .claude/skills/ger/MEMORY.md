@@ -1,5 +1,5 @@
 # MEMORY — GER (ERP Line – continuação (22/10))
-Atualizado em 25/10/2026.
+Atualizado em 27/10/2026.
 
 ## Estado agora
 Vendas, compras, financeiro, assistência e estoque funcionando no ar. O trabalho grande aberto é "menos dependente
@@ -32,6 +32,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Pagamentos de um prestador esperam a planilha do Tiny (TIN).
 
 ## Decisões da usuária
+- Relatório de vendas para imprimir (botão "Relatório" em Vendas): vendas aprovadas, faturadas e entregues do período, cartões (faturamento, lucro, custo, ticket), gráfico por dia, por vendedor e a lista com total e lucro; lucro = total − frete − custo do cadastro, item sem custo marcado com * (27/10).
 - Nota do fornecedor liga sozinha à OC (mesmo fornecedor e valor até 2%); lista de Compras mostra o passo da OC (26/10).
 - Marcadores: juntar e excluir escondem o antigo (ativo = false), não apagam (migração 160). Juntados: Comprou Usada, Tiny, Técnicos My (26/10).
 - Parcela de acordo de renegociação entra já aprovada (migração 159); 2ª revisão só acima de R$ 1.000 (Configurações, alçada) (26/10).

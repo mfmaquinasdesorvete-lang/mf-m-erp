@@ -831,6 +831,106 @@ export async function pdfComissoes(r: {
 }
 
 // ---------------------------------------------------------------------
+// Relatório de vendas do período (pedido de 27/10): resumo, gráfico por dia, por vendedor e todas as vendas com o lucro
+// ---------------------------------------------------------------------
+export async function pdfRelatorioVendas(r: { titulo: string; filtros: string; resumo: import("./relatorioVendas").ResumoVendas; rotuloStatus: (s: string) => string }, cfg: Config) {
+  const { doc, autoTable, logo } = await novoDoc();
+  const s = r.resumo;
+  cabecalho(doc, cfg, r.titulo.toUpperCase(), `${s.qtd} ${pl(s.qtd, "venda", "vendas")}`, logo);
+  doc.setFontSize(8.5); doc.setTextColor(...CINZA); doc.text(r.filtros, 14, 37);
+  const w = doc.internal.pageSize.getWidth();
+  const TEXTO: [number, number, number] = [30, 41, 59];
+  const VERDE: [number, number, number] = [5, 120, 85];
+  const VERMELHO: [number, number, number] = [200, 30, 30];
+
+  // cartões do resumo
+  const cartoes: [string, string, string, [number, number, number]][] = [
+    ["Faturamento", brl(s.total), `${s.qtd} ${pl(s.qtd, "venda", "vendas")}`, TEXTO],
+    ["Lucro", brl(s.lucro), `margem ${s.margem.toLocaleString("pt-BR")}%`, s.lucro < 0 ? VERMELHO : VERDE],
+    ["Custo dos produtos", brl(s.custo), `frete ${brl(s.frete)}`, TEXTO],
+    ["Ticket médio", brl(s.ticket), "por venda", TEXTO],
+  ];
+  const gap = 3, cw = (w - 28 - gap * 3) / 4;
+  let y = 42;
+  cartoes.forEach(([rot, val, sub, cor], i) => {
+    const x = 14 + i * (cw + gap);
+    doc.setFillColor(246, 248, 251); doc.setDrawColor(226, 232, 240); doc.roundedRect(x, y, cw, 19, 2, 2, "FD");
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...CINZA); doc.text(rot.toUpperCase(), x + 3, y + 5);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...cor); doc.text(val, x + 3, y + 11.5);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...CINZA); doc.text(sub, x + 3, y + 16.5);
+  });
+  y += 27;
+
+  // gráfico: vendas por dia (barras)
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(...TEXTO); doc.text("Vendas por dia", 14, y);
+  y += 3;
+  const gx = 24, gw = w - 14 - gx, gh = 42, base = y + gh;
+  const max = Math.max(...s.porDia.map((d) => d.valor), 0);
+  doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(...CINZA);
+  for (let k = 0; k <= 4; k++) {
+    const ly = base - (gh * k) / 4;
+    doc.line(gx, ly, gx + gw, ly);
+    if (max > 0) doc.text(brl((max * k) / 4).replace(/,\d{2}$/, ""), gx - 1.5, ly + 1, { align: "right" });
+  }
+  if (s.porDia.length) {
+    const passo = gw / s.porDia.length;
+    const bw = Math.min(passo * 0.7, 12);
+    const cada = Math.ceil(s.porDia.length / 16); // no máximo uns 16 rótulos embaixo
+    s.porDia.forEach((d, i) => {
+      const h = max > 0 ? (d.valor / max) * gh : 0;
+      const x = gx + i * passo + (passo - bw) / 2;
+      doc.setFillColor(...AZUL); doc.rect(x, base - h, bw, h, "F");
+      if (i % cada === 0) { doc.setTextColor(...CINZA); doc.text(d.dia.slice(8, 10) + "/" + d.dia.slice(5, 7), x + bw / 2, base + 3.5, { align: "center" }); }
+    });
+  } else {
+    doc.text("Nenhuma venda no período.", gx + gw / 2, base - gh / 2, { align: "center" });
+  }
+  y = base + 9;
+
+  // por vendedor
+  if (s.porVendedor.length > 1) {
+    autoTable(doc, {
+      startY: y,
+      head: [["Vendedor", "Vendas", "Total", "% do total"]],
+      body: s.porVendedor.map((v) => [v.nome, String(v.qtd), brl(v.total), s.total > 0 ? `${((v.total / s.total) * 100).toFixed(1).replace(".", ",")}%` : "-"]),
+      styles: { font: "helvetica", fontSize: 8, cellPadding: 1.5, textColor: TEXTO },
+      headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold" },
+      columnStyles: { 1: { halign: "right", cellWidth: 18 }, 2: { halign: "right", cellWidth: 30 }, 3: { halign: "right", cellWidth: 22 } },
+      margin: { left: 14, right: 14 },
+    });
+    y = (doc as any).lastAutoTable.finalY + 6;
+  }
+
+  // todas as vendas
+  autoTable(doc, {
+    startY: y,
+    head: [["Data", "Nº", "Cliente", "Vendedor", "Situação", "Total", "Lucro"]],
+    body: s.linhas.map((l) => [dataBR(l.dia), String(l.numero), l.cliente, l.vendedor, r.rotuloStatus(l.status), brl(l.total), brl(l.lucro) + (l.semCusto ? " *" : "")]),
+    foot: [[{ content: `TOTAL · ${s.qtd} ${pl(s.qtd, "venda", "vendas")}`, colSpan: 5 }, brl(s.total), brl(s.lucro)]],
+    showFoot: "lastPage",
+    styles: { font: "helvetica", fontSize: 7.5, cellPadding: 1.5, textColor: TEXTO },
+    headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold" },
+    footStyles: { fillColor: [226, 232, 240], textColor: TEXTO, fontStyle: "bold", halign: "right" },
+    alternateRowStyles: { fillColor: [246, 248, 251] },
+    columnStyles: { 0: { cellWidth: 17 }, 1: { cellWidth: 11 }, 3: { cellWidth: 24 }, 4: { cellWidth: 18 }, 5: { halign: "right", cellWidth: 25 }, 6: { halign: "right", cellWidth: 25 } },
+    didParseCell: (d: any) => {
+      if (d.section === "head" && d.column.index >= 5) d.cell.styles.halign = "right";
+      if (d.section === "body" && d.column.index === 6 && String(d.cell.raw).startsWith("-")) d.cell.styles.textColor = VERMELHO;
+    },
+    margin: { left: 14, right: 14 },
+  });
+  if (s.itensSemCusto) {
+    let yn = (doc as any).lastAutoTable.finalY + 5;
+    if (yn > LIMITE_Y - 4) { doc.addPage(); yn = 20; }
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...CINZA);
+    doc.text(`* ${s.itensSemCusto} ${pl(s.itensSemCusto, "item sem custo", "itens sem custo")} no cadastro do produto: o lucro dessas vendas está maior do que o real.`, 14, yn);
+  }
+  rodape(doc);
+  return doc.output("blob");
+}
+
+// ---------------------------------------------------------------------
 // Tudo do cliente (Ficha 360°): cadastro, números e cada bloco (vendas, notas, contas, extrato, OS, máquinas…)
 // ---------------------------------------------------------------------
 export async function pdfTudoCliente(r: {
