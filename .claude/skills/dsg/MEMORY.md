@@ -47,7 +47,7 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 
 ## Próximos passos
 1. Seguir a ordem da auditoria de 27/10: estados (86 "Carregando…", 20 "Nenhum…"), área de toque, trava de clique.
-2. Perguntar à usuária sobre letras maiores no celular (texto 14 px, rótulos 12 px).
+2. (feito 27/10) Letras do celular: texto 14 px e rótulos 12 px.
 3. Ligar `Secoes` em outras páginas que a usuária pedir (ex.: Financeiro, Ficha 360).
 3. Atualizar o Design System no Claude com o escuro liso e as peças novas.
 4. Baixar os limites do teste guarda conforme as telas forem ficando no padrão.

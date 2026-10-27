@@ -203,6 +203,9 @@
 /* letra base: 17 px no computador; no celular 15 px (com 17 os botões, cartões e selos ficavam grandes demais na tela
    do iPhone, auditoria de 23/10). Os campos continuam com 16 px no celular para o iPhone não dar zoom. */
 html { font-size: 15px; }
+/* celular (27/10, regra 4 das regras de design): texto das listas com 14 px e rótulos com 12 px (com a base de 15 px
+   ficavam 13 e 11 px); o resto da escala (botões, cartões, espaços) continua como estava */
+@media (max-width: 767px) { :root { --texto-sm: 0.9375rem; --texto-xs: 0.8rem; } }
 @media (min-width: 768px) { html { font-size: 17px; } }
 input[type="checkbox"], input[type="radio"] { accent-color: rgb(var(--brand)); }
 /* item de grade nunca alarga a coluna além da tela (ex.: gráfico ou tabela que rola dentro de um cartão);

@@ -23,6 +23,6 @@ Situação: ✅ atende · 🟡 em parte · 🔴 falta.
 1. **Estados (regra 7):** trocar os 86 "Carregando…" e 20 "Nenhum … encontrado" pelas peças; erro com "Tentar de novo" nas listas que não são cadastro. (DSG)
 2. **Toque (regra 9):** botões de ícone, mini e chips com área de toque de 40 a 44 px no celular, sem aumentar o desenho (área invisível em volta). (DSG)
 3. **Trava de clique duplo (regra 11):** `carregando` em todo botão que grava. (DSG nas peças; cada chat nas suas telas)
-4. **Letras no celular (regra 4):** decidir com a usuária: subir o texto das listas para 14 px e os rótulos para 12 px no celular (fica um pouco maior que hoje). (DSG, depois do sim dela)
+4. ~~Letras no celular (regra 4)~~: feito em 27/10 (texto 14 px, rótulos 12 px no celular), com o sim da usuária.
 5. **Botões feitos à mão (regra 1):** baixar de 356 aos poucos, começando pelas telas mais usadas. (DSG + chats donos)
 6. **Design System no Claude (regras 6 e 12):** atualizar com o escuro liso e as peças novas, com versão. (DSG)
