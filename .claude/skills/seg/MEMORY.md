@@ -26,7 +26,6 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
 - Dados cadastrais reais da empresa fora do repositório; a demonstração e os testes usam fictícios (55a64e4).
 
 ## Em andamento
-- "Ver como": defeito do botão Voltar no tema escuro corrigido (6fc224c), falta publicar.
 - Repositório privado (decisão dela, 27/10): CI já roda por lote (a cada 3 h, se mudou). Chave de leitura da Hostinger
   gerada; falta ela cadastrar como deploy key no GitHub. Depois: trocar para privado e o deploy da Hostinger passa a
   usar o endereço SSH do repositório (avisar todos os chats pelo ELO).
