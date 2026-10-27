@@ -36,6 +36,10 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- Fichas técnicas das máquinas × lista "Produto x Fornecedor" (27/10): conferência entregue em planilha. Ela decide
+  quais itens entram em cada máquina, se cadastra os 88 itens sem cadastro (fios, parafusos, tintas, embalagem,
+  insumos, matéria-prima) e se grava o grupo das linhas (hoje quase tudo sem grupo; o ERP sugere pelo nome).
+  Ficha técnica é da produção (GER): mudança nas fichas combinar com ele.
 - Preço do PC-MEC-002 "Cubo + Separador do Cubo" (achado do MKT, 27/10): custa menos que o PC-MEC-018 "Separador do
   Cubo" sozinho e não é kit (sem componentes). Saber se o nome está errado (só o cubo?) ou se o preço está errado.
 - Planilha de custo, peso, medidas e foto das peças que vendem (mandada em 24/10).
