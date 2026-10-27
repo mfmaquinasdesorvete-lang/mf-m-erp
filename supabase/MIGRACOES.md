@@ -200,3 +200,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
 177. `20261025184259_compra_a_vista_prazo.sql` (compra à vista ou a prazo: `nfe_recebidas.condicao_pagamento` e `prazo_dias`, escolhidos na entrada da nota; `condicao_compra()` usa o escolhido ou o XML (parcelas, Pix, cartão); `historico_custos` mostra a condição em cada compra)
 178. `20261101000173_paginas_claude.sql` (Sobre → Páginas: as páginas que os chats fizeram para a usuária, com o link; só o administrador vê. Os links ficam no banco, não no código)
 179. `20261027120346_certidoes_indice_unidade.sql` (índice em `certidoes.unidade_id`, a chave estrangeira da unidade; achado da auditoria do REV)
+180. `20261027120543_frete_indices.sql` (índices das chaves estrangeiras de `frete_consultas` (cliente, pedido, unidade) e `frete_tabelas` (unidade), achados na auditoria de 27/10)

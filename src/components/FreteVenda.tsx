@@ -30,7 +30,12 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
   const invalidate = useInvalidate();
   const { data: cfg } = useConfig();
   const { data: transportadoras = [] } = useRows<Transportadora>("transportadoras", { order: "nome", ascending: true });
-  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  // só os produtos do pedido e só as colunas de peso e medidas (antes baixava o cadastro inteiro)
+  const idsItens = [...new Set(pedido.itens.map((i) => i.produto_id).filter(Boolean))] as string[];
+  const { data: produtos = [] } = useRows<Pick<Produto, "id" | "peso_kg" | "altura_cm" | "largura_cm" | "profundidade_cm">>("produtos", {
+    select: "id, peso_kg, altura_cm, largura_cm, profundidade_cm", order: "id", key: ["frete-venda", ...idsItens],
+    filtro: (q) => q.in("id", idsItens), enabled: idsItens.length > 0,
+  });
   const { data: cotacoes = [], refetch } = useQuery({
     queryKey: ["cotacoes_frete", pedido.id],
     queryFn: async () => ((await ler(supabase.from("cotacoes_frete").select("*").eq("pedido_id", pedido.id).order("valor", { ascending: true }))) ?? []) as Cotacao[],
