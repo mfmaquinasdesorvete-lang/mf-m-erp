@@ -84,6 +84,12 @@ Atualizado em 25/10/2026 pelo ELO.
     uma vez só. Nunca para escapar da confirmação: se o banco pedir, espera-se a aprovação dela;
   - criar ou apagar tabela pelo MCP trava. Peça à usuária para rodar o SQL no SQL Editor do Supabase;
   - antes de gravar, avise a usuária para ficar com o chat aberto e tocar em "Permitir".
+- Os workflows agendados (backup das 02:15 e CI) rodam pelo arquivo da `main`. Desde 27/10 a `main` está igual à
+  `paineis-no-ar` (a antiga ficou em `main-antiga-2026-10-27`); quem mudar um arquivo de `.github/workflows/` na
+  `paineis-no-ar` precisa levar a mudança à `main` também (com o SEG).
+- O repositório vai ficar privado (decisão de 27/10, a cargo do SEG). Depois da troca, publicar na Hostinger com
+  `repository_url` git@github.com:mfmaquinasdesorvete-lang/mf-m-erp.git (SSH), não o https. Continua valendo: nada de
+  dados da empresa, nomes, valores ou segredos no código.
 - O push é recusado ("fetch first" ou "cannot lock ref") quando outro chat enviou antes. Repetir `pull --rebase` e
   push até 3 vezes, com uma pausa curta entre as tentativas.
 - O teste `designSystemPadrao` tem um limite de botões feitos à mão que vale para o projeto todo. Botão novo deve usar
