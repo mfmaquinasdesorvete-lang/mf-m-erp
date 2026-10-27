@@ -34,9 +34,9 @@ import { PaginasClaude } from "@/components/sobre/PaginasClaude";
 import { ResumoSobre } from "@/components/sobre/ResumoSobre";
 import { ItemModal, type InicialItem } from "@/components/sobre/ItemProjeto";
 import { copiar } from "@/components/sobre/Guardanapo";
+import { HISTORICO } from "@/lib/historicoGit";
 
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
-const HISTORICO = typeof __ERP_HISTORICO__ !== "undefined" ? __ERP_HISTORICO__ : [];
 const ULTIMA = versoesDoHistorico(HISTORICO)[0] ?? null;
 
 const ABAS = ["resumo", "modulos", "esquemas", "sistemas", "design", "paginas", "chats", "monitor", "seguranca", "atualizacoes", "pedidos", "telas", "codigo", "ideias", "rodada", "handoff"] as const;

@@ -54,3 +54,10 @@ Audito o ERP inteiro: o que está lento, o que está morto (link, botão, tela, 
 - Migração aplicada pelo MCP ganha outro número em `schema_migrations`: conferir se a tabela existe, não o número.
 - Rota que parece morta pode ser página pública por link (/proposta, /cliente, /conheca) ou do app do celular.
 - O build avisa de pacotes acima de 500 kB; em 27/10 o maior era o pacote principal e o segundo o do Sobre.
+- Para ver o que entra no pacote principal: `npx vite build --sourcemap --outDir <pasta temporária>` e somar os bytes por
+  arquivo com `source-map-js` (já instalado). `npx --yes` de ferramenta nova é bloqueado no ambiente.
+- Componente que só aparece para alguns (alerta do contador, da master, janela da IA) importado direto no `Layout.tsx`
+  vai para o pacote que todos baixam: usar `lazy` e `Suspense fallback={null}`.
+- `__ERP_HISTORICO__` (e os outros `define` do vite) é colado inteiro em cada lugar que o escreve: ler só de
+  `src/lib/historicoGit.ts`.
+- Tabela "sem uso no código" pode ser usada só por função do banco: conferir `pg_proc.prosrc` e as views antes de chamar de morta.

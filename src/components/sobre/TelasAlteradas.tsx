@@ -5,10 +5,10 @@ import { CalendarDays, Flame, History, LayoutGrid, Sparkles } from "lucide-react
 import { Card, Stat } from "@/components/ui";
 import { Colunas, Ranking } from "@/components/Charts";
 import { dataBR, pl } from "@/lib/format";
-import type { AlteracaoTela, DiaHistorico } from "@/lib/atualizacoes";
+import type { AlteracaoTela } from "@/lib/atualizacoes";
+import { HISTORICO } from "@/lib/historicoGit";
 
 const TELAS: AlteracaoTela[] = typeof __ERP_TELAS__ !== "undefined" ? __ERP_TELAS__ : [];
-const HISTORICO: DiaHistorico[] = typeof __ERP_HISTORICO__ !== "undefined" ? __ERP_HISTORICO__ : [];
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const diasAtras = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toLocaleDateString("sv-SE"); };
 type Ordem = "vezes" | "recente" | "nome";

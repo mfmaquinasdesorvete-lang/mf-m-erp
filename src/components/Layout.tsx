@@ -25,15 +25,17 @@ import { MeusAvisos } from "./Avisos";
 import { MeuRosto } from "./Rosto";
 import { usaRosto } from "@/lib/rosto";
 import { ResultadosBusca } from "./BuscaGeral";
-import { PerguntarIA, parecePergunta } from "./PerguntarIA";
+import { parecePergunta } from "@/lib/pergunta";
 // cotação rápida de frete (o cliente liga perguntando): abre por cima de qualquer tela, carregada só quando abre
 const CotacaoRapida = lazy(() => import("./fretes/CotacaoRapida").then((m) => ({ default: m.CotacaoRapida })));
 import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
 import { AvisoVersao, ErroTela } from "./ErroTela";
 import { Trilha } from "@/components/Trilha";
-import { AlertaObrigacoes } from "@/components/contador/CalendarioObrigacoes";
-import { AlertaContasDoMes } from "@/components/pessoal/ContasDoMes";
+// carregados só para quem usa (contador e financeiro, conta master, quem pergunta à IA): fora do pacote que todos baixam ao entrar
+const AlertaObrigacoes = lazy(() => import("@/components/contador/CalendarioObrigacoes").then((m) => ({ default: m.AlertaObrigacoes })));
+const AlertaContasDoMes = lazy(() => import("@/components/pessoal/ContasDoMes").then((m) => ({ default: m.AlertaContasDoMes })));
+const PerguntarIA = lazy(() => import("./PerguntarIA").then((m) => ({ default: m.PerguntarIA })));
 
 // versão gravada na montagem do site (vite.config.ts); na prévia sem git fica vazia
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
@@ -501,9 +503,11 @@ export function Layout() {
         </Modal>
       )}
       {meuRosto && <MeuRosto onClose={() => setMeuRosto(false)} />}
-      {(perfil.tem("financeiro") || perfil.papel === "contador") && <AlertaObrigacoes />}
-      {perfil.master && <AlertaContasDoMes />}
-      {pergunta !== null && <PerguntarIA inicial={pergunta} onClose={() => { setPergunta(null); setBusca(""); setAberto(false); }} />}
+      <Suspense fallback={null}>
+        {(perfil.tem("financeiro") || perfil.papel === "contador") && <AlertaObrigacoes />}
+        {perfil.master && <AlertaContasDoMes />}
+        {pergunta !== null && <PerguntarIA inicial={pergunta} onClose={() => { setPergunta(null); setBusca(""); setAberto(false); }} />}
+      </Suspense>
     </div>
     </NotificacoesProvider>
   );

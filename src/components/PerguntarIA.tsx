@@ -40,7 +40,7 @@ const EXEMPLOS = [
 ];
 
 /** Parece pergunta (e não um nome ou número): 3 palavras ou mais, ou termina com "?". */
-export const parecePergunta = (t: string) => t.trim().endsWith("?") || t.trim().split(/\s+/).filter((p) => p.length > 1).length >= 3;
+export { parecePergunta } from "@/lib/pergunta";
 
 export function PerguntarIA({ inicial, onClose }: { inicial: string; onClose: () => void }) {
   const navigate = useNavigate();

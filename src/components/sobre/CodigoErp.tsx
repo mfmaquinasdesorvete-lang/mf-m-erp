@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import { Clock, Code2, FileCode2, Layers, Printer, Rocket } from "lucide-react";
 import { Card, Stat } from "@/components/ui";
 import { Ranking, Rosca } from "@/components/Charts";
-import type { DiaHistorico } from "@/lib/atualizacoes";
 import type { HorasProjeto, TecnicaCodigo } from "@/lib/codigoErp";
+import { HISTORICO } from "@/lib/historicoGit";
 
 const CODIGO: TecnicaCodigo[] = typeof __ERP_CODIGO__ !== "undefined" ? __ERP_CODIGO__ : [];
-const HISTORICO: DiaHistorico[] = typeof __ERP_HISTORICO__ !== "undefined" ? __ERP_HISTORICO__ : [];
 const HORAS: HorasProjeto | null = typeof __ERP_HORAS__ !== "undefined" ? __ERP_HORAS__ : null;
 const n = (v: number) => v.toLocaleString("pt-BR");
 
