@@ -108,7 +108,7 @@ const FORMAS = [
 // com as contas a receber (do pedido e das notas dele), os envios e a transportadora: pagamento e envio na lista
 const CONTA = "id,status,valor,valor_pago,vencimento,data_pagamento,forma_pagamento";
 const TRANSP = "nome,nome_fantasia,tipo,rastreio_url";
-const SELECT = `*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id,status,numero,serie,chave,ambiente,valor_total,contas:contas_receber(${CONTA})), `
+const SELECT = `*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id,status,numero,serie,chave,ambiente,valor_total,danfe_url,contas:contas_receber(${CONTA})), `
   + `contas:contas_receber(${CONTA}), envios:envios(id,status,created_at,transportadora_nome,codigo_rastreio,coletado_em,entregue_em,transportadora:transportadoras(${TRANSP})), `
   + `transportadora:transportadoras(${TRANSP})`;
 
@@ -187,13 +187,15 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const { data: marcadores = [] } = useMarcadores();
   const [aberto, setAberto] = useState<(Partial<Pedido> & { itens: Item[] }) | null>(null);
   const [ultimasDe, setUltimasDe] = useState<Cliente | null>(null);
-  /** Menu "…" de cada venda, como no Tiny: abrir, PDF, rastreio, clonar, últimas vendas e WhatsApp do cliente. */
+  /** Menu "…" de cada venda, como no Tiny: abrir, PDF, DANFE da nota, rastreio, clonar, últimas vendas e WhatsApp do cliente. */
   const menuVenda = (p: Pedido) => {
     const abrir = (acao?: string) => setAberto({ ...p, itens: p.itens ?? [], ...(acao ? { __acao: acao } : {}) } as any);
     const zap = p.cliente?.whatsapp || p.cliente?.telefone;
     return <MenuAcoes rotulo={`Ações da venda ${p.numero}`} itens={[
       { rotulo: "Abrir", icone: ChevronRight, onClick: () => abrir() },
       { rotulo: p.status === "orcamento" ? "PDF do orçamento" : "PDF do pedido", icone: FileDown, onClick: () => abrir("pdf") },
+      ...((p as PedidoLista).notas ?? []).filter((n: any) => n.status === "autorizada" && n.danfe_url)
+        .map((n: any) => ({ rotulo: `DANFE da NF ${n.numero}`, icone: FileText, onClick: () => window.open(n.danfe_url, "_blank", "noopener") })),
       ["aprovado", "faturado", "entregue"].includes(p.status) && { rotulo: "Enviar rastreio", icone: Send, onClick: () => abrir("rastreio") },
       pode("editar_pedidos") && ["aprovado", "faturado", "entregue"].includes(p.status) && { rotulo: "Devolver produtos", icone: Undo2, onClick: () => abrir("devolver") },
       pode("editar_pedidos") && (p.itens?.length ?? 0) > 0 && { rotulo: "Clonar venda", icone: Copy, onClick: () => setAberto({ ...clonarVenda({ ...p, itens: p.itens ?? [] }), __clone: Date.now() } as any) },
