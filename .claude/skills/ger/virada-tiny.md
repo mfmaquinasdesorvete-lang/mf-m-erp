@@ -1,9 +1,10 @@
 # Virada do Tiny — plano (GER com o TIN, 27/10/2026)
 
-Objetivo: a partir da data da virada, o ERP Line é o único sistema da MF. O Tiny fica só para consulta (somente leitura)
-até o fim do contrato.
+A virada já aconteceu em **28/09/2026**: a usuária confirmou em 27/10 (com print do Tiny) que a equipe não usa mais o Tiny;
+as últimas vendas lá (6, de 28/09) e a última NF estão no ERP. Desde então tudo é feito só no ERP.
 
-Data proposta: **segunda, 09/11/2026** (duas semanas para fechar a lista abaixo). A usuária decide.
+**09/11/2026** (proposta) é o prazo para fechar o que ficou para trás (lista abaixo). A decisão que sobra para a usuária
+é **quando cancelar a assinatura do Tiny**, depois do backup final (TIN) e da última importação.
 
 ## Como está hoje (levantado no banco em 27/10)
 - Vendas: desde 28/09 nenhum pedido novo entrou pelo Tiny; os de outubro foram todos feitos no ERP. ✅
@@ -25,17 +26,16 @@ Data proposta: **segunda, 09/11/2026** (duas semanas para fechar a lista abaixo)
 | 4 | Extratos em dia em todos os bancos ativos (ou desativar a conta que não é mais usada) e saldo de hoje conferido | usuária + ENT | a fazer |
 | 5 | NF-e: emitir as notas das vendas de outubro pelo ERP e zerar os erros de emissão | FIS + GER | a fazer |
 | 6 | Estoque: contagem feita e lançada (o estoque foi zerado) | usuária + GER | esperando |
-| 7 | Lista do que a equipe ainda faz no Tiny (perguntar a cada um) e onde fica no ERP | usuária + GER | a fazer |
+| 7 | O que a equipe ainda faz no Tiny | usuária | feito: nada desde 28/09 (confirmado em 27/10) |
 | 8 | Teste do começo ao fim no ERP no ar: pedido → NF → conta a receber → recebimento → conciliação | GER | depois de 1–5 |
 | 9 | Na virada: última rodada dos três botões e a equipe para de lançar no Tiny (o ERP só lê do Tiny, não há integração para desligar) | usuária + TIN | no dia |
 
-## Como o TIN propõe o dia (27/10)
-- Na véspera, a equipe para de lançar no Tiny.
+## Última importação antes de cancelar o Tiny (TIN, 27/10)
 - No dia, a usuária clica em Importar: "Buscar histórico do Tiny" a partir de 28/09 (pedidos, NF-e/NFS-e, propostas e
   OCs lançados no Tiny depois disso; não duplica, pelo ID do Tiny), "Buscar recebimentos do Tiny" (nunca foi rodado;
   as recebidas sem dono vão para a aba "Decidir", com o ENT) e "Atualizar cadastros do Tiny".
 - Contas a pagar em aberto e pagas depois de 20/10 entram e as pagas esperam o ok dela em Aprovações.
-- O TIN confere se as contagens batem com as do Tiny antes de declarar a virada.
+- O TIN confere se as contagens batem com as do Tiny e faz o backup final; só então ela cancela a assinatura.
 - Dá para adiantar o item 1 rodando "Buscar recebimentos do Tiny" já agora (precisa do login dela).
 
 ## Depois da virada
