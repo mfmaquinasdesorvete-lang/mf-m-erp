@@ -2,6 +2,8 @@
 Atualizado em 27/10/2026.
 
 ## Estado agora
+Desde 27/10 este chat também é o **auditor de design** do ERP: regras em `regras-design.md` (12 regras + gestão +
+conferência de cada tela) e auditorias datadas (`auditoria-2026-10-27.md`).
 Visual seguindo as diretrizes de design da usuária (24/10): ação principal clara, cartões lisos com borda fina, sem
 degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no jeito do modelo enviado por ela.
 
@@ -33,6 +35,7 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Marcadores nunca somem do registro; no cartão pode esconder o que já aparece de outro jeito.
 - Contato no cartão do cliente: só os ícones de WhatsApp e e-mail.
 - Ordem das seções: cada pessoa arruma a sua; a master pode passar a dela para toda a equipe.
+- O texto de regras de design dela (27/10) é a regra oficial; este chat audita o ERP por ele.
 - Card azul no alto do Início do celular (resumo) e acesso rápido em cartõezinhos coloridos.
 
 ## Onde está
@@ -43,7 +46,8 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Teste guarda: `src/lib/__tests__/designSystemPadrao.test.ts` (cores soltas ≤ 33, tokens soltos ≤ 7, botões ≤ 356).
 
 ## Próximos passos
-1. Ligar `Secoes` em outras páginas que a usuária pedir (ex.: Financeiro, Ficha 360).
-2. Ligar `Carregando`/`Vazio`/`ErroLista` nas telas que não usam o CrudPage.
+1. Seguir a ordem da auditoria de 27/10: estados (86 "Carregando…", 20 "Nenhum…"), área de toque, trava de clique.
+2. Perguntar à usuária sobre letras maiores no celular (texto 14 px, rótulos 12 px).
+3. Ligar `Secoes` em outras páginas que a usuária pedir (ex.: Financeiro, Ficha 360).
 3. Atualizar o Design System no Claude com o escuro liso e as peças novas.
 4. Baixar os limites do teste guarda conforme as telas forem ficando no padrão.

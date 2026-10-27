@@ -37,7 +37,8 @@ export const COR = {
   brand: { DEFAULT: v("brand"), dark: v("brand-dark"), light: v("brand-light"), fg: v("brand-fg"), ice: v("brand-nav") },
   // menu lateral (navy nos dois temas)
   ink: { DEFAULT: v("ink"), soft: v("ink-soft"), line: v("ink-line") },
-  nav: { texto: "#c9d5e6", fraco: "#86a0c2", titulo: "#5a7499" },
+  // titulo: 5,1:1 sobre o fundo do menu (era #5a7499, 3,8:1 — auditoria de 27/10, regra de contraste WCAG AA)
+  nav: { texto: "#c9d5e6", fraco: "#86a0c2", titulo: "#7089ad" },
   fixo: Object.fromEntries(FIXAS.map((n) => [n, paleta[n]])),
   // fundo escuro dos apps do celular (Vendas, Financeiro, Produção, Expedição, Assistência) e da instalação do app
   noite: { fundo: "#07090f", "fundo-2": "#0b0e16", cartao: "#111521", texto: "#e9ecf2", medio: "#b8bfcd", fraco: "#8b93a7", apagado: "#6b7385", tinta: "#04130d" },
