@@ -2,16 +2,38 @@
 Atualizado em 27/10/2026.
 
 ## Estado agora
-Chat criado em 27/10 pelo ELO, a pedido da usuária. Começa pela fase 1 (diagnóstico) com os dados da MF.
+Fase 1 (diagnóstico) entregue à usuária em 27/10. Esperando ela aprovar as conferências novas e o plano da fase 2.
+Nada programado ainda.
 
 ## No ar
 - Nada deste chat ainda. Já existe a Auditoria financeira (`src/lib/auditoria.ts`) e o Perguntar à IA (`ia-busca`).
 
 ## Em andamento
-- Fase 1: diagnóstico das fontes (vendas, recebimentos, contas, extratos, taxas de cartão) e do que falta.
+- Nada programado. Pedido em Sobre → Pedidos: "Auditor Financeiro IA – fase 1: diagnóstico".
 
 ## Esperando a usuária
-- Nada.
+- Aprovar (ou mudar) as conferências novas da fase 1 e o plano da fase 2.
+- Taxas das formas de pagamento estão todas em 0%: sem elas não dá para conferir bruto × taxa × líquido (GER/Config).
+
+## Diagnóstico (27/10) — o que achei nas fontes
+- Vendas: `pedidos` (origem tiny, whatsapp, balcao, loja, marketplace). Boa parte dos pedidos entregues que vieram
+  do Tiny não tem parcela em `contas_receber` (recebimentos do Tiny não importados): é integração ausente, não
+  divergência. Só comparar venda × recebimento a partir da data em que o ERP passou a lançar as parcelas.
+- PDV de balcão: `pdv_caixas` e `pdv_caixa_movimentos` existem, mas quase sem uso (sem movimentos).
+- Contas: `contas_receber`, `contas_pagar` (com `revisao`, `decisao`, `contador_status`), anexos em `documentos`.
+  Quase nenhuma conta paga tem documento, NF-e ou anexo: "paga sem comprovante" precisa de data de corte e valor
+  mínimo, senão vira milhares de alertas.
+- Extratos: `extrato_lancamentos` + `extrato_importacoes` por `contas_bancarias` (OLIST, InfinitePay SC e SP,
+  Mercado Pago SP, Inter, Nubank, Unicred). Inter chega pela API; o resto por arquivo. Cobertura de datas
+  diferente por conta (Unicred e Mercado Pago param no começo/meio do ano).
+- Cartão: OLIST tem linhas de taxa separadas no extrato; InfinitePay e Mercado Pago não (vêm líquidas).
+  `formas_pagamento.taxa_percentual`/`tarifa_fixa` estão em 0 → falta a taxa contratada para comparar.
+  Mercado Livre: `ml_pedidos` tem total, tarifa e frete (quase sem pedidos ainda).
+- DRE: `src/lib/dre*.ts`, `dreExtrato.ts`, `fechamentoMes.ts`; observações em `dre_observacoes`.
+- Exceções e tratativas: `src/lib/auditoria.ts` (28 tipos) + `auditoria_excecoes` (situação indicio/confirmado/
+  resolvido/descartado, sem histórico próprio da tratativa). Calculado no navegador.
+- Permissões: contas e extratos só financeiro e contador (vendas lê `contas_receber`); `auditoria_excecoes`
+  financeiro e contador. Uso de IA em `ia_registros`.
 
 ## Decisões da usuária
 - 27/10: começar pela MF, onde os dados já estão; as sorveterias entram depois, com o SOR.
@@ -24,7 +46,8 @@ Chat criado em 27/10 pelo ELO, a pedido da usuária. Começa pela fase 1 (diagn�
 - Regras: `src/lib/auditoria.ts`.
 - Funções do Supabase: `ia-busca` (modelo do chat).
 
-## Próximos passos
-1. Mapear tabelas, fontes, permissões e as conferências que já existem; mostrar à usuária o que há e o que falta.
-2. Desenhar as conferências novas da fase 1 e o formato fixo das respostas.
-3. Chat de leitura em cima delas, no padrão do `ia-busca`.
+## Próximos passos (depois da aprovação)
+1. Conferências novas como funções puras em `src/lib/` com testes (centavos inteiros), cada uma devolvendo valor,
+   quantidade, período e registros de origem; "integração ausente" separado de divergência.
+2. Fase 2: função `ia-auditor` no padrão do `ia-busca`: a IA só escolhe a conferência e o período; a conta roda
+   com o login de quem perguntou; resposta no formato fixo; registro em `ia_registros`; interruptor em `ia-controle`.
