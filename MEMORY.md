@@ -111,4 +111,5 @@ Atualizado em 25/10/2026 pelo ELO.
 | CNF | conferência dos pedidos |
 | DOC | documentos em Markdown (`docs/`) |
 | AUD | Auditor Financeiro IA da MF (só leitura) |
+| FAZ | o que só a usuária faz no Supabase, GitHub e Hostinger (lista e cobrança) |
 | REV | revisão: velocidade, links e itens mortos, repetidos |

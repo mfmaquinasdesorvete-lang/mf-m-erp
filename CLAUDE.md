@@ -71,6 +71,9 @@
   - AUD "ERP Line – Auditor financeiro": o Auditor Financeiro IA da MF, só leitura: cruza vendas, recebimentos, contas,
     extratos e taxas, acha o que não bate e mostra as provas; fila de alertas. A origem das entradas fica no ENT e o
     lançamento e a correção no "continuação"; as sorveterias entram depois, com o SOR.
+  - FAZ "ERP Line – O que só você faz": a lista do que só a usuária pode fazer no Supabase (SQL Editor, secrets), no
+    GitHub (Actions) e na Hostinger; explica o passo a passo, confere se foi feito e cobra. Quando um chat precisar dela
+    num desses painéis, anotar em "Esperando a usuária" da sua MEMORY.md para o FAZ achar.
   - REV "ERP Line – Revisão (velocidade, links e repetidos)": audita o ERP todo: o que está lento (site e banco),
     links, botões, telas e código mortos, e telas, menus e funções repetidas. Leva cada conserto ao chat dono; clientes
     e produtos repetidos (dados) ficam no CLI e no PRD.
