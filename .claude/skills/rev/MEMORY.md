@@ -13,7 +13,8 @@ com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 - GER respondeu (27/10): pega a Auditoria financeira e as listas sem `select:` (clientes e produtos primeiro); `centavos()` numa troca separada com teste; rotas, menu e o que apagar dependem da usuária.
 - CAR fez (27/10, migração 20261101000174): as 9 regras da carteira com (select auth.uid()) e os 5 índices; conferido pelo REV no banco (0 regras sem select, 9 regras).
 - CLI fez (27/10, migração 20261101000174): os crons da Receita e das redes checam com receita_tem_pendente() e redes_tem_pendente() (51 ms as duas, antes 97 + 195 ms; conferido no cron.job). Clientes e Painel dos clientes usam SELECT_LISTA_CLIENTES (`src/lib/clientesLista.ts`), que foi passado ao GER para as outras telas. O site dele espera o ok da usuária.
-- Falta responder: SEG.
+- SEG fez (27/10, commit e73163d): o Monitor atualiza a saúde do sistema a cada 5 min (vai na próxima publicação do site). As regras de acesso repetidas (51 tabelas) entram aos poucos, tabela por tabela, testando cada papel.
+- Os quatro chats responderam. Ainda não enviados: PRD, FIS, TRA, MKT e DSG (achados menores).
 - Ainda não enviados: PRD (2 e 6), FIS, TRA e MKT (9), DSG (16).
 
 ## Esperando a usuária
