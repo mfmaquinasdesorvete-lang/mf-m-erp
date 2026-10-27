@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nomePadrao, separarCompatibilidade } from "../marketplace";
+import { nomePadrao } from "../marketplace";
 
 describe("nomePadrao", () => {
   it("ampère depois do número e faixa entre números", () => {
@@ -10,19 +10,5 @@ describe("nomePadrao", () => {
   it("o-ring escrito de vários jeitos", () => {
     expect(nomePadrao("Vedações Oring's - Dosador")).toBe("Vedações O-Rings - Dosador");
     expect(nomePadrao("Vedação o-Ring dos Pistões")).toBe("Vedação O-Ring dos Pistões");
-  });
-});
-
-describe("separarCompatibilidade", () => {
-  it("tira a frase do nome e põe no subtítulo com os modelos", () => {
-    expect(separarCompatibilidade("Mecânica Dupla (2 Motores) - Top 300 / P 765 - Compatível com Máquinas My Frost")).toEqual({
-      nome: "Mecânica Dupla (2 Motores) - Top 300 / P 765", subtitulo: "Compatível com máquinas de sorvete expresso Top 300 e P 765",
-    });
-    expect(separarCompatibilidade("Manípulo de Alumínio da Chave Extratora - Compatível com Máquinas My Frost")).toEqual({
-      nome: "Manípulo de Alumínio da Chave Extratora", subtitulo: "Compatível com máquinas de sorvete expresso",
-    });
-  });
-  it("nome sem a frase fica sem subtítulo", () => {
-    expect(separarCompatibilidade("Motor Elétrico IBR 1,5 CV")).toEqual({ nome: "Motor Elétrico IBR 1,5 CV", subtitulo: null });
   });
 });

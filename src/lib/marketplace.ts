@@ -143,23 +143,6 @@ function cortar(t: string, max: number) {
 }
 
 /** Título do anúncio: nome padronizado + "para Máquina de Sorvete" quando é peça e o nome não diz para que serve. */
-/** "… - Compatível com Máquinas My Frost" no fim do nome (do jeito que veio do Tiny). */
-const COMPATIVEL = /\s*[-–,]?\s*\(?\s*compat[ií]vel\s+com\s+(?:as\s+)?m[aá]quinas\s+my\s*frost\s*\)?\s*$/i;
-/** Modelos das máquinas My Frost que aparecem no nome das peças. */
-const MODELOS = /\b(A ?100|A ?200(?: (?:Nova|Antiga))?|P ?313|P ?386|P ?765|Top ?200|Top ?300(?: Antiga)?|Prime(?: 4\.[02])?|Queen|Slim(?: Antigas?)?|Italianinha)\b/gi;
-
-/** Separa o nome limpo (padrão do Google e dos marketplaces) do subtítulo "Compatível com máquinas de sorvete expresso …".
- *  Os modelos citados no nome entram no subtítulo; o nome não perde nada além da frase de compatibilidade. */
-export function separarCompatibilidade(descricao: string): { nome: string; subtitulo: string | null } {
-  const original = String(descricao ?? "");
-  const nome = nomePadrao(original.replace(COMPATIVEL, ""));
-  if (!COMPATIVEL.test(original)) return { nome, subtitulo: null };
-  const modelos = [...new Set([...nome.matchAll(MODELOS)].map((m) => nomePadrao(m[1].replace(/^([AP])(\d)/i, "$1 $2").replace(/^(Top)(\d)/i, "$1 $2"))))];
-  const lista = modelos.length > 1 ? `${modelos.slice(0, -1).join(", ")} e ${modelos[modelos.length - 1]}` : modelos[0];
-  // sem o nome "My Frost" nos cadastros (pedido da usuária em 24/10): só o tipo de máquina e os modelos
-  return { nome, subtitulo: lista ? `Compatível com máquinas de sorvete expresso ${lista}` : "Compatível com máquinas de sorvete expresso" };
-}
-
 export function tituloAnuncio(p: ProdutoAnuncio): string {
   let t = nomePadrao(p.descricao);
   const s = semAcento(t.toLowerCase());

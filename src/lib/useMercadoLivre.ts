@@ -67,8 +67,6 @@ export const mudarExcecao = (anuncioId: string, campo: "estoque" | "preco", envi
 
 export const aprovarPreco = (anuncioId: string, preco: number) => rpc("ml_aprovar_preco", { p_anuncio: anuncioId, p_preco: preco });
 
-export const ligarAnuncio = (anuncioId: string, produtoId: string) => rpc<number>("ml_ligar_anuncio", { p_anuncio: anuncioId, p_produto: produtoId });
-
 /** Liga o anúncio ao produto; com quantidade > 1 (anúncio "4 Un") cria ou reaproveita o kit "N × produto" e liga ao kit. */
 export const ligarComKit = (anuncioId: string, produtoId: string, quantidade: number) =>
   rpc<{ produto_id: string; importadas: number; kit_criado: boolean }>("ml_ligar_com_kit", { p_anuncio: anuncioId, p_produto: produtoId, p_quantidade: quantidade });
