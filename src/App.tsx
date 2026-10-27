@@ -12,7 +12,7 @@ import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/Toaster";
 import { NaoEncontrada } from "@/components/NaoEncontrada";
 import { AnotarPorVoz } from "@/components/voz/AnotarPorVoz";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, Carregando as CarregandoLista } from "@/components/ui";
 import Login, { NovaSenha } from "@/pages/Login";
 import { PortaoRosto } from "@/components/Rosto";
 import { useSessaoDerrubada } from "@/lib/sair";
@@ -190,7 +190,8 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "embalagens", tela: "fretes", element: <Embalagens /> },
 ];
 
-const Carregando = () => <div className="p-8 text-slate-500">Carregando…</div>;
+// carregando a tela (também nas páginas públicas, antes do tema): a peça padrão de ui.tsx, com respiro em volta
+const Carregando = () => <div className="mx-auto max-w-3xl p-4 sm:p-8"><CarregandoLista linhas={3} /></div>;
 
 /** Endereço antigo de combustível, marketplaces ou impostos: vai para a aba de Gastos separados (`manter`: a aba do endereço vale lá). */
 function ParaGastos({ aba, manter }: { aba?: string; manter?: boolean }) {
