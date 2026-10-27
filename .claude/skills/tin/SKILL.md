@@ -50,6 +50,12 @@ Cuido de tudo o que vem do Tiny da MF (API, planilhas e backups) e entra no ERP 
 - `supabase/migrations/20261101000108_cadastros_unificar_sem_perder.sql` (importar produtos sem perder o que foi arrumado).
 
 ## Cuidados conhecidos
+- O Tiny da MF não é usado desde 28/09/2026: o que aparece nele depois disso (contas em aberto, baixas, contas novas)
+  não entra; desde então vale o ERP. Transferências da MF para ela mesma (matriz e filial) não são conta a pagar.
+- Conta a receber em aberto criada para pedido antigo dispara a régua de cobrança (e-mail e WhatsApp ao cliente): só
+  trazer recebimentos já pagos, nunca abrir conta de pedido antigo sem a usuária pedir.
+- No relatório financeiro de vendas do Tiny, "Valor total" vem antes do desconto; no ERP o pedido guarda o total com o
+  desconto.
 - Quem já existe (mesmo ID do Tiny ou CPF/CNPJ) é atualizado, não duplica.
 - Produto que já existe: não troca descrição, tipo, ativo nem "pode vender"; preço em branco não zera o preço.
 - Produto unificado: a importação vai para o principal, não reativa o arquivado.

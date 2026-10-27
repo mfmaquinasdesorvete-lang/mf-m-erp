@@ -22,15 +22,15 @@ A base da My Frost (empresa anterior) passou para o MYF em 23/10.
   duas bases.
 - Propostas do Tiny em aberto: todas fechadas, como Concluído (virou venda) ou Não aprovado.
 
+- Planilhas finais do Tiny (27/10, com o ok dela): contas a pagar pagas até 28/09 (`id_externo` tiny-planilha:cp:…) e
+  recebimentos do caixa do Tiny ligados ao pedido (tiny-planilha:cr:pedido:n), como histórico.
+
 ## Em andamento
 - Virada do Tiny (o GER propõe a data): mandei ao GER a lista do que falta trazer. No ERP, pedidos e NF-e do Tiny vão até o
   fim de setembro, contas a pagar até 20/10 e os recebimentos do Tiny nunca foram buscados.
 
 ## Esperando a usuária
-- Conferência das 5 planilhas finais do Tiny (27/10): ok para trazer as contas a pagar que faltam (pagas e em aberto),
-  as contas a receber dos pedidos do Tiny sem conta (com a data e o valor do caixa do Tiny, quando houver) e corrigir o
-  valor de um pedido que difere do Tiny. Para as notas que faltam (saída e entrada), ela precisa baixar o XML no Tiny
-  antes de o acesso acabar.
+- XML das notas que faltam (saída e entrada) da conferência de 27/10: ela baixa no Tiny e manda aqui.
 - Backup final do Tiny da MF antes de cancelar a assinatura (o Tiny não é usado desde 28/09): antes, rodar os botões
   de recebimentos e cadastros (a API para quando a assinatura acaba); depois baixar contas a pagar e receber (todas as
   situações), XML das NF-e emitidas e de entrada, NFS-e, pedidos com itens, OCs, OS, propostas, produtos com estoque e
@@ -59,8 +59,8 @@ A base da My Frost (empresa anterior) passou para o MYF em 23/10.
 - Funções do Supabase: `tiny-importar`, `tiny-historico` (token só no secret `TINY_API_TOKEN`).
 
 ## Próximos passos
-- Com o ok dela na conferência de 27/10: importar o que falta (planilhas de 27/10 no chat) e marcar "feito" em
-  Sobre → Pedidos só depois de conferir no ERP no ar.
+- Quando o XML das notas chegar: trazer as notas que faltam e marcar "feito" em Sobre → Pedidos depois de conferir no
+  ERP no ar.
 0. Na virada: a usuária clica em histórico, recebimentos e cadastros do Tiny; eu confiro as contagens com o Tiny.
 1. Quando ela rodar "Buscar recebimentos do Tiny": conferir a aba "Decidir" e cruzar com o ENT.
 2. Quando a planilha do instalador chegar: mostrar a lista, ligar aos dois fornecedores com o ok dela e avisar o GER.
