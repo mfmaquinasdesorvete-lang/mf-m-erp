@@ -178,14 +178,18 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
   const { data: todas = [] } = useQuery({
     queryKey: ["notificacoes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("notificacoes").select("*").order("created_at", { ascending: false }).limit(60);
+      // 200: os avisos dos chats (muitos por dia) não podem empurrar as mensagens da equipe para fora
+      const { data, error } = await supabase.from("notificacoes").select("*").order("created_at", { ascending: false }).limit(200);
       if (error) throw error;
       return data as Notificacao[];
     },
     refetchInterval: 60_000, // segurança caso a conexão em tempo real caia
   });
-  const lista = useMemo(() => todas.filter((n) => paraMim(n) || meu(n)).slice(0, 40), [todas, eu]); // eslint-disable-line react-hooks/exhaustive-deps
-  const idsAvisos = lista.filter((n) => n.exige_ciencia).map((n) => n.id);
+  const minhas = useMemo(() => todas.filter((n) => paraMim(n) || meu(n)), [todas, eu]); // eslint-disable-line react-hooks/exhaustive-deps
+  // o sino é só a conversa com a equipe e os avisos do trabalho: os dos chats do Claude e os de Segurança aparecem só no
+  // meio da tela de quem os recebe (pedido de 27/10), não na lista
+  const lista = useMemo(() => minhas.filter((n) => !ehClaude(n) && !n.titulo.startsWith("Segurança:")).slice(0, 40), [minhas]);
+  const idsAvisos = minhas.filter((n) => n.exige_ciencia).map((n) => n.id);
   const { data: ciencias = [], isFetched: cienciasLidas } = useQuery({
     queryKey: ["notificacoes_ciencia", idsAvisos.join(",")],
     enabled: idsAvisos.length > 0,
@@ -208,7 +212,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
     if (pendentesVistos.current || !eu || !todas.length || (idsAvisos.length > 0 && !cienciasLidas)) return;
     pendentesVistos.current = true;
     const limite = new Date(Date.now() - 7 * 864e5).toISOString();
-    const pendentes = lista.filter((n) => n.exige_ciencia && paraMim(n) && !(meu(n) && !n.destinatarios?.includes(eu)) && !jaCiente(n) && n.created_at > limite);
+    const pendentes = minhas.filter((n) => n.exige_ciencia && paraMim(n) && !(meu(n) && !n.destinatarios?.includes(eu)) && !jaCiente(n) && n.created_at > limite);
     if (pendentes.length) {
       setCentro(pendentes.reverse());
       const claude = pendentes.find(ehClaude);
@@ -313,7 +317,8 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
     if (novo) tocar("normal");
   }
 
-  const atual = centro[0];
+  // a conversa de resposta ou a janela de novo aviso aberta: o aviso do meio da tela espera (senão ficava por cima e não dava para escrever)
+  const atual = responderA || compor ? undefined : centro[0];
   return (
     <NotifCtx.Provider value={{ lista, naoVistas, abrirPainel, novoAviso: (para) => setCompor(para ?? []) }}>
       {children}
