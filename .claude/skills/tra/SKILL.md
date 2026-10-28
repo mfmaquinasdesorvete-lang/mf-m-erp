@@ -56,6 +56,7 @@ Cuido das transportadoras e dos fretes: do cadastro e da cotação até a entreg
 - São Miguel não tem API pública de cotação (só app de rastreio e CT-e); a cotação depende de a São Miguel liberar o acesso ou mandar a tabela.
 - Rodonaves: os secrets já existem, mas a Rodonaves responde "Login ou senha inválidos" (24/10): a usuária precisa conferir o usuário da API (não é o do site).
 - Rodonaves (28/10): cada API tem o seu token; a cotação usa https://quotation-apigateway.rte.com.br/token. O 01wapi foi desligado ("EoF 01wapi", 10/10/2025). O token pedido no servidor errado dá "Login ou senha inválidos" mesmo com o acesso certo.
+- O usuário de API da Rodonaves não é o login do site: é pedido à unidade de vínculo, dizendo os recursos (Cotação, Rastreio, Comprovante de entrega). Login do site na rota de token dá 400 invalid_grant.
 - Tabelas de frete (Fretes → Tabelas de frete; frete_tabelas e frete_tabela_destinos; conta em _shared/frete-tabela.ts): para as transportadoras sem API. Destino pela faixa de CEP, depois cidade, depois estado; peso taxado = maior entre real e cubado (300 kg/m³). A São Miguel manda a tabela em PDF ("fatores mínimos, frete kg, generalidades, % de nota fiscal"): passar para a planilha modelo antes de importar.
 - Cidade do CEP: o ViaCEP às vezes não responde (24/10); frete-cotar tenta a BrasilAPI e, sem nenhum, usa o estado pelo começo do CEP (ufDoCep).
 - Acesso de API é por CNPJ: o da Braspress de 2022 é de outro CNPJ (38.047.231), não serve para a MF (46.942.855).
