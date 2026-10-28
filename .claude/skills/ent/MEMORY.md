@@ -1,5 +1,5 @@
 # MEMORY — ENT (ERP Line – Entradas nas contas da MF)
-Atualizado em 27/10/2026.
+Atualizado em 28/10/2026.
 
 ## Estado agora
 Auditoria a fundo das entradas feita em 23 e 24/10. Cerca de 300 entradas saíram de "pendente"
@@ -18,6 +18,8 @@ pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliqu
   liga um a um, pela regra do dia útil seguinte e da taxa.
 
 ## Esperando a usuária
+- Pedido de 28/10 (FIS coordena): extratos da MF SC desde a abertura (06/2022). Faltam Unicred 06/2022–12/2024,
+  Sicoob inteiro, e saber quais bancos a MF usou em 2022–2023. Passo a passo enviado ao FAZ.
 - Dizer o que foi cada entrada grande sem venda nem nota (licença, venda sem pedido, empréstimo, aporte).
 - Fatura ou relatório de fretes do Olist Envios (item do frete descontado).
 - Relatório de vendas da InfinitePay e da Olist por transação.
