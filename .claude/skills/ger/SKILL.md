@@ -120,3 +120,5 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   nota ligada a OC parada em `aguardando_vinculo` volta para `pendente` (gatilho em `nfe_oc_vinculos`). A Expresso São
   Miguel não está no SSW: a entrega dela não chega sozinha; "Chegou" fica na própria OC (Notas fiscais do fornecedor) e
   o aviso `avisar_compras_para_chegar` (dias úteis, 16h43) lembra o que já devia ter chegado.
+- Publicar funções (Actions deploy-supabase.yml): o campo `funcoes` é separado por ESPAÇO; com vírgula nada é publicado
+  e a execução ainda sai "success" em ~10 s (aconteceu em 28/10). Conferir a duração ou o log antes de dizer "no ar".
