@@ -30,6 +30,9 @@ guias e os parcelamentos que chegam na caixa do contador.
   falta com o FAZ, importar o que chegar (TIN, GER, ENT).
 
 ## Esperando a usuária
+- Filial SP, série 1: os números 2 e 3 (05/2026) foram usados fora do ERP (contabilidade); a contabilidade pôs o
+  próximo número na Focus em 399 (a NF 399 saiu em 28/10). Inutilizar 4 a 398 (e o 1, se não foi usado) pelo ERP
+  (Notas fiscais → Inutilizar numeração) até 10/11/2026, e pedir os XML das notas 1 a 3 para o ERP.
 - REGIME (28/10): as guias de 09/2026 do contador novo vieram como LUCRO PRESUMIDO (IRPJ 2089, CSLL 2372 trimestrais;
   PIS 8109 e COFINS 2172, cumulativo). O ERP está configurado como Lucro Real (PIS 1,65%, COFINS 7,6% nas notas e na
   previsão de imposto). Ela confirma com o contador qual é o regime de 2026; se for Presumido, trocar as alíquotas
