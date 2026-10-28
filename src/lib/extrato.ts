@@ -154,3 +154,22 @@ export function contaDoArquivo(nomeArquivo: string, numeroOfx: string | null | u
   if (!pontos.length || (pontos.length > 1 && pontos[0].pontos === pontos[1].pontos)) return null;
   return pontos[0].id;
 }
+
+/** Trava de conta errada antes de importar (28/10, "isso não pode acontecer"): bloqueio = não deixa importar;
+ * avisos = pede confirmação. */
+export function conferirContaDoExtrato(
+  r: { conta?: string | null; linhas: { descricao: string }[] },
+  conta: { nome: string; numero?: string | null; banco?: string | null } | null | undefined,
+): { bloqueio: string | null; avisos: string[] } {
+  if (!conta) return { bloqueio: "Escolha a conta deste extrato.", avisos: [] };
+  const avisos: string[] = [];
+  const doArquivo = so(r.conta), daConta = so(conta.numero);
+  if (doArquivo.length >= 4 && daConta.length >= 4 && !doArquivo.endsWith(daConta) && !daConta.endsWith(doArquivo)) {
+    return { bloqueio: `Este arquivo é da conta ${r.conta}, não da “${conta.nome}” (${conta.numero}). Escolha a conta certa.`, avisos };
+  }
+  if (doArquivo.length >= 4 && daConta.length < 4) avisos.push(`O arquivo é da conta ${r.conta} e a “${conta.nome}” não tem o número cadastrado para conferir.`);
+  if (conta.banco === "inter") avisos.push(`A “${conta.nome}” recebe o extrato sozinha pela ligação com o Inter: importar arquivo nela é estranho.`);
+  const cartaoInfinite = r.linhas.filter((l) => /·\s*mfmaquinas\s*$/i.test(l.descricao)).length;
+  if (cartaoInfinite && conta.banco !== "infinitepay") avisos.push(`${cartaoInfinite} ${cartaoInfinite === 1 ? "lançamento é" : "lançamentos são"} do cartão InfinitePay (“· mfmaquinas”), mas a conta escolhida não é InfinitePay.`);
+  return { bloqueio: null, avisos };
+}

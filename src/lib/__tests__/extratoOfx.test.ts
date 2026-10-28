@@ -40,3 +40,20 @@ describe("conta do extrato pelo arquivo (pedido de 28/10)", () => {
   it("acha a Unicred pelo nome", () => expect(contaDoArquivo("extrato unicred jun.ofx", null, contas)).toBe("uni"));
   it("sem pista nenhuma devolve null (não escolhe a primeira em silêncio)", () => expect(contaDoArquivo("extrato.ofx", null, contas)).toBeNull());
 });
+
+import { conferirContaDoExtrato } from "../extrato";
+
+describe("trava de conta errada (pedido de 28/10)", () => {
+  const inter = { nome: "Banco Inter SC", numero: "1234567", banco: "inter" };
+  const fab = { nome: "Infinite SP - FABIANO", numero: "26441264-5", banco: "infinitepay" };
+  const cartao = [{ descricao: "Compra Posto · mfmaquinas" }];
+  it("bloqueia quando o número do arquivo não bate com a conta", () =>
+    expect(conferirContaDoExtrato({ conta: "264412645", linhas: cartao }, inter).bloqueio).toMatch(/264412645.*Banco Inter SC/));
+  it("passa quando o número bate", () => expect(conferirContaDoExtrato({ conta: "264412645", linhas: cartao }, fab)).toEqual({ bloqueio: null, avisos: [] }));
+  it("arquivo sem número numa conta do Inter com compras do cartão InfinitePay: dois avisos", () => {
+    const r = conferirContaDoExtrato({ conta: null, linhas: cartao }, inter);
+    expect(r.bloqueio).toBeNull();
+    expect(r.avisos).toHaveLength(2);
+  });
+  it("sem conta escolhida não importa", () => expect(conferirContaDoExtrato({ linhas: [] }, null).bloqueio).toBeTruthy());
+});

@@ -12,7 +12,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { CampoCategoria } from "@/components/financeiro/CategoriaRateio";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
-import { contaDoArquivo, lerExtrato, linhasCsv, type LinhaExtrato, type MapaCsv, type ResultadoExtrato } from "@/lib/extrato";
+import { conferirContaDoExtrato, contaDoArquivo, lerExtrato, linhasCsv, type LinhaExtrato, type MapaCsv, type ResultadoExtrato } from "@/lib/extrato";
 import { sugerir, type Sugestao } from "@/lib/conciliacao";
 import { direcaoDe, emPedacos, regrasDasLinhas, textoRegra, type RegraConciliacao } from "@/lib/conciliacaoLote";
 import { PorFavorecido } from "@/components/financeiro/ConciliacaoLote";
@@ -512,6 +512,7 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
   // nunca a primeira da lista em silêncio: a conta vem do arquivo, da tela de onde veio ou da escolha dela
   const [conta, setConta] = useState(contaInicial || "");
   const [reconhecida, setReconhecida] = useState(true);
+  const [confirmado, setConfirmado] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const invalidate = useInvalidate();
   const linhas: LinhaExtrato[] = res?.csv && mapa ? linhasCsv(res.csv.registros, mapa) : res?.linhas ?? [];
@@ -546,14 +547,18 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
       // (28/10: "Infinit fa.ofx" caiu na primeira conta da lista, a do Inter)
       const achou = contaDoArquivo(f.name, r.conta, bancos);
       setReconhecida(!!achou);
-      setConta(achou ?? contaInicial ?? "");
+      setConfirmado(false);
+      setConta(achou ?? ""); // sem certeza fica em branco: ela escolhe (nem a conta da tela de onde veio)
     } catch (e) { notifyError(e); }
   }
 
   // OFX sem lançamento também entra (pedido de 28/10): ele prova que o banco não teve movimento no período
   const semMovimento = !linhas.length && res?.formato === "ofx" && !!res.periodoInicio && !!res.periodoFim;
+  const contaEscolhida = bancos.find((b) => b.id === conta);
+  const trava = res ? conferirContaDoExtrato({ conta: res.conta, linhas }, contaEscolhida) : { bloqueio: null, avisos: [] };
+  const podeImportar = !!res && (!!linhas.length || semMovimento) && !trava.bloqueio && (!trava.avisos.length || confirmado);
   async function enviar() {
-    if (!res || (!linhas.length && !semMovimento)) return;
+    if (!res || !podeImportar) return;
     setOcupado(true);
     try {
       const base = {
@@ -593,12 +598,34 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
               : <input className="input" type="file" onChange={(e) => escolher(e.target.files?.[0] ?? null)} />}
           </Field>
           <Field label="Conta">
-            <select className={`input ${!conta ? "border-amber-400" : ""}`} value={conta} onChange={(e) => setConta(e.target.value)} aria-invalid={!conta}>
+            <select className={`input ${!conta ? "border-amber-400" : ""}`} value={conta} onChange={(e) => { setConta(e.target.value); setConfirmado(false); }} aria-invalid={!conta}>
               <option value="" disabled>Escolha a conta deste extrato…</option>
               {bancos.map((b) => <option key={b.id} value={b.id}>{b.nome} ({BANCOS[b.banco] ?? b.banco})</option>)}
             </select>
           </Field>
         </div>
+        {res && contaEscolhida && !trava.bloqueio && (
+          <div className="rounded-xl border-2 border-brand bg-brand-light p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">Vai entrar na conta</div>
+            <div className="text-xl font-bold text-fg">{contaEscolhida.nome}</div>
+            {linhas.length > 0 && (
+              <ul className="mt-1 space-y-0.5 text-sm text-slate-700">
+                {linhas.slice(0, 3).map((l) => <li key={l.identificador}>{dataBR(l.data)} · {l.descricao} · <b>{brl(l.valor)}</b></li>)}
+              </ul>
+            )}
+          </div>
+        )}
+        {res && trava.bloqueio && conta && (
+          <div role="alert" className="rounded-xl border-2 border-red-400 bg-red-50 p-3 text-sm font-semibold text-red-800">{trava.bloqueio}</div>
+        )}
+        {res && !trava.bloqueio && trava.avisos.length > 0 && (
+          <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <ul className="list-disc space-y-1 pl-4">{trava.avisos.map((a) => <li key={a}>{a}</li>)}</ul>
+            <label className="mt-2 flex items-center gap-2 font-semibold">
+              <input type="checkbox" checked={confirmado} onChange={(e) => setConfirmado(e.target.checked)} /> Conferi: este extrato é mesmo desta conta
+            </label>
+          </div>
+        )}
         {res && !reconhecida && (
           <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
             <b>Não reconheci a conta pelo arquivo.</b> {conta ? `Confira se o extrato é mesmo da conta “${bancos.find((b) => b.id === conta)?.nome}”.` : "Escolha a conta deste extrato acima antes de importar."}
@@ -664,7 +691,7 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button onClick={enviar} variant={jaEm.length ? "secondary" : "primary"} disabled={(!linhas.length && !semMovimento) || !conta || ocupado}><FileUp size={16} /> {ocupado ? "Importando…" : semMovimento ? "Importar o período sem movimento" : `${jaEm.length ? "Importar mesmo assim" : "Importar"} ${linhas.length || ""} ${pl(linhas.length || "", "lançamento", "lançamentos")}`}</Button>
+          <Button onClick={enviar} variant={jaEm.length ? "secondary" : "primary"} disabled={!podeImportar || ocupado}><FileUp size={16} /> {ocupado ? "Importando…" : semMovimento ? "Importar o período sem movimento" : `${jaEm.length ? "Importar mesmo assim" : "Importar"} ${linhas.length || ""} ${pl(linhas.length || "", "lançamento", "lançamentos")}`}</Button>
         </div>
       </div>
     </Modal>
