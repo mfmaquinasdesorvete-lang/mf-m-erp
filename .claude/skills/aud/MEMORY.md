@@ -18,9 +18,9 @@ Rodada de fechamento (CLAUDE.md, 27/10): a fase 2 só começa quando a usuária 
 - Cadastrar a taxa contratada nas formas de pagamento de cartão (todas em 0%), ligadas à conta bancária; sem ela a
   conferência do cartão só mostra a taxa efetiva.
 - Aprovar a fase 2 (chat do auditor) quando a rodada de fechamento acabar.
-- Unicred (28/10): ela mandou 5 OFX (jun/2025 a 28/10/2026, conferidos e sem lacuna). Falta decidir: (1) GER deixar a
-  importação aceitar OFX sem lançamento e guardar o período do arquivo; (2) extratos de 05/04 a 31/05/2025 e
-  29/09/2023 a 01/01/2025; (3) saldo inicial da conta (hoje R$ 0 em 17/10/2026; o banco mostra outro valor nessa data).
+- Unicred (28/10): ela mandou 5 OFX (jun/2025 a 28/10/2026, conferidos e sem lacuna) e decidiu: GER conserta a
+  importação (OFX sem lançamento + período do arquivo) e põe o saldo inicial em R$ 28,09 em 17/10/2026. Levado ao GER
+  (pedido 7d212117). Depois ela importa os 5 arquivos. Ainda faltam extratos de 05/04 a 31/05/2025 e 2023–2024.
 
 ## Diagnóstico (27/10) — o que achei nas fontes
 - Vendas: `pedidos` (origem tiny, whatsapp, balcao, loja, marketplace). Boa parte dos pedidos entregues que vieram
