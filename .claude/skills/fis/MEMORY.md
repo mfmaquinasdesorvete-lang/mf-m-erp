@@ -30,6 +30,10 @@ guias e os parcelamentos que chegam na caixa do contador.
   falta com o FAZ, importar o que chegar (TIN, GER, ENT).
 
 ## Esperando a usuária
+- REGIME (28/10): as guias de 09/2026 do contador novo vieram como LUCRO PRESUMIDO (IRPJ 2089, CSLL 2372 trimestrais;
+  PIS 8109 e COFINS 2172, cumulativo). O ERP está configurado como Lucro Real (PIS 1,65%, COFINS 7,6% nas notas e na
+  previsão de imposto). Ela confirma com o contador qual é o regime de 2026; se for Presumido, trocar as alíquotas
+  das unidades, a previsão das máquinas e o imposto do simulador do MKT.
 Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de risco"):
 1. Pedidos entregues sem nota: 9 de outubro (WhatsApp) e 5 do Tiny. Ela emite a NF-e pelo pedido.
 2. Notas com valor menor que a venda: 5 conferidas e 6 do Tiny a conferir item a item (eu). Contador decide a
