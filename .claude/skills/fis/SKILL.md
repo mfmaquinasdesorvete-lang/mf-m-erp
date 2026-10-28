@@ -58,6 +58,8 @@ Cuido de impostos, apuração, notas fiscais (NF-e, NFS-e, configuração do CT-
 - `supabase/migrations/20261021000000_contador.sql` (fechamento do mês e mês travado).
 
 ## Cuidados conhecidos
+- A MF é do Lucro Real (decisão da usuária). Não tratar o regime como dúvida: guia ou cálculo com código do Presumido
+  (IRPJ 2089, CSLL 2372, PIS 8109, COFINS 2172) é erro a corrigir com o contador.
 - Soft Premium (CNPJ 47538812 e 42474748) não é deste ERP (vai ter ERP próprio): não buscar, não levantar e não repassar nada dela a nenhum chat.
 - O e-mail do contador (só guias e impostos de todas as empresas) entra no ERP pela caixa "Contador" (Configurações → Caixa de e-mail; tabela `emails`, só a Caixa de entrada; os anexos abrem pela função `email-caixa` com o login de quem está no ERP). Separar por empresa: MF fica aqui; o resto vai ao CAR, MYF ou SOR; Soft Premium não se mexe. O contador mudou em 10/2026: não há histórico antigo nessa caixa.
 - Ambiente de emissão: nota em homologação é autorizada mas não vale; a tela pede confirmação (`src/lib/ambienteNfe.ts`).

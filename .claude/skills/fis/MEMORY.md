@@ -33,10 +33,9 @@ guias e os parcelamentos que chegam na caixa do contador.
 - Filial SP, série 1: os números 2 e 3 (05/2026) foram usados fora do ERP (contabilidade); a contabilidade pôs o
   próximo número na Focus em 399 (a NF 399 saiu em 28/10). Inutilizar 4 a 398 (e o 1, se não foi usado) pelo ERP
   (Notas fiscais → Inutilizar numeração) até 10/11/2026, e pedir os XML das notas 1 a 3 para o ERP.
-- REGIME (28/10): as guias de 09/2026 do contador novo vieram como LUCRO PRESUMIDO (IRPJ 2089, CSLL 2372 trimestrais;
-  PIS 8109 e COFINS 2172, cumulativo). O ERP está configurado como Lucro Real (PIS 1,65%, COFINS 7,6% nas notas e na
-  previsão de imposto). Ela confirma com o contador qual é o regime de 2026; se for Presumido, trocar as alíquotas
-  das unidades, a previsão das máquinas e o imposto do simulador do MKT.
+- Guias de 09/2026 do contador novo vieram com códigos do LUCRO PRESUMIDO (IRPJ 2089, CSLL 2372, PIS 8109,
+  COFINS 2172). A MF é do LUCRO REAL (decisão da usuária): o contador precisa refazer as guias federais de 09/2026 com os
+  códigos do Real (IRPJ e CSLL por estimativa mensal ou trimestral, PIS 6912 e COFINS 5856 não cumulativos).
 Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de risco"):
 1. Pedidos entregues sem nota: 9 de outubro (WhatsApp) e 5 do Tiny. Ela emite a NF-e pelo pedido.
 2. Notas com valor menor que a venda: 5 conferidas e 6 do Tiny a conferir item a item (eu). Contador decide a
@@ -68,6 +67,8 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
   (o DAS de 22/12 é das empresas do Simples, não da MF). Em dezembro, cobrar as guias da MF até 18/12.
 
 ## Decisões da usuária
+- REGIME: a MF é do LUCRO REAL (dito pela usuária desde o começo e reafirmado em 28/10). Toda conta de imposto,
+  previsão, simulador e orientação parte do Lucro Real. Guia com código do Presumido é erro do contador.
 - As listas de notas (emitidas e recebidas) abrem na semana atual.
 - Tudo que não é da MF vai para o painel pessoal (CAR). A Soft Premium não é deste ERP: não buscar nada dela.
 - Marcadores só se somam; avisos nas notas usam o marcador "Rever com o contador" e a observação interna.
