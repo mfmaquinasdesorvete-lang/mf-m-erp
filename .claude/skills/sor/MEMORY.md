@@ -27,15 +27,13 @@ Nada de código novo deste chat esperando publicação.
 - Endereço da Piracicaba 02; CEP de Americana e Campinas.
 - Freezers dos quiosques: 4 freezers verticais numa nota do fornecedor de refrigeração (abr/2026), sem marcador. Ela diz
   se entram no custo dos quiosques (lançar como custo da loja, sem pôr o marcador na nota).
-- Yozzy Natal: uma nota de compra do fornecedor de refrigeração (jan/2026, em nome da MF, peças e cobre para as
-  máquinas) foi paga pela loja, como total da montagem (avisado pelo FIS em 28/10). Falta o ok dela para lançar
-  como custo de montar a loja (categoria máquinas ou montagem). A parte fiscal fica com o FIS.
 - Plano fiscal das sorveterias (#332, veio do FIS): ainda não começou.
 
 ## Decisões da usuária
 - Yozzy Natal = Yozzi Ponta Negra = a dona da loja: a mesma loja.
 - A nota das máquinas da Yozzy Natal é comodato (não é venda); tudo o que ela pagou é licença.
 - As vendas no cartão de junho na Infinite SP são licença da Yozzy Natal.
+- A nota de peças e cobre de jan/2026 paga pela Yozzy Natal é custo de montar da loja (total da loja), lançada em 28/10.
 - Os repasses da loja de Paulínia que caíram na conta do filho dela (quando a loja era dela) não se ligam à loja.
 - Funcionários das lojas My Frost e Yozzy ficam com o SOR; os da MF com o FUN (23/10).
 - Toda tela com filtro de período abre em "Esta semana"; ela troca na hora (27/10).
