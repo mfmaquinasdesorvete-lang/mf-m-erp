@@ -1,5 +1,5 @@
 # MEMORY — PRD (ERP Line – Cadastro de produtos)
-Atualizado em 27/10/2026 (listas de produtos mais leves).
+Atualizado em 28/10/2026 (revisão de custos e chaves extratoras).
 
 ## Estado agora
 Cadastro limpo e no padrão do Google e dos marketplaces: sem repetidos conhecidos, sem "My Frost" nos textos, com
@@ -27,6 +27,9 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 
 - Painéis Produtos e Máquinas leves e avisos do Painel de Produtos abrindo no problema: no ar em 27/10 (index-BKEMOzUS).
 
+- Revisão de custos (28/10): 14 kits com custo = soma das peças; 12 peças pela última compra (as 6 exatamente 13%
+  abaixo ficaram: crédito de ICMS); chaves extratoras como variações do pai PC-CHV-023, iguais ao Tiny.
+
 ## Em andamento
 - Rodada de fechamento (27/10): nada novo sem pedido dela; "feito" só depois de testar no ERP no ar.
 - 27/10: os pedidos antigos do assunto foram testados (select e site publicado) a pedido do CNF; o site do ERP não abre
@@ -36,6 +39,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- Custo das 16 peças feitas aqui que vendemos sem custo (planilha custo_pecas_feitas_aqui.xlsx, 28/10); inclui as chaves
+  5 e 7 Sabores com custo acima do preço e a Italianinha.
 - Fichas técnicas × lista "Produto x Fornecedor" (27/10): grupos gravados em todas as linhas; 57 cadastros novos
   criados a partir das compras (CP-ELE-020 a 035, CP-EST-031 a 034, CP-CON-006 a 031, CP-MAT-001 a 007, CP-REF-016,
   CP-MEC-005 a 007), ligados aos códigos dos fornecedores e às linhas de pedido de compra. Sem compra nenhuma (ficaram de
@@ -68,6 +73,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 - Funções do Supabase: catalogo-feed (lista do Google e do WhatsApp).
 
 ## Próximos passos
+- GER: vendas das notas com nome antigo ("My Frost") ou código lixo ("CFOP6101") ficam sem custo no DRE; pedido a ele
+  para achar pela descrição normalizada e mostrar "vendas sem custo" (28/10).
 1. Avisar o MKT dos pais (um anúncio com variações na loja e no ML é dele).
 2. Completar o cadastro dos 4 produtos criados pelo GER a partir de notas (3 controladores e o ferro chato).
 3. Gravar custo, peso e foto quando a planilha voltar.

@@ -76,3 +76,6 @@ Cuido do cadastro de produtos da MF: dados completos e certos, sem repetidos, co
   de metal, ex.: barras de inox e ferro chato).
 - Item "sem cadastro" pode já existir nas compras: cruzar com `pedido_compra_itens` (muitas linhas sem `produto_id`) e
   `nfe_recebida_itens` antes de dizer que falta ou de criar produto (descrição do fornecedor, ex.: "CABO FLEXIVEL 750V" = fio).
+- Gatilho `ab_produto_componente_venda`: insumo não vendável fica com preço de venda = custo. Peça que se vende
+  (ex.: chave extratora) tem de ser tipo peça e vendável, senão o preço some.
+- O DRE usa o custo do cadastro no dia da venda; kit precisa do custo gravado (soma das peças), senão entra como zero.
