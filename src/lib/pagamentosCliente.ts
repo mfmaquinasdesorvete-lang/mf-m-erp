@@ -32,18 +32,25 @@ export function resumoPagamentos({ totalPedido, parcelas, registros, notas }: { 
     /** parcelas pagas antes deste registro (sem dizer onde): ficam como "recebido" */
     recebidoSemLugar: r2(Math.max(0, pagas - registrado)),
     emAberto,
+    pagas,
     nf,
     /** NF-e autorizada menor que o pedido (com NF emitida) */
     nfMenor: nf > 0 && nf < r2(totalPedido) - 0.009,
+    /** o pedido ainda não tem contas a receber lançadas */
+    semParcelas: totalPedido > 0 && !parcelas.some((p) => p.status === "aberto" || p.status === "pago"),
+    /** tudo pago e com o lugar conhecido ou não: nada em aberto e as pagas cobrem o pedido */
+    quitado: emAberto <= 0.004 && pagas >= r2(totalPedido) - 0.009,
   };
 }
 
 /** Conferência antes de gravar; devolve o problema ou null. */
-export function problemaPagamento(valor: number | null, emAberto: number, opc: { saldoNota?: number | null; tipo: TipoPagamento; temFornecedor?: boolean }) {
+export function problemaPagamento(valor: number | null, emAberto: number, opc: { saldoNota?: number | null; tipo: TipoPagamento; temFornecedor?: boolean; data?: string; hoje?: string; parcelas?: number }) {
   if (!(valor && valor > 0)) return "Informe o valor pago";
+  if (opc.data !== undefined && (!opc.data || (opc.hoje && opc.data > opc.hoje))) return "Informe a data do pagamento (até hoje)";
+  if (opc.parcelas !== undefined && !(Number.isInteger(opc.parcelas) && opc.parcelas >= 1 && opc.parcelas <= 48)) return "Parcelas: de 1 a 48";
   if (valor > emAberto + 0.004) return `O pedido tem só ${emAberto.toFixed(2).replace(".", ",")} em aberto`;
-  if (opc.tipo === "fornecedor" && !opc.temFornecedor) return "Escolha a nota do fornecedor (ou o fornecedor)";
-  if (opc.saldoNota != null && valor > opc.saldoNota + 0.004) return `A nota tem só ${opc.saldoNota.toFixed(2).replace(".", ",")} ainda não paga por clientes`;
+  if (opc.tipo === "fornecedor" && !opc.temFornecedor) return "Escolha a nota do fornecedor";
+  if (opc.saldoNota != null && valor > opc.saldoNota + 0.004) return `A nota tem só ${opc.saldoNota.toFixed(2).replace(".", ",")} sem pagamento (pela MF ou por clientes)`;
   return null;
 }
 

@@ -1,5 +1,5 @@
 # MEMORY — FIS (ERP Line – Fiscal e contábil)
-Atualizado em 28/10/2026 (Dossiê da empresa).
+Atualizado em 28/10/2026 (Onde o cliente pagou).
 
 ## Estado agora
 A emissão da NF-e, o DIFAL, as certidões e a previsão de imposto por máquina estão no ar. O que falta depende
@@ -28,8 +28,18 @@ guias e os parcelamentos que chegam na caixa do contador.
   (aba Dossiê; lib/dossie.ts; função dossie_empresa; unidades.aberta_em) e o pacote do contador agora pega a NF-e
   pelo mês de emissão do XML (notas_emitidas_no_mes). Montado, falta publicar e testar no ar. Depois: lista do que
   falta com o FAZ, importar o que chegar (TIN, GER, ENT).
+- Onde o cliente pagou (pedido de 28/10): no pedido aprovado, só o financeiro registra quanto o cliente pagou e onde
+  (conta da MF, direto a fornecedor da MF numa NF de compra, conta da sócia, outro). Baixa as parcelas sem e-mail
+  nem cobrança, lança a comissão e dá a baixa na conta a pagar da NF do fornecedor (o resto da NF vira conta aberta).
+  Desfazer só o mais novo. Banco: pedido_pagamentos, registrar_pagamento_cliente e desfazer_pagamento_cliente
+  (migrações 185 a 188, aplicadas). Tela: src/components/pedidos/OndeClientePagou.tsx; regras em
+  src/lib/pagamentosCliente.ts. Montado, falta publicar e o teste real com o pedido #628.
+  Orientação dada: a venda com NF menor que o pedido é subfaturamento; o ERP mostra o aviso e não ajuda a esconder.
 
 ## Esperando a usuária
+- Pedido #628: descartar o link de pagamento aberto (valor antigo) antes de registrar onde o cliente pagou; depois
+  registrar a NF do fornecedor paga pelo cliente e as entradas na conta da sócia que ela passou no chat.
+- Máquina da loja Yozzy paga numa NF de fornecedor: falta o valor e a data da venda para achar ou criar o pedido.
 - Filial SP, série 1: os números 2 e 3 (05/2026) foram usados fora do ERP (contabilidade); a contabilidade pôs o
   próximo número na Focus em 399 (a NF 399 saiu em 28/10). Inutilizar 4 a 398 (e o 1, se não foi usado) pelo ERP
   (Notas fiscais → Inutilizar numeração) até 10/11/2026, e pedir os XML das notas 1 a 3 para o ERP.

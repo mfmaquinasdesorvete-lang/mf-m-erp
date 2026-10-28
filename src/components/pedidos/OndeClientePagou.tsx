@@ -5,7 +5,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Plus, Undo2, Wallet } from "lucide-react";
-import { Button, chip, Field, Modal } from "@/components/ui";
+import { Button, Carregando, chip, ErroLista, Field, Modal } from "@/components/ui";
 import { pedirTexto } from "@/components/Dialogos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje } from "@/lib/format";
@@ -23,19 +23,24 @@ type Registro = {
 type Parcela = { id: string; status: string; valor: number; valor_pago: number | null };
 
 const KEY = "pedido_pagamentos";
+/** o que muda quando um pagamento é registrado ou desfeito */
+const CHAVES = [KEY, "contas_receber", "contas_pagar", "nfe_recebidas", "comissoes", "cobrancas_link", "auditoria", "pedidos", "pedido_ocorrencias", "extrato_lancamentos", "onde_pagou_notas"];
 const nomeMeio = (m: string | null) => MEIOS.find(([v]) => v === m)?.[1] ?? m ?? "";
 
 export function OndeClientePagou({ pedido }: { pedido: PedidoBase }) {
   const [novo, setNovo] = useState(false);
   const [desfazendo, setDesfazendo] = useState<string | null>(null);
   const invalidar = useInvalidate();
-  const { data: registros = [] } = useRows<Registro>(KEY, {
+  const regs = useRows<Registro>(KEY, {
     select: "id, tipo, valor, data, forma, parcelas, observacao, excluido_em, nfe:nfe_recebidas(chave, emitente_nome), fornecedor:fornecedores(nome, nome_fantasia), conta:contas_bancarias(nome)",
     order: "data", ascending: true, key: [pedido.id], filtro: (q) => q.eq("pedido_id", pedido.id),
   });
-  const { data: parcelas = [] } = useRows<Parcela>("contas_receber", {
+  const parc = useRows<Parcela>("contas_receber", {
     select: "id, status, valor, valor_pago", key: ["onde_pagou", pedido.id], filtro: (q) => q.eq("pedido_id", pedido.id),
   });
+  const registros = regs.data ?? [], parcelas = parc.data ?? [];
+  const carregando = regs.isLoading || parc.isLoading;
+  const erro = regs.error ?? parc.error;
   const r = resumoPagamentos({ totalPedido: Number(pedido.valor_total ?? 0), parcelas, registros, notas: pedido.notas ?? [] });
   const ativos = registros.filter((x) => !x.excluido_em);
 
@@ -47,7 +52,7 @@ export function OndeClientePagou({ pedido }: { pedido: PedidoBase }) {
       const { error } = await supabase.rpc("desfazer_pagamento_cliente", { p_id: x.id, p_motivo: motivo });
       if (error) throw error;
       notify("Registro desfeito");
-      invalidar(KEY, "contas_receber", "contas_pagar", "nfe_recebidas", "comissoes", "cobrancas_link", "auditoria", "pedidos", "pedido_ocorrencias", "extrato_lancamentos");
+      invalidar(...CHAVES);
     } catch (e) { notifyError(e); } finally { setDesfazendo(null); }
   }
 
@@ -59,9 +64,12 @@ export function OndeClientePagou({ pedido }: { pedido: PedidoBase }) {
     <section className="space-y-3 rounded-xl border border-slate-200 p-3 text-sm sm:p-4" aria-label="Onde o cliente pagou">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-1.5 font-bold text-fg"><Wallet size={16} className="text-modulo" aria-hidden /> Onde o cliente pagou</h3>
-        <Button type="button" variant="secondary" onClick={() => setNovo(true)} disabled={r.emAberto <= 0}><Plus size={15} aria-hidden /> Registrar pagamento</Button>
+        <Button type="button" variant="secondary" onClick={() => setNovo(true)} disabled={carregando || r.emAberto <= 0}
+          title={r.emAberto <= 0 ? "Nada em aberto neste pedido" : undefined}><Plus size={15} aria-hidden /> Registrar pagamento</Button>
       </div>
 
+      {carregando ? <Carregando linhas={2} /> : erro ? <ErroLista erro={erro} onTentar={() => { regs.refetch(); parc.refetch(); }} /> : <>
+      {r.semParcelas && <p className="text-amber-800">Este pedido ainda não tem contas a receber: lance as parcelas no financeiro para registrar onde o cliente pagou.</p>}
       <div className="grid gap-1 rounded-lg bg-slate-50 p-2.5 sm:grid-cols-2 sm:gap-x-6">
         {linha("Pedido", r.total)}
         {linha("Recebido (sem dizer onde)", r.recebidoSemLugar)}
@@ -69,13 +77,14 @@ export function OndeClientePagou({ pedido }: { pedido: PedidoBase }) {
         {linha("Direto a fornecedores", r.fornecedor)}
         {linha("Na conta da sócia", r.contaSocia)}
         {linha("Outro", r.outro)}
-        {r.emAberto > 0 ? linha("Falta identificar ou receber", r.emAberto, "text-amber-800") : <p className="font-semibold text-emerald-700">Tudo identificado</p>}
+        {r.emAberto > 0 && linha("Falta identificar ou receber", r.emAberto, "text-amber-800")}
+        {r.quitado && <p className="font-semibold text-emerald-700">Pedido todo pago</p>}
       </div>
 
       {r.nfMenor && (
         <p className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-amber-900">
           <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden />
-          <span>A NF-e deste pedido é de <b className="num">{brl(r.nf)}</b> e o pedido é de <b className="num">{brl(r.total)}</b>. A nota precisa mostrar o valor real da venda: fale com o contador sobre a nota complementar.</span>
+          <span>As NF-e deste pedido somam <b className="num">{brl(r.nf)}</b> e o pedido é de <b className="num">{brl(r.total)}</b>. Se não for entrega parcial (o restante sai em outra NF-e), a nota precisa mostrar o valor real da venda: confira com o contador.</span>
         </p>
       )}
 
@@ -98,6 +107,7 @@ export function OndeClientePagou({ pedido }: { pedido: PedidoBase }) {
         </ul>
       )}
 
+      </>}
       {novo && <NovoPagamento pedido={pedido} emAberto={r.emAberto} onClose={() => setNovo(false)} />}
     </section>
   );
@@ -114,33 +124,31 @@ function NovoPagamento({ pedido, emAberto, onClose }: { pedido: PedidoBase; emAb
   const [parcelas, setParcelas] = useState("1");
   const [busca, setBusca] = useState("");
   const [notaId, setNotaId] = useState("");
-  const [semNota, setSemNota] = useState(false);
-  const [fornecedorId, setFornecedorId] = useState("");
   const [contaId, setContaId] = useState("");
   const [lancId, setLancId] = useState("");
   const [obs, setObs] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const invalidar = useInvalidate();
 
-  // notas de fornecedor dos últimos 18 meses e quanto delas já foi pago por clientes
-  const { data: notas = [] } = useQuery({
+  // notas de fornecedor dos últimos 18 meses e o saldo sem pagamento (pago pela MF ou por clientes)
+  const notasQ = useQuery({
     queryKey: ["onde_pagou_notas"], enabled: tipo === "fornecedor",
     queryFn: async () => {
       const desde = new Date(Date.now() - 540 * 864e5).toISOString().slice(0, 10);
-      const [{ data: n, error }, { data: pagos }] = await Promise.all([
+      const [{ data: n, error }, { data: pagos, error: e2 }] = await Promise.all([
         supabase.from("nfe_recebidas").select("id, chave, emitente_nome, data_emissao, valor_total").is("excluida_em", null)
           .neq("finalidade", "devolucao").gte("data_emissao", desde).order("data_emissao", { ascending: false }).limit(1000),
-        supabase.from("pedido_pagamentos").select("nfe_recebida_id, valor").is("excluido_em", null).not("nfe_recebida_id", "is", null),
+        supabase.from("contas_pagar").select("nfe_recebida_id, valor, nfe:nfe_recebidas!contas_pagar_nfe_fk!inner(data_emissao)").eq("status", "pago")
+          .gte("nfe.data_emissao", desde),
       ]);
       if (error) throw error;
+      if (e2) throw e2;
       const ja = new Map<string, number>();
       for (const p of pagos ?? []) ja.set(p.nfe_recebida_id as string, (ja.get(p.nfe_recebida_id as string) ?? 0) + Number(p.valor));
       return ((n ?? []) as NotaForn[]).map((x) => ({ ...x, saldo: Math.round((Number(x.valor_total ?? 0) - (ja.get(x.id) ?? 0)) * 100) / 100 }));
     },
   });
-  const { data: fornecedores = [] } = useRows<{ id: string; nome: string; nome_fantasia: string | null }>("fornecedores", {
-    select: "id, nome, nome_fantasia", order: "nome", ascending: true, enabled: tipo === "fornecedor" && semNota, filtro: (q) => q.eq("ativo", true),
-  });
+  const notas = notasQ.data ?? [];
   const { data: contas = [] } = useRows<{ id: string; nome: string; ativo: boolean }>("contas_bancarias", { select: "id, nome, ativo", order: "nome", ascending: true, enabled: tipo === "conta_mf" });
   const { data: lancs = [] } = useRows<Lanc>("extrato_lancamentos", {
     select: "id, data, descricao, valor, conta_bancaria_id", order: "data", ascending: false, key: ["onde_pagou", contaId],
@@ -151,7 +159,8 @@ function NovoPagamento({ pedido, emAberto, onClose }: { pedido: PedidoBase; emAb
   const notasVis = useMemo(() => notas.filter((x) => x.saldo > 0.004 && (!t || `${x.emitente_nome} ${numeroDaChave(x.chave)}`.toLowerCase().includes(t))).slice(0, 30), [notas, t]);
   const nota = notas.find((x) => x.id === notaId);
   const v = lerValor(valor);
-  const problema = problemaPagamento(v, emAberto, { tipo, temFornecedor: semNota ? !!fornecedorId : !!notaId, saldoNota: !semNota && nota ? nota.saldo : null });
+  const nParcelas = forma === "cartao" ? Number(parcelas) : 1;
+  const problema = problemaPagamento(v, emAberto, { tipo, temFornecedor: !!notaId, saldoNota: nota ? nota.saldo : null, data, hoje: hoje(), parcelas: nParcelas });
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
@@ -159,15 +168,14 @@ function NovoPagamento({ pedido, emAberto, onClose }: { pedido: PedidoBase; emAb
     setOcupado(true);
     try {
       const { error } = await supabase.rpc("registrar_pagamento_cliente", {
-        p_pedido: pedido.id, p_tipo: tipo, p_valor: v, p_data: data, p_forma: forma || null, p_parcelas: forma === "cartao" ? Math.max(1, Number(parcelas) || 1) : 1,
-        p_nfe_recebida: tipo === "fornecedor" && !semNota ? notaId || null : null,
-        p_fornecedor: tipo === "fornecedor" && semNota ? fornecedorId || null : null,
+        p_pedido: pedido.id, p_tipo: tipo, p_valor: v, p_data: data, p_forma: forma || null, p_parcelas: Math.trunc(nParcelas),
+        p_nfe_recebida: tipo === "fornecedor" ? notaId || null : null,
         p_conta_bancaria: tipo === "conta_mf" ? contaId || null : null, p_extrato: tipo === "conta_mf" ? lancId || null : null,
         p_observacao: obs.trim() || null,
       });
       if (error) throw error;
       notify(`${brl(v)} registrado: ${TIPOS_PAGAMENTO[tipo].rotulo.toLowerCase()}`);
-      invalidar(KEY, "contas_receber", "contas_pagar", "nfe_recebidas", "comissoes", "cobrancas_link", "auditoria", "pedidos", "pedido_ocorrencias", "extrato_lancamentos", "onde_pagou_notas");
+      invalidar(...CHAVES);
       onClose();
     } catch (err) { notifyError(err); } finally { setOcupado(false); }
   }
@@ -182,34 +190,26 @@ function NovoPagamento({ pedido, emAberto, onClose }: { pedido: PedidoBase; emAb
         </div>
         <p className="text-xs text-slate-500">{TIPOS_PAGAMENTO[tipo].dica}. Em aberto no pedido: <b className="num">{brl(emAberto)}</b>.</p>
 
-        {tipo === "fornecedor" && (semNota ? (
-          <Field label="Fornecedor" obrigatorio dica="Use só quando a nota ainda não chegou ao ERP; quando chegar, ligue pela nota.">
-            <select className="input" value={fornecedorId} onChange={(e) => setFornecedorId(e.target.value)}>
-              <option value="">Escolha…</option>
-              {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome_fantasia || f.nome}</option>)}
-            </select>
-          </Field>
-        ) : (
+        {tipo === "fornecedor" && (
           <div className="space-y-1.5">
-            <Field label="Nota do fornecedor (em nome da MF)" obrigatorio>
+            <Field label="Nota do fornecedor (em nome da MF)" obrigatorio dica='A nota ainda não está no ERP? Registre como "Outro" e explique na observação.'>
               <input className="input" placeholder="Busque pelo fornecedor ou pelo número da nota" value={busca} onChange={(e) => setBusca(e.target.value)} />
             </Field>
-            <ul className="max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200" aria-label="Notas do fornecedor">
-              {!notasVis.length && <li className="p-3 text-slate-500">Nenhuma nota com saldo encontrada.</li>}
-              {notasVis.map((x) => (
-                <li key={x.id}>
-                  <button type="button" onClick={() => { setNotaId(x.id); if (!valor) setValor(String(x.saldo).replace(".", ",")); }}
-                    className={`linha-clicavel flex w-full flex-wrap items-center gap-2 px-3 py-2 text-left ${notaId === x.id ? "bg-modulo/10" : ""}`} aria-pressed={notaId === x.id}>
-                    <span className="min-w-0 flex-1"><b className="text-fg">{x.emitente_nome}</b> · NF {numeroDaChave(x.chave)} · {dataBR(x.data_emissao)}</span>
-                    <span className="num">{brl(x.valor_total)}{x.saldo < Number(x.valor_total ?? 0) - 0.004 && <span className="text-slate-500"> (saldo {brl(x.saldo)})</span>}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {notasQ.isLoading ? <Carregando linhas={3} /> : notasQ.error ? <ErroLista erro={notasQ.error} onTentar={() => notasQ.refetch()} /> : (
+              <ul className="max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200" aria-label="Notas do fornecedor">
+                {!notasVis.length && <li className="p-3 text-slate-500">Nenhuma nota com saldo{t ? " para essa busca" : ""}. As notas já pagas pela MF não aparecem.</li>}
+                {notasVis.map((x) => (
+                  <li key={x.id}>
+                    <button type="button" onClick={() => { setNotaId(x.id); if (!valor) setValor(String(Math.min(x.saldo, emAberto)).replace(".", ",")); }}
+                      className={`linha-clicavel flex w-full flex-wrap items-center gap-2 px-3 py-2 text-left ${notaId === x.id ? "bg-modulo/10" : ""}`} aria-pressed={notaId === x.id}>
+                      <span className="min-w-0 flex-1"><b className="text-fg">{x.emitente_nome}</b> · NF {numeroDaChave(x.chave)} · {dataBR(x.data_emissao)}</span>
+                      <span className="num">{brl(x.valor_total)}{x.saldo < Number(x.valor_total ?? 0) - 0.004 && <span className="text-slate-500"> (sem pagamento {brl(x.saldo)})</span>}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        ))}
-        {tipo === "fornecedor" && (
-          <label className="flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={semNota} onChange={(e) => setSemNota(e.target.checked)} /> A nota ainda não está no ERP: escolher só o fornecedor</label>
         )}
 
         {tipo === "conta_mf" && (
@@ -234,7 +234,7 @@ function NovoPagamento({ pedido, emAberto, onClose }: { pedido: PedidoBase; emAb
         )}
 
         <div className="grid gap-3 sm:grid-cols-4">
-          <Field label="Valor (R$)" obrigatorio><input className="input text-right" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} /></Field>
+          <Field label="Valor (R$)" obrigatorio erro={valor ? problema ?? undefined : undefined}><input className="input text-right" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} /></Field>
           <Field label="Data"><input className="input" type="date" value={data} max={hoje()} onChange={(e) => setData(e.target.value)} /></Field>
           <Field label="Como pagou">
             <select className="input" value={forma} onChange={(e) => setForma(e.target.value)}>
@@ -245,7 +245,6 @@ function NovoPagamento({ pedido, emAberto, onClose }: { pedido: PedidoBase; emAb
         </div>
         <Field label="Observação"><input className="input" maxLength={500} value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Ex.: cartão do cliente na Frigelar, vendedor fulano" /></Field>
         {tipo === "conta_socia" && <p className="text-xs text-amber-800">Dinheiro da venda na conta pessoal: fica registrado aqui e precisa entrar no encontro de contas da sócia com a empresa (Retaguarda → Pessoal).</p>}
-        {problema && valor && <p className="text-xs text-red-700">{problema}</p>}
 
         <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
