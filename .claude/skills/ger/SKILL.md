@@ -54,6 +54,7 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 - `supabase/migrations/` (a mais nova que mexeu na tabela vale) e `src/lib/__tests__/`.
 
 ## Cuidados conhecidos
+- Importar extrato: a conta vem de contaDoArquivo (número do OFX ou nome do arquivo); nunca usar a primeira conta da lista como padrão (28/10: OFX do cartão de SP caiu no Inter SC).
 - Importar extrato (Conciliacao.tsx, ImportarModal): nunca escolher conta por padrão (bancos[0]). Em 28/10 dois OFX do
   cartão do Fabiano ("Infinit…") caíram no Banco Inter SC. Conta não reconhecida = escolha obrigatória; número do OFX
   diferente do da conta = bloquear.
