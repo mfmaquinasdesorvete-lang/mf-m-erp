@@ -37,6 +37,13 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
 6. Contador: regras 5916/6916, cBenef 1915/2915, nota de conserto emitida como venda, notas antigas de conserto.
 7. Parcelamentos da prefeitura: confirmar quitação com a certidão municipal.
 8. XML do diesel em NF-e recebidas.
+- Dossiê da MF SC (para o FAZ cobrar; o que só ela busca):
+  1. SEFAZ SC (com o certificado): XML das NF-e emitidas e das recebidas (destinadas) de 06/2022 a 07/2024.
+  2. e-CAC: comprovantes de arrecadação (DARF/DAS) desde 06/2022; SEFAZ SC: DAE pagos desde 06/2022.
+  3. Contador (atual e o antigo): recibos do SPED Fiscal, EFD-Contribuições, DCTF/DCTFWeb, ECD e ECF desde 2022,
+     balanços e a folha de 06/2022 a 07/2024.
+  4. Bancos: extratos OFX da Unicred depois de 04/2025 e antes de 01/2025, InfinitePay antes de 08/2024, OLIST antes
+     de 04/2025, Sicoob (conta encerrada) do período em que existiu.
 - Guia do parcelamento do Simples (vence 30/10) chegou na caixa do contador: ela confere de qual empresa é e paga.
 
 - Fim de ano do contador (calendário recebido pelo FUN em 28/10): o escritório para de 18/12 a 04/01. Datas que ele
