@@ -18,6 +18,9 @@ guias e os parcelamentos que chegam na caixa do contador.
   emitida como venda e nas notas de pedidos do Tiny com valor menor que a venda.
 
 ## Em andamento
+- Conferir a NF-e (28/10, pedido vindo do GER): volumes e peso, natureza, CFOP por item, outro cliente como
+  destinatário e entrega diferente (nas informações complementares; os campos de local de entrega da Focus não foram
+  conferidos na documentação, por isso foi para o texto). No ar (cf791eb); falta o teste com uma nota real.
 - NF-e do restante do pedido (entrega parcial) e cartão de vendas sem as transferências: no ar (e529b35, c289b2c).
   Falta o teste real: emitir a NF do restante de um pedido com entrega parcial; só então "feito" no checklist.
 
