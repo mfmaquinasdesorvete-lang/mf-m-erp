@@ -44,6 +44,9 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
      balanços e a folha de 06/2022 a 07/2024.
   4. Bancos: extratos OFX da Unicred depois de 04/2025 e antes de 01/2025, InfinitePay antes de 08/2024, OLIST antes
      de 04/2025, Sicoob (conta encerrada) do período em que existiu.
+- Números da série 1 da SC sem nota no ERP (levantado pelo TIN em 28/10): 16 sem rastro e 10 só no Tiny sem XML
+  (provável rejeição). Nenhuma inutilização registrada no ERP. Ela confere na SEFAZ SC (consulta de inutilizações)
+  e no Tiny; o que não estiver inutilizado, inutilizar pelo ERP (Notas → Conformidade) com o ok dela e do contador.
 - Guia do parcelamento do Simples (vence 30/10) chegou na caixa do contador: ela confere de qual empresa é e paga.
 
 - Fim de ano do contador (calendário recebido pelo FUN em 28/10): o escritório para de 18/12 a 04/01. Datas que ele
