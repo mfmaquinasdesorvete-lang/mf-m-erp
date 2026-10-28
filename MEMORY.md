@@ -65,6 +65,8 @@ Atualizado em 25/10/2026 pelo ELO.
   - uma ação principal clara, com um botão cheio;
   - cartões lisos com borda fina, sem degradê, brilho ou sombra pesada; o escuro liso é o padrão;
   - para carregando, vazio e erro, usar as peças `Carregando`, `Vazio` e `ErroLista` de `src/components/ui.tsx`.
+- 28/10: o Gmail conectado aos chats é o da My Frost (empresa anterior), ligado só para buscar coisas antigas. Não criar
+  rascunho nem mandar e-mail da MF por ele; o que for da MF a usuária manda pela conta da MF.
 
 ## Armadilhas conhecidas
 - "Feita" na fila de publicação não quer dizer que está no ar: em 24/10, três sites ficaram só montados. Conferir
