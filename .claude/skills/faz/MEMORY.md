@@ -25,6 +25,7 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 9. Conectar o Gmail do contador (FIS).
 
 ## Já resolvido
+- 28/10: FIS publicou o site (44e8ea8, com e529b35 e c289b2c), index.html conferido por ele.
 - 28/10: Hostinger reconectada (conferido pela lista de sites); FIS avisado para publicar.
 
 ## Decisões da usuária
@@ -46,8 +47,9 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
   destrava mais).
 - 28/10: GER e ENT mandaram os extratos (D1 Unicred, D2 Olist, D3 InfinitePay, D4 Sicoob, D5 Inter SC). Falta FIS e TIN.
   Divisão: ENT importa os extratos antigos e explica as entradas; GER lança e concilia as saídas. Quando ela importar:
-  avisar GER e ENT. TIN mandou T1 a T4 (Tiny antes de cancelar). Ordem do resumo: T1 (tem prazo: a API para com a assinatura), depois D1,
-  T2 a T4 e D2 a D5. Falta o FIS (SEFAZ SC, e-CAC, contador).
+  avisar GER e ENT. TIN mandou T1 a T4; FIS mandou S1 (XML SEFAZ SC 06/2022–01/2025), C1 (contadores: recibos, balanços, folha) e G1
+  (DARF/DAS e DAE pagos). Ordem do resumo (FIS): T1–T4 → S1 → C1 → G1 → D1–D5. Tela: Painel do contador → Dossiê da
+  empresa. Destino: XML e guias → FIS; extratos → ENT e GER; Tiny → TIN.
 
 ## Auditor financeiro no resumo (28/10, pelo AUD)
 - Rodada diária às 07:03 (Brasília). Ler a última linha: `select iniciada_em, total, novos, novos_alta, principal, erro

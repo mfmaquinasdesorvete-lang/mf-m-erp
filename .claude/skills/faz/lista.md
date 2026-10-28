@@ -106,7 +106,18 @@ de extratos do ERP. Prefira OFX; se o banco não tiver, PDF. Depois de importar,
   baixar o zip.
 (Os nomes dos menus do Tiny podem variar um pouco na conta.)
 
-- (ainda esperando o FIS: SEFAZ SC, e-CAC e SPED/balanços/guias com o contador)
+**Fiscal** (FIS; acompanhe no ERP em Painel do contador → **Dossiê da empresa**). Mandar os arquivos no chat do FIS.
+- **S1. SEFAZ SC, XML das notas de 06/2022 a 01/2025** (o que mais destrava: sem isso não há como provar vendas e
+  compras desses 2 anos e meio; o Tiny só tem 11 de saída e 17 de entrada no período). Portal da SEFAZ SC com o
+  certificado digital da MF → NF-e → download de XML: as **emitidas** e as **recebidas (destinadas)**, período
+  06/2022 a 01/2025 (um mês por vez, se o portal limitar).
+- **C1. Pedir ao contador atual e ao antigo** (um e-mail para cada): recibos de entrega do SPED Fiscal,
+  EFD-Contribuições, DCTF/DCTFWeb, ECD e ECF de 2022 até hoje; balancetes e balanços anuais; folha de 06/2022 a
+  07/2024. Sem isso não se sabe se as declarações foram entregues.
+- **G1. Guias pagas de 06/2022 até hoje** (hoje só há desde 08/2024): e-CAC → Pagamentos → **Comprovante de
+  arrecadação** (DARF e DAS, por período); e no portal da SEFAZ SC, os **DAE pagos** no mesmo período.
+
+Ordem do Dossiê no resumo (FIS): T1 a T4 (Tiny, tem prazo) → S1 → C1 → G1 → D1 a D5 (bancos).
 
 ---
 Fora desta lista (são decisões ou dados que você responde no chat do assunto; quem acompanha é o CNF): planilhas de
