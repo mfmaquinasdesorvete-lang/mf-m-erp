@@ -1,5 +1,5 @@
 # MEMORY — FUN (ERP Line – Funcionários (RH))
-Atualizado em 27/10/2026.
+Atualizado em 28/10/2026.
 
 ## Estado agora
 Funcionários é uma área própria do menu, com 6 abas no ar. O cadastro tem a equipe atual e os ex-funcionários
@@ -49,6 +49,12 @@ das épocas anteriores. Falta a usuária importar os documentos do Drive (a past
   `funcionario_pagamentos`, `recibos.de_funcionario`; gatilho `trg_funcionarios_atualizado`.
   Acesso só de admin e financeiro.
 - Funções do Supabase: nenhuma.
+
+## Datas de fim de ano (calendário da contabilidade, recebido em 28/10)
+- Até 25/11: mandar ao escritório a programação de férias, rescisões e admissões (depois não admite mais em 2026).
+- Até 28/11: 1ª parcela do 13º. 05/12: salário de novembro. Até 18/12: 2ª parcela do 13º e adiantamento de dezembro.
+- 08/01/2027: salário de dezembro. Escritório fechado de 19/12 a 03/01. Impostos da folha: com o FIS.
+- Hoje ninguém na ativa tem carteira assinada: 13º e férias só valem para quem for registrado até lá.
 
 ## Próximos passos
 1. Quando a usuária importar a pasta, conferir os arquivos por pessoa.
