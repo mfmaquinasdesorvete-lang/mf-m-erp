@@ -8,7 +8,7 @@ pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliqu
 
 ## No ar
 - Data de abertura da conta (contas_bancarias.aberta_em / aberta_em_so_ano): no cartão e no cadastro
-  (migração 20261101000191; tela no commit desta data, esperando publicar).
+  (migração 20261101000191; publicado em 28/10, site 2581db4). Olist sem data: a usuária confirma.
 - Banco Inter SC: saldo inicial corrigido; extrato, ERP e banco batem (26/10).
 - Sem mudança de código nem de banco neste chat; só dados (conciliações) e esta skill (commit 5cc1dfd).
 - Tela "Entradas acima de R$ 5 mil" (já existia): anotação na própria linha do extrato.
@@ -22,7 +22,8 @@ pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliqu
 ## Esperando a usuária
 - Pedido de 28/10 (FIS coordena): extratos da MF SC desde a abertura (06/2022). Faltam Unicred 06/2022–12/2024,
   Sicoob inteiro, e saber quais bancos a MF usou em 2022–2023. Passo a passo enviado ao FAZ.
-  Datas de abertura informadas em 28/10; a da Olist (12/2025) não bate com o extrato (desde 04/2025).
+  Datas de abertura informadas em 28/10; a da Olist (12/2025) não bate com o extrato (desde 04/2025): ela confirma
+  e confere o cartão da conta no ar (pedido em Sobre → Pedidos como "precisa de você").
 - Dizer o que foi cada entrada grande sem venda nem nota (licença, venda sem pedido, empréstimo, aporte).
 - Fatura ou relatório de fretes do Olist Envios (item do frete descontado).
 - Relatório de vendas da InfinitePay e da Olist por transação.
