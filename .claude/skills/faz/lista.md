@@ -116,8 +116,14 @@ de extratos do ERP. Prefira OFX; se o banco não tiver, PDF. Depois de importar,
   07/2024. Sem isso não se sabe se as declarações foram entregues.
 - **G1. Guias pagas de 06/2022 até hoje** (hoje só há desde 08/2024): e-CAC → Pagamentos → **Comprovante de
   arrecadação** (DARF e DAS, por período); e no portal da SEFAZ SC, os **DAE pagos** no mesmo período.
+- **E1. Caixa de e-mail da contabilidade antiga da MF** (ELO; você escolheu "Depois": não cobro por enquanto). Guias,
+  folha, honorários e parcelamentos desde 2022 chegavam numa conta Gmail que não está ligada aos chats.
+  1. claude.ai → Configurações → Conectores → Gmail → desconectar e entrar com a conta da contabilidade antiga.
+  2. Avisar o ELO; os chats buscam o que for da MF (o que for da My Frost vai para o MYF; Soft Premium fica de fora).
+  3. Depois, ligar de novo a conta da My Frost.
+  Alternativa: Google Takeout dessa caixa (arquivo .mbox).
 
-Ordem do Dossiê no resumo (FIS): T1 a T4 (Tiny, tem prazo) → S1 → C1 → G1 → D1 a D5 (bancos).
+Ordem do Dossiê no resumo (FIS): T1 a T4 (Tiny, tem prazo) → S1 → C1 → G1 → D1 a D5 (bancos). E1 só quando ela pedir.
 
 ---
 Fora desta lista (são decisões ou dados que você responde no chat do assunto; quem acompanha é o CNF): planilhas de

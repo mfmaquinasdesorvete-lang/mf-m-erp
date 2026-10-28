@@ -49,7 +49,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
   Divisão: ENT importa os extratos antigos e explica as entradas; GER lança e concilia as saídas. Quando ela importar:
   avisar GER e ENT. TIN mandou T1 a T4; FIS mandou S1 (XML SEFAZ SC 06/2022–01/2025), C1 (contadores: recibos, balanços, folha) e G1
   (DARF/DAS e DAE pagos). Ordem do resumo (FIS): T1–T4 → S1 → C1 → G1 → D1–D5. Tela: Painel do contador → Dossiê da
-  empresa. Destino: XML e guias → FIS; extratos → ENT e GER; Tiny → TIN.
+  empresa. E1 (Gmail da contabilidade antiga, pelo ELO): ela disse "Depois", não cobrar até ela pedir; endereço da conta nunca
+  no git. Destino: XML e guias → FIS; extratos → ENT e GER; Tiny → TIN.
 
 ## Auditor financeiro no resumo (28/10, pelo AUD)
 - Rodada diária às 07:03 (Brasília). Ler a última linha: `select iniciada_em, total, novos, novos_alta, principal, erro
