@@ -124,3 +124,33 @@ function hash(s: string) {
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
+
+/* ------------------------------ Conta do arquivo ------------------------------ */
+
+type ContaParaReconhecer = { id: string; nome: string; numero?: string | null; banco?: string | null; etiqueta?: string | null };
+const so = (s: string | null | undefined) => String(s ?? "").replace(/\D/g, "");
+const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+// palavras que não ajudam a achar a conta ("banco", "conta", a sigla da unidade…)
+const GENERICAS = new Set(["banco", "conta", "extrato", "cartao", "pagamento", "pagamentos", "sc", "sp", "mf"]);
+
+/**
+ * Conta bancária de um extrato importado (pedido de 28/10: o OFX "Infinit fa" caiu na primeira conta da lista).
+ * 1º o número da conta que vem no OFX; 2º as palavras do nome da conta no nome do arquivo ("infinit" vale por
+ * "infinite"/"infinitepay", "fabiano" acha "Infinite SP - FABIANO"). Só devolve quando uma conta ganha sozinha;
+ * empate ou nada encontrado = null, e a tela obriga a escolher.
+ */
+export function contaDoArquivo(nomeArquivo: string, numeroOfx: string | null | undefined, contas: ContaParaReconhecer[]): string | null {
+  const n = so(numeroOfx);
+  if (n.length >= 4) {
+    const porNumero = contas.filter((c) => { const d = so(c.numero); return d.length >= 4 && (n.endsWith(d) || d.endsWith(n)); });
+    if (porNumero.length === 1) return porNumero[0].id;
+  }
+  const arq = semAcento(nomeArquivo).replace(/infinit(e|epay)?/g, "infinite");
+  const pontos = contas.map((c) => {
+    const palavras = semAcento(`${c.nome} ${c.etiqueta ?? ""} ${c.banco === "infinitepay" ? "infinite" : c.banco ?? ""}`)
+      .replace(/infinit(e|epay)?/g, "infinite").split(/[^a-z0-9]+/).filter((p) => p.length >= 3 && !GENERICAS.has(p));
+    return { id: c.id, pontos: new Set(palavras.filter((p) => arq.includes(p))).size };
+  }).filter((x) => x.pontos > 0).sort((a, b) => b.pontos - a.pontos);
+  if (!pontos.length || (pontos.length > 1 && pontos[0].pontos === pontos[1].pontos)) return null;
+  return pontos[0].id;
+}

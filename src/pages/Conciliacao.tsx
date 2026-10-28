@@ -7,12 +7,12 @@ import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { Colunas, Ranking } from "@/components/Charts";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
-import { brl, dataBR, digitos, hoje, pl } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { CampoCategoria } from "@/components/financeiro/CategoriaRateio";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
-import { lerExtrato, linhasCsv, type LinhaExtrato, type MapaCsv, type ResultadoExtrato } from "@/lib/extrato";
+import { contaDoArquivo, lerExtrato, linhasCsv, type LinhaExtrato, type MapaCsv, type ResultadoExtrato } from "@/lib/extrato";
 import { sugerir, type Sugestao } from "@/lib/conciliacao";
 import { direcaoDe, emPedacos, regrasDasLinhas, textoRegra, type RegraConciliacao } from "@/lib/conciliacaoLote";
 import { PorFavorecido } from "@/components/financeiro/ConciliacaoLote";
@@ -509,7 +509,9 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [res, setRes] = useState<ResultadoExtrato | null>(null);
   const [mapa, setMapa] = useState<MapaCsv | null>(null);
-  const [conta, setConta] = useState(contaInicial || bancos[0]?.id || "");
+  // nunca a primeira da lista em silêncio: a conta vem do arquivo, da tela de onde veio ou da escolha dela
+  const [conta, setConta] = useState(contaInicial || "");
+  const [reconhecida, setReconhecida] = useState(true);
   const [ocupado, setOcupado] = useState(false);
   const invalidate = useInvalidate();
   const linhas: LinhaExtrato[] = res?.csv && mapa ? linhasCsv(res.csv.registros, mapa) : res?.linhas ?? [];
@@ -540,13 +542,11 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
       const r = await lerExtrato(f);
       setRes(r);
       if (r.csv) setMapa(r.csv.mapa);
-      // reconhece a conta pelo número que vem no OFX
-      const n = digitos(r.conta);
-      const achou = n && bancos.find((b) => digitos(b.numero) && (n.endsWith(digitos(b.numero)) || digitos(b.numero).endsWith(n)));
-      if (achou) setConta(achou.id);
-      else if (bancos.some((b) => b.nome.trim().length >= 3 && f.name.toLowerCase().includes(b.nome.trim().toLowerCase()))) setConta(bancos.find((b) => b.nome.trim().length >= 3 && f.name.toLowerCase().includes(b.nome.trim().toLowerCase()))!.id); // ex.: "extrato-olist.ofx" → conta OLIST
-      else if (/infinite/i.test(f.name)) setConta(bancos.find((b) => b.banco === "infinitepay")?.id ?? conta);
-      else if (/nu(bank)?[_-]/i.test(f.name)) setConta(bancos.find((b) => b.banco === "nubank")?.id ?? conta);
+      // reconhece a conta pelo número do OFX ou pelo nome do arquivo; sem certeza, fica em branco e ela escolhe
+      // (28/10: "Infinit fa.ofx" caiu na primeira conta da lista, a do Inter)
+      const achou = contaDoArquivo(f.name, r.conta, bancos);
+      setReconhecida(!!achou);
+      setConta(achou ?? contaInicial ?? "");
     } catch (e) { notifyError(e); }
   }
 
@@ -593,11 +593,17 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
               : <input className="input" type="file" onChange={(e) => escolher(e.target.files?.[0] ?? null)} />}
           </Field>
           <Field label="Conta">
-            <select className="input" value={conta} onChange={(e) => setConta(e.target.value)}>
+            <select className={`input ${!conta ? "border-amber-400" : ""}`} value={conta} onChange={(e) => setConta(e.target.value)} aria-invalid={!conta}>
+              <option value="" disabled>Escolha a conta deste extrato…</option>
               {bancos.map((b) => <option key={b.id} value={b.id}>{b.nome} ({BANCOS[b.banco] ?? b.banco})</option>)}
             </select>
           </Field>
         </div>
+        {res && !reconhecida && (
+          <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <b>Não reconheci a conta pelo arquivo.</b> {conta ? `Confira se o extrato é mesmo da conta “${bancos.find((b) => b.id === conta)?.nome}”.` : "Escolha a conta deste extrato acima antes de importar."}
+          </div>
+        )}
         <p className="text-xs text-slate-500">
           <b>Unicred:</b> extrato → exportar → OFX (Money). <b>Nubank:</b> extrato → exportar → OFX. <b>InfinitePay:</b> extrato → baixar planilha (CSV).
           Pode importar o mesmo período de novo: o que já entrou é ignorado.
