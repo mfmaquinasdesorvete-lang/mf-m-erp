@@ -5,8 +5,10 @@
 //  * como cada item chega: comprado pronto, fabricado aqui ou fabricado com etapa em terceiro.
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, ChevronRight, Factory, Layers, ListOrdered, Plus, Search, Trash2, Truck } from "lucide-react";
-import { Button, Card, Field, Tabs } from "@/components/ui";
+import { ArrowDown, ArrowUp, ChevronRight, Factory, Layers, ListOrdered, Plus, Ruler, Search, Trash2, Truck } from "lucide-react";
+import { Button, Card, Field, Modal, Tabs } from "@/components/ui";
+import { CalculoMaterial, temCalculo } from "@/components/producao/CalculoMaterial";
+import { textoUso } from "@/lib/material";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { AlcaArrastar, useArrastar } from "@/components/Arrastar";
 import { confirmar } from "@/components/Dialogos";
@@ -26,7 +28,7 @@ import {
 import type { EtapaProducao, KitComponente, Produto } from "@/lib/types";
 import { PainelFichas } from "@/components/producao/PainelFichas";
 
-type Componente = { id?: string; produto_id: string; componente_id: string; quantidade: number; grupo?: string | null; ordem?: number | null };
+type Componente = { id?: string; produto_id: string; componente_id: string; quantidade: number; grupo?: string | null; ordem?: number | null; uso?: unknown };
 type Visao = "pecas" | "etapas";
 
 const qtd = (v: unknown) => Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
@@ -97,6 +99,7 @@ export function FichaTecnica({ inicial }: { inicial?: string } = {}) {
   const nNiveis = item ? niveis(fichas, item.id) : 0;
 
   const mudarLista = (l: Componente[]) => { setLista(l); setMudou(true); };
+  const [calculando, setCalculando] = useState<number | null>(null); // linha com a calculadora do material aberta
   // arrastar: solto em cima de uma peça de outro grupo, o item passa para aquele grupo; no título do grupo, vai para o começo dele
   const arrastar = useArrastar(({ de, para, depois }) => {
     const i = lista.findIndex((c) => c.componente_id === de);
@@ -119,7 +122,7 @@ export function FichaTecnica({ inicial }: { inicial?: string } = {}) {
     try {
       // a ordem da tela (arrastada) vai junto
       const ids = await sincronizarItens("produto_componentes", "produto_id", item!.id, lista.map((c, k) => ({ ...c, ordem: k })),
-        (c) => ({ componente_id: c.componente_id, quantidade: c.quantidade, grupo: c.grupo ?? null, ordem: c.ordem }), { chaveNatural: "componente_id" });
+        (c) => ({ componente_id: c.componente_id, quantidade: c.quantidade, grupo: c.grupo ?? null, ordem: c.ordem, uso: c.uso ?? null }), { chaveNatural: "componente_id" });
       setLista(lista.map((c, k) => ({ ...c, id: ids[k] || c.id })));
       setMudou(false);
       notify("Ficha técnica salva");
@@ -166,8 +169,17 @@ export function FichaTecnica({ inicial }: { inicial?: string } = {}) {
   if (!maquinas.length && !fabricados.length) return <p className="py-8 text-center text-slate-500">Cadastre as máquinas em Estoque (tipo “Máquina”) para montar a ficha técnica.</p>;
   const ehMaquina = item?.tipo === "maquina";
 
+  const linhaCalc = calculando != null ? lista[calculando] : null;
+  const materialCalc = linhaCalc ? produtos.find((p) => p.id === linhaCalc.componente_id) : null;
   return (
     <>
+    {linhaCalc && materialCalc && (
+      <Modal open onClose={() => setCalculando(null)} title={`Quanto vai de ${materialCalc.descricao}`}>
+        <CalculoMaterial material={materialCalc} uso={linhaCalc.uso} rotuloUsar="Usar na ficha"
+          onUsar={(q, uso) => { mudarLista(lista.map((x, j) => (j === calculando ? { ...x, quantidade: q, uso } : x))); setCalculando(null); }} />
+        <div className="mt-3 flex justify-end"><Button type="button" variant="secondary" onClick={() => setCalculando(null)}>Cancelar</Button></div>
+      </Modal>
+    )}
     <PainelFichas maquinas={maquinas} fabricados={fabricados} produtos={produtos} fichas={todas} kits={kits}
       onAbrir={(id) => { setSelId(id); setVisao("pecas"); document.getElementById("ficha-titulo")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
     <div className="grid gap-4 lg:grid-cols-3">
@@ -330,8 +342,13 @@ export function FichaTecnica({ inicial }: { inicial?: string } = {}) {
                                 </span>
                                 <label className="flex items-center gap-1">
                                   <span className="sr-only">Quantidade de {nome} por unidade</span>
-                                  <CampoQtd valor={c.quantidade} disabled={!editavel} onChange={(v) => mudarLista(lista.map((x, j) => (j === k ? { ...x, quantidade: v } : x)))} />
+                                  <CampoQtd valor={c.quantidade} disabled={!editavel} onChange={(v) => mudarLista(lista.map((x, j) => (j === k ? { ...x, quantidade: v, uso: null } : x)))} />
                                   <span className="w-7 text-xs text-slate-500" aria-hidden>{peca?.unidade ?? ""}</span>
+                                  {/* barra, tubo ou chapa: calcula pelo tamanho da peça (aproveitamento) */}
+                                  {editavel && peca && temCalculo(peca) && (
+                                    <button type="button" className="botao-icone" title={c.uso ? textoUso(peca, c.uso) : "Calcular pelo tamanho da peça"} aria-label={`Calcular ${nome} pelo tamanho da peça`}
+                                      onClick={() => setCalculando(k)}><Ruler size={15} aria-hidden /></button>
+                                  )}
                                 </label>
                                 <label className="col-span-1 sm:col-span-1">
                                   <span className="sr-only">Grupo de {nome}</span>

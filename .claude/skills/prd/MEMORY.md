@@ -40,6 +40,13 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   das fichas (CP-ELE-003, 004, 010, 014), confirmado.
 
 ## Em andamento
+- 28/10 Material cortado em peças (aproveitamento): produtos.material_formato (barra/tubo/chapa) e
+  material_comprimento/largura/espessura_mm; produto_componentes.uso (como a peça foi medida). Migração
+  20261101000193 aplicada. Conta em src/lib/material.ts (peças por barra com perda do corte, peças por chapa no
+  melhor sentido, kg pela densidade do inox 7,93 / ferro 7,85); calculadora src/components/producao/CalculoMaterial.tsx
+  na receita da Tornearia e no botão da régua na ficha técnica. A quantidade gravada fica na unidade de compra.
+- 28/10 "Impostos na venda" saiu do cadastro do produto (pedido dela: é do financeiro) e foi para Gestão de preços →
+  Impostos na venda (só quem vê o financeiro). O anúncio (título, marketplace, SEO) virou o último passo do cadastro novo.
 - 28/10 Cadastro curto: kit novo (6 passos, custo = soma das peças, sem Compra e estoque; ao salvar abre a escolha
   das peças, aoSalvar no CrudPage) e componente de fabricação novo (4 passos: básico, fiscal, compra e estoque com o
   custo, códigos). Corrigido no CrudPage: "Próximo" do penúltimo passo salvava sem mostrar o último (botão sem key).

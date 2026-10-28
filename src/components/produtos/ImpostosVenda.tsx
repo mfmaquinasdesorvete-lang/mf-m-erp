@@ -1,6 +1,7 @@
 // Impostos na venda: quanto de imposto sai de cada venda do produto, por destino (no estado, Sul/Sudeste, Nordeste;
 // empresa com IE ou consumidor, com DIFAL), menos o crédito estimado das compras e o IRPJ/CSLL, e quanto sobra.
-// Quadro no cadastro do produto e lista de todas as máquinas (Máquinas → Impostos). A conta fica em lib/impostoMaquina.ts.
+// Lista dos impostos na venda por destino: das máquinas (Máquinas → Impostos) e de todos os produtos que vendem
+// (Gestão de preços → Impostos na venda; saiu do cadastro do produto em 28/10). A conta fica em lib/impostoMaquina.ts.
 import { useMemo, useState } from "react";
 import { FileDown } from "lucide-react";
 import { Button, Card, chip } from "@/components/ui";
@@ -33,46 +34,9 @@ function useDadosFiscais() {
 
 const AVISO = `Previsão: impostos pela regra da NF-e da unidade; crédito das compras estimado em ${String(ESTIMATIVA_PADRAO.credito_icms).replace(".", ",")}% de ICMS + ${String(ESTIMATIVA_PADRAO.credito_pis_cofins).replace(".", ",")}% de PIS/COFINS sobre o custo (como se o custo fosse todo material comprado com nota); IRPJ + CSLL de ${ESTIMATIVA_PADRAO.ir_csll}% sobre o lucro. O IPI é cobrado à parte do cliente. A apuração oficial é do contador.`;
 
-/** Quadro do cadastro: uma linha por destino. */
-export function QuadroImpostosVenda({ produto, preco, custo }: { produto: Record<string, any>; preco: number; custo: number }) {
-  const { unidade, regras, ufs, escolher } = useDadosFiscais();
-  const linhas = useMemo(() => (unidade ? previsaoImpostos({ produto, preco, custo, unidade, ufs, regras }) : []),
-    [produto, preco, custo, unidade, ufs, regras]);
-  if (!(preco > 0)) return <span className="text-xs text-slate-500">preencha o preço de venda para calcular</span>;
-  if (!String(produto.ncm ?? "").replace(/\D/g, "")) return <span className="text-xs text-amber-700">preencha o NCM para calcular os impostos</span>;
-  return (
-    <div className="space-y-2">
-      {escolher}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-xs">
-          <thead className="text-left text-slate-500">
-            <tr><th className="py-1 pr-2">Destino</th><th className="px-2 text-right">ICMS</th><th className="px-2 text-right">DIFAL</th><th className="px-2 text-right">PIS + COFINS</th>
-              <th className="px-2 text-right">Crédito</th><th className="px-2 text-right">IRPJ + CSLL</th><th className="px-2 text-right">Imposto total</th><th className="pl-2 text-right">Sobra</th></tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {linhas.map((l) => (
-              <tr key={l.cenario.id} title={l.cenario.dica}>
-                <td className="py-1.5 pr-2 font-semibold text-fg">{l.cenario.rotulo}</td>
-                <td className="num px-2 text-right">{brl(l.icms)}</td>
-                <td className="num px-2 text-right">{l.difal ? brl(l.difal) : "—"}</td>
-                <td className="num px-2 text-right">{brl(l.pis + l.cofins)}</td>
-                <td className="num px-2 text-right text-emerald-700">−{brl(l.credito)}</td>
-                <td className="num px-2 text-right">{brl(l.irCsll)}</td>
-                <td className="num px-2 text-right font-semibold">{brl(l.impostoLiquido + l.irCsll)} <span className="text-slate-500">({pct(l.cargaPct)})</span></td>
-                <td className={`num pl-2 text-right font-bold ${l.sobra < 0 ? "text-red-700" : "text-emerald-700"}`}>{brl(l.sobra)} <span className="font-normal">({pct(l.sobraPct)})</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {linhas[0]?.ipi ? <p className="text-xs text-slate-600">IPI de {brl(linhas[0].ipi)} cobrado à parte do cliente (não sai do preço).</p> : null}
-      <p className="text-2xs text-slate-500">{AVISO}</p>
-    </div>
-  );
-}
-
-/** Lista de todas as máquinas: o que sobra de cada venda em cada destino, para comparar e baixar. */
-export function ListaImpostosMaquinas({ produtos, custo }: { produtos: Record<string, any>[]; custo: (p: any) => number }) {
+/** `item`: "máquina" (Máquinas → Impostos) ou "produto" (Gestão de preços → Impostos na venda, todos os que vendem). */
+export function ListaImpostosMaquinas({ produtos, custo, item = "máquina" }: { produtos: Record<string, any>[]; custo: (p: any) => number; item?: "máquina" | "produto" }) {
+  const Item = item === "máquina" ? "Máquina" : "Produto";
   const { unidade, regras, ufs, escolher } = useDadosFiscais();
   const cenarios = unidade?.uf ? cenariosDe(unidade.uf) : [];
   const linhas = useMemo(() => produtos.filter((p) => p.ativo !== false && Number(p.preco_venda) > 0).map((p) => ({
@@ -81,10 +45,10 @@ export function ListaImpostosMaquinas({ produtos, custo }: { produtos: Record<st
   })).sort((a, b) => String(a.p.descricao).localeCompare(String(b.p.descricao))), [produtos, custo, unidade, ufs, regras]);
 
   function baixar() {
-    baixarPlanilha("impostos-por-maquina", [{
-      nome: "Impostos por máquina",
+    baixarPlanilha(item === "máquina" ? "impostos-por-maquina" : "impostos-por-produto", [{
+      nome: `Impostos por ${item}`,
       linhas: linhas.flatMap(({ p, custo: c, previsao }) => previsao.map((l) => ({
-        Máquina: p.descricao, SKU: p.sku ?? "", NCM: p.ncm ?? "", Destino: l.cenario.rotulo, Preço: l.preco, Custo: c,
+        [Item]: p.descricao, SKU: p.sku ?? "", NCM: p.ncm ?? "", Destino: l.cenario.rotulo, Preço: l.preco, Custo: c,
         ICMS: l.icms, DIFAL: l.difal, PIS: l.pis, COFINS: l.cofins, "IPI (à parte)": l.ipi, "Crédito estimado": l.credito,
         "IRPJ + CSLL": l.irCsll, "Imposto total": Math.round((l.impostoLiquido + l.irCsll) * 100) / 100, "Carga (%)": l.cargaPct,
         Sobra: l.sobra, "Sobra (%)": l.sobraPct,
@@ -96,17 +60,17 @@ export function ListaImpostosMaquinas({ produtos, custo }: { produtos: Record<st
     <Card className="p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="font-bold text-fg">Impostos na venda de cada máquina</p>
+          <p className="font-bold text-fg">Impostos na venda de cada {item}</p>
           <p className="text-xs text-slate-500">Quanto sobra de cada venda depois dos impostos e do custo, por destino.</p>
         </div>
         <Button variant="ghost" onClick={baixar} disabled={!linhas.length}><FileDown size={16} aria-hidden /> Baixar planilha</Button>
       </div>
       {escolher}
-      {!linhas.length ? <p className="mt-2 text-sm text-slate-500">Nenhuma máquina ativa com preço de venda.</p> : (
+      {!linhas.length ? <p className="mt-2 text-sm text-slate-500">{item === "máquina" ? "Nenhuma máquina ativa" : "Nenhum produto ativo"} com preço de venda.</p> : (
         <div className="mt-2 overflow-x-auto">
           <table className="w-full min-w-[760px] text-xs">
             <thead className="text-left text-slate-500">
-              <tr><th className="py-1 pr-2">Máquina</th><th className="px-2 text-right">Preço</th><th className="px-2 text-right">Custo</th>
+              <tr><th className="py-1 pr-2">{Item}</th><th className="px-2 text-right">Preço</th><th className="px-2 text-right">Custo</th>
                 {cenarios.map((c) => <th key={c.id} className="px-2 text-right" title={c.dica}>{c.rotulo}</th>)}</tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

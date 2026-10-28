@@ -77,6 +77,11 @@ export type Produto = {
   etapas_producao?: string[] | null;
   /** como o item chega: comprado pronto, fabricado aqui ou fabricado com etapa em terceiro (ex.: injeção da pá) */
   origem_producao?: "comprado" | "fabricado" | "terceirizado" | null;
+  /** material cortado em peças: barra, tubo ou chapa, com as medidas do inteiro (mm) */
+  material_formato?: string | null;
+  material_comprimento_mm?: number | null;
+  material_largura_mm?: number | null;
+  material_espessura_mm?: number | null;
   /** etapas com detalhe (a OP usa só os nomes, em etapas_producao) */
   etapas?: EtapaProducao[] | null;
   dicas_manutencao?: string | null; video_url?: string | null;

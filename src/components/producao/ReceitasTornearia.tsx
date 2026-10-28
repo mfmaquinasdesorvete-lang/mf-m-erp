@@ -17,10 +17,12 @@ import { brl, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
-import { custoReceita, diametroDoNome, ehBarraPorKg, kgDaBarra, mmDaBarra } from "@/lib/tornearia";
+import { custoReceita, diametroDoNome, ehBarraPorKg, mmDaBarra } from "@/lib/tornearia";
+import { textoUso, type UsoMaterial } from "@/lib/material";
+import { CalculoMaterial, temCalculo } from "@/components/producao/CalculoMaterial";
 import type { Produto } from "@/lib/types";
 
-type Linha = { id: string; produto_id: string; componente_id: string; quantidade: number; ordem: number | null };
+type Linha = { id: string; produto_id: string; componente_id: string; quantidade: number; ordem: number | null; uso?: unknown };
 type Fornecimento = { produto_id: string; preco: number | null; preferido: boolean | null; fornecedor: { nome: string } | null };
 type Filtro = "todas" | "sem_receita" | "sem_desenho";
 
@@ -32,7 +34,7 @@ export function ReceitasTornearia() {
   const editavel = pode("editar_produtos") || pode("editar_producao");
   const invalidar = useInvalidate();
   const prods = useRows<Produto>("produtos", { select: SELECT_LISTA_PRODUTOS, order: "descricao", ascending: true });
-  const linhasQ = useRows<Linha>("produto_componentes", { select: "id, produto_id, componente_id, quantidade, ordem", order: "produto_id", key: ["receitas"] });
+  const linhasQ = useRows<Linha>("produto_componentes", { select: "id, produto_id, componente_id, quantidade, ordem, uso", order: "produto_id", key: ["receitas"] });
   const { data: fornecimentos = [] } = useRows<Fornecimento>("fornecimentos", { select: "produto_id, preco, preferido, fornecedor:fornecedores(nome)", order: "produto_id", key: ["tornearia"] });
   const { data: desenhos = [] } = useRows<{ produto_id: string }>("produtos_midia", { select: "produto_id", order: "produto_id", key: ["desenhos"], filtro: (q) => q.eq("tipo", "desenho").eq("ativo", true) });
   const { data: marcadores = [] } = useMarcadores();
@@ -143,7 +145,7 @@ function DetalhePeca({ peca, linhas, porId, produtos, fornDe, editavel, aoMudar 
 }) {
   const [novo, setNovo] = useState<Produto | null>(null);
   const [valor, setValor] = useState("");
-  const [emMm, setEmMm] = useState(true);
+  const [direto, setDireto] = useState(false); // material com cálculo: pôr a quantidade direto, sem medir
   const [gravando, setGravando] = useState(false);
   const calc = custoReceita(linhas, (id) => porId.get(id)?.preco_custo);
   const custoCadastro = Number(peca.preco_custo ?? 0);
@@ -151,14 +153,14 @@ function DetalhePeca({ peca, linhas, porId, produtos, fornDe, editavel, aoMudar 
   // insumos que podem entrar: o que não é máquina nem serviço, e não a própria peça
   const opcoes = useMemo(() => produtos.filter((p) => p.ativo && !p.unificado_em && p.id !== peca.id && p.tipo !== "maquina" && p.tipo !== "servico"
     && !linhas.some((l) => l.componente_id === p.id)), [produtos, peca.id, linhas]);
-  const barra = novo && ehBarraPorKg(novo) ? diametroDoNome(novo.descricao) : null;
-  const quantidade = (() => { const n = numero(valor); return !(n > 0) ? 0 : barra && emMm ? kgDaBarra(barra, n) : n; })();
+  const calcula = !!novo && temCalculo(novo) && !direto;
+  const quantidade = numero(valor) > 0 ? numero(valor) : 0;
 
-  async function incluir() {
-    if (!novo || !(quantidade > 0)) return notify("Escolha o insumo e diga quanto vai na peça.", "erro");
+  async function incluir(q = quantidade, uso: UsoMaterial | null = null) {
+    if (!novo || !(q > 0)) return notify("Escolha o insumo e diga quanto vai na peça.", "erro");
     setGravando(true);
     try {
-      const { error } = await supabase.from("produto_componentes").insert({ produto_id: peca.id, componente_id: novo.id, quantidade, ordem: linhas.length });
+      const { error } = await supabase.from("produto_componentes").insert({ produto_id: peca.id, componente_id: novo.id, quantidade: q, uso, ordem: linhas.length });
       if (error) throw error;
       notify(`${novo.descricao} entrou na receita`);
       setNovo(null); setValor("");
@@ -194,13 +196,14 @@ function DetalhePeca({ peca, linhas, porId, produtos, fornDe, editavel, aoMudar 
               const ins = porId.get(l.componente_id);
               const f = fornDe.get(l.componente_id)?.[0];
               const d = ins && ehBarraPorKg(ins) ? diametroDoNome(ins.descricao) : null;
+              const comoMede = ins && l.uso ? textoUso(ins, l.uso) : "";
               const custo = Number(ins?.preco_custo ?? 0);
               return (
                 <li key={l.id} className="flex items-start gap-2 p-2 text-sm">
                   <span className="min-w-0 flex-1">
                     <span className="block font-medium text-fg">{ins?.descricao ?? "Insumo apagado"}</span>
                     <span className="block text-xs text-slate-600">
-                      <span className="num">{qtd(l.quantidade)} {ins?.unidade ?? ""}</span>{d ? ` (≈ ${mmDaBarra(d, Number(l.quantidade))} mm)` : ""}
+                      <span className="num">{qtd(l.quantidade)} {ins?.unidade ?? ""}</span>{comoMede ? ` (${comoMede})` : d ? ` (≈ ${mmDaBarra(d, Number(l.quantidade))} mm)` : ""}
                       {" · "}{custo > 0 ? `${brl(custo)}/${ins?.unidade ?? "un"}` : <span className="font-semibold text-amber-800">insumo sem custo</span>}
                       {" · "}{f ? `${f.fornecedor?.nome ?? "fornecedor"}${f.preco ? ` ${brl(f.preco)}` : ""}` : "sem fornecedor"}
                     </span>
@@ -213,20 +216,27 @@ function DetalhePeca({ peca, linhas, porId, produtos, fornDe, editavel, aoMudar 
           </ul>
         )}
         {editavel && (
-          <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+          <div className="mt-2 space-y-2">
             <Field label="Insumo">
               {novo
                 ? <div className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-sm font-medium">{novo.descricao}</span>
                     <Button variant="ghost" tamanho="mini" onClick={() => { setNovo(null); setValor(""); }}>Trocar</Button></div>
-                : <ProdutoBusca produtos={opcoes} onEscolher={(p) => { setNovo(p); setEmMm(true); }} placeholder="Barra, chapa ou peça comprada" listaAoFocar={false} />}
+                : <ProdutoBusca produtos={opcoes} onEscolher={(p) => { setNovo(p); setDireto(false); setValor(""); }} placeholder="Barra, tubo, chapa ou peça comprada" listaAoFocar={false} />}
             </Field>
-            <Field label={barra && emMm ? "Comprimento (mm)" : `Quanto vai (${novo?.unidade ?? "un"})`}
-              dica={barra ? <button type="button" className="link-acao text-xs" onClick={() => { setEmMm(!emMm); setValor(""); }}>{emMm ? "pôr em kg" : "pôr em mm"}</button> : undefined}>
-              <input className="input w-full sm:w-32" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} disabled={!novo}
-                onKeyDown={(e) => { if (e.key === "Enter") incluir(); }} />
-            </Field>
-            <Button variant="secondary" onClick={incluir} carregando={gravando} disabled={!novo || !(quantidade > 0)}><Plus size={15} aria-hidden /> Incluir</Button>
-            {barra && emMm && quantidade > 0 && <p className="text-xs text-slate-600 sm:col-span-3">= {qtd(quantidade)} kg de barra (inox, Ø {qtd(barra)} mm)</p>}
+            {calcula ? <>
+              {/* barra, tubo ou chapa: mede a peça e o ERP conta o aproveitamento */}
+              <CalculoMaterial material={novo!} onUsar={(q, uso) => incluir(q, uso)} rotuloUsar="Incluir na receita" ocupado={gravando} />
+              <button type="button" className="link-discreto text-xs" onClick={() => setDireto(true)}>Pôr a quantidade direto ({novo!.unidade ?? "un"})</button>
+            </> : novo && (
+              <div className="flex flex-wrap items-end gap-2">
+                <Field label={`Quanto vai em cada peça (${novo.unidade ?? "un"})`}>
+                  <input className="input w-full sm:w-40" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} autoFocus
+                    onKeyDown={(e) => { if (e.key === "Enter") incluir(); }} />
+                </Field>
+                <Button variant="secondary" onClick={() => incluir()} carregando={gravando} disabled={!(quantidade > 0)}><Plus size={15} aria-hidden /> Incluir</Button>
+                {temCalculo(novo) && <button type="button" className="link-acao text-xs" onClick={() => setDireto(false)}>Calcular pelo tamanho da peça</button>}
+              </div>
+            )}
           </div>
         )}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-2 text-sm">

@@ -9,5 +9,5 @@ export const SELECT_LISTA_PRODUTOS = [
   "modelo", "codigo_fabricante", "codigos_alternativos", "fora_de_linha", "prazo_reposicao_dias", "compra_minima",
   "embalagem_id", "titulo_anuncio", "slug", "gtin_isento", "unificado_em", "unificado_quando", "margem_desejada",
   "subconjunto_estocado", "marcadores", "video_url", "linha_id", "origem_producao", "subtitulo", "agrupador",
-  "produto_pai_id", "variacao",
+  "produto_pai_id", "variacao", "material_formato", "material_comprimento_mm", "material_largura_mm", "material_espessura_mm",
 ].join(", ");

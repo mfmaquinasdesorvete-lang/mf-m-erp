@@ -9,6 +9,7 @@ import { FotoProduto } from "@/components/FotoProduto";
 import { FornecedoresProduto } from "@/components/FornecedoresProduto";
 import { useMarcadores } from "@/components/nfe/Marcadores";
 import { erroVariacao, opcoesPai, variacoesPorPai } from "@/lib/variacoes";
+import { FORMATOS, faltaMedida, inteiroNaUnidade } from "@/lib/material";
 import { pendenciaCatalogo, urlFotoProduto } from "@/lib/catalogo";
 import { Badge, Button, Field, Modal, Table, Tabs } from "@/components/ui";
 import { brl, hoje, pl, somarDias } from "@/lib/format";
@@ -36,7 +37,7 @@ import { parecidos, resumoMovimentos, sugerirMinimo, UNIDADES, type Movimento } 
 import { vendidosPorProduto } from "@/lib/gerencial";
 import { custoUnitario, margemBruta } from "@/lib/margem";
 import { usePrecosPendentes } from "@/components/produtos/FormacaoPreco";
-import { ListaImpostosMaquinas, QuadroImpostosVenda } from "@/components/produtos/ImpostosVenda";
+import { ListaImpostosMaquinas } from "@/components/produtos/ImpostosVenda";
 import { configPreco, margemAlvo, precoSugerido } from "@/lib/precificacao";
 import { pedirTexto } from "@/components/Dialogos";
 import { useAbaUrl } from "@/lib/abaUrl";
@@ -589,7 +590,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             garantia_meses: r.garantia_meses === "" || r.garantia_meses == null ? null : Number(r.garantia_meses),
             ipi_aliquota: r.ipi_aliquota === "" || r.ipi_aliquota == null ? null : Number(r.ipi_aliquota),
             margem_desejada: r.margem_desejada === "" || r.margem_desejada == null ? null : Number(String(r.margem_desejada).replace(",", ".")),
-            ...Object.fromEntries(["peso_kg", "altura_cm", "largura_cm", "profundidade_cm"].map((k) => [k, r[k] === "" || r[k] == null ? null : Number(r[k])])),
+            material_formato: r.material_formato || null,
+            ...Object.fromEntries(["peso_kg", "altura_cm", "largura_cm", "profundidade_cm", "material_comprimento_mm", "material_largura_mm", "material_espessura_mm"].map((k) => [k, r[k] === "" || r[k] == null ? null : Number(r[k])])),
             fornecedor_padrao_id: r.fornecedor_padrao_id || null,
             produto_pai_id: r.produto_pai_id || null,
             ...(r.agrupador ? { vendavel: false } : {}), // o produto pai não vende sozinho
@@ -690,12 +692,6 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           },
           { name: "ipi_aliquota", label: "IPI (%) — TIPI do NCM", type: "number", span: 1 },
           {
-            name: "impostos_venda", mostrar: vende, label: "Impostos na venda (previsão por destino)", type: "custom", span: 4,
-            render: (_v, _s, row) => ["servico", "insumo"].includes(row.tipo)
-              ? <span className="text-xs text-slate-500">não se aplica (não é vendido)</span>
-              : <QuadroImpostosVenda produto={row} preco={Number(row.preco_venda || 0)} custo={custo(row as Produto)} />,
-          },
-          {
             name: "motivo_alteracao", mostrar: salvo, label: "Motivo da alteração (obrigatório ao mudar código, unidade, tipo, custo ou preço já preenchidos)", type: "custom", span: 4,
             render: (v, set, row) => row.id
               ? <input aria-label="Motivo da alteração" className="input" value={v ?? ""} onChange={(e) => set(e.target.value)} placeholder="Ex.: reajuste do fornecedor na NF 1234" />
@@ -757,6 +753,22 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
                 : <span className="text-xs text-slate-500">nenhum ainda: ao dar entrada de uma NF do fornecedor e vincular o item, o código fica guardado aqui</span>;
             },
           },
+          { name: "secao_material", mostrar: (r) => r.tipo === "insumo" || !!r.material_formato, label: "Como vem (barra, tubo ou chapa)", type: "secao",
+            ajuda: "Para o material que se compra inteiro e se corta em peças: com as medidas, a receita da peça calcula quanto vai em cada uma e a sobra (aproveitamento)." },
+          { name: "material_formato", label: "Formato", type: "select", span: 2,
+            options: [{ value: "", label: "— não é cortado em peças —" }, ...FORMATOS.map((x) => ({ value: x.v, label: x.rotulo }))] },
+          { name: "material_comprimento_mm", mostrar: (r) => !!r.material_formato, label: "Comprimento inteiro (mm)", type: "number", span: 1, placeholder: "Ex.: 6000" },
+          { name: "material_largura_mm", mostrar: (r) => r.material_formato === "chapa", label: "Largura da chapa (mm)", type: "number", span: 1, placeholder: "Ex.: 1250" },
+          { name: "material_espessura_mm", mostrar: (r) => !!r.material_formato, label: "Espessura ou diâmetro (mm)", type: "number", span: 1,
+            ajuda: "Só precisa quando é comprado por kg (o peso sai das medidas)" },
+          { name: "material_resumo", mostrar: (r) => !!r.material_formato, label: "Material inteiro", type: "custom", span: 3,
+            render: (_v, _s, row) => {
+              const falta = faltaMedida(row);
+              const inteiro = inteiroNaUnidade(row);
+              if (falta) return <span className="text-xs text-amber-800">Falta {falta} para calcular o aproveitamento.</span>;
+              const custoInteiro = inteiro != null ? Number(row.preco_custo || 0) * inteiro : 0;
+              return <span className="text-sm text-slate-700">1 {row.material_formato} = <b className="num">{String(inteiro).replace(".", ",")} {row.unidade ?? "UN"}</b>{custoInteiro > 0 ? <> · custa <b className="num">{brl(custoInteiro)}</b></> : ""}</span>;
+            } },
           { name: "secao_codigos", label: "Códigos, variação e situação", type: "secao", ajuda: "Opcional: código de barras, código do fabricante, variação (ex.: 3 Sabores), garantia e onde fica guardado. Dá para salvar sem isso." },
 
           { name: "subtitulo", mostrar: (r) => !fabricaNovo(r), label: "Subtítulo (aparece abaixo do nome)", span: 4, placeholder: "Ex.: Compatível com máquinas de sorvete expresso Top 200 e Top 300" },
@@ -809,7 +821,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             },
           },
           { name: "descricao_catalogo", label: "Texto de venda (o cliente lê no WhatsApp)", type: "textarea", span: 4 },
-          { name: "secao_anuncio", mostrar: (r) => salvo(r) && vende(r), label: "Anúncio (marketplace e Google)", type: "secao", ajuda: "Para Mercado Livre, Shopee, Amazon e loja virtual. O que ficar vazio é preenchido no padrão ao salvar (peças, acessórios e máquinas)." },
+          { name: "secao_anuncio", mostrar: vende, label: "Nome e anúncio (marketplace e Google)", type: "secao", ajuda: "O último passo: o título certo para o Mercado Livre, a Shopee e a loja, e o texto para o Google achar (SEO). O assistente de IA ajuda; o que ficar vazio o ERP preenche no padrão ao salvar." },
           {
             name: "assistente_ia", label: "Assistente de IA", type: "custom", span: 4,
             render: (_v, _s, row, setCampo) => <AssistenteIA row={row} setCampo={setCampo} produtos={produtosTodos} garantiaPadrao={Number(cfgProd?.garantia_meses_padrao) || 3} />,
