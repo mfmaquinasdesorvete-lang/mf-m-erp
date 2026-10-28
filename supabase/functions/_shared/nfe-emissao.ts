@@ -12,7 +12,7 @@ import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
 import { codigoUnidade, focusProducao } from "./focusnfe.ts";
 import { pendenciaCbenef } from "./nfe-conferencia.ts";
 import { pendenciasTransferencia } from "./nfe-transferencia.ts";
-import { type AjustesNfe, aplicarAjustes, conferirMotivo, faturamentoDoPedido, problemaIeDestinatario } from "./nfe-ajustes.ts";
+import { type AjustesNfe, aplicarAjustes, aplicarCfops, conferirMotivo, faturamentoDoPedido, problemaIeDestinatario, textoEntrega, volumesNfe } from "./nfe-ajustes.ts";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -103,6 +103,16 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
       pedido.transportadora = t;
     }
   }
+  // outro cliente do cadastro como destinatário (escolhido na tela Conferir a NF-e); o pedido não muda
+  if (ajustes?.cliente_id && ajustes.cliente_id !== pedido.cliente_id) {
+    const { data: outro } = await db.from("clientes").select("*").eq("id", ajustes.cliente_id).maybeSingle();
+    if (!outro) throw new HttpError(400, "cliente escolhido para a nota não encontrado");
+    pedido.cliente = outro;
+  }
+  let volumes: Record<string, unknown> = {};
+  try { volumes = volumesNfe(ajustes?.volumes); } catch (e) { throw new HttpError(400, (e as Error).message); }
+  const naturezaAjustada = String(ajustes?.natureza_operacao ?? "").trim().slice(0, 60);
+  const entrega = textoEntrega(ajustes?.entrega);
   const { data: existentes } = await db.from("notas_fiscais").select("status, ambiente, valor_total").eq("pedido_id", pedidoId);
   const fat = faturamentoDoPedido(Number(pedido.valor_total), existentes ?? []);
   if (fat.emAndamento) throw new HttpError(400, "pedido já possui NF-e em processamento: aguarde a resposta da SEFAZ");
@@ -144,10 +154,14 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
   const items = itensVenda(u, { uf: c.uf.toUpperCase(), contribuinte }, pedido.itens.map((i: any, idx: number) =>
     itemBase(i.produto, i.numero_serie ? `${i.descricao} - Nº série ${i.numero_serie}` : i.descricao, i.quantidade, i.valor_unitario,
       { desconto: descontos[idx], frete: fretes[idx] })), ufs, { regras: await regrasDa(db, u.id), unidade_id: u.id, usadas, ibsCbs: configIbsCbs(cfg) });
-  exigirCbenef(u.uf, items, "Ponha o código na regra de tributação que dá esse CST (Notas fiscais → Regras de tributação), conforme o contador.");
+  // CFOP escolhido na conferência, item a item (na ordem dos itens do pedido)
+  const cfops = pedido.itens.map((i: any) => ajustes?.itens?.find((a) => a.id === i.id)?.cfop);
+  let itemsNota: Record<string, unknown>[] = items;
+  try { itemsNota = aplicarCfops(items, cfops, interestadual); } catch (e) { throw new HttpError(400, (e as Error).message); }
+  exigirCbenef(u.uf, itemsNota, "Ponha o código na regra de tributação que dá esse CST (Notas fiscais → Regras de tributação), conforme o contador.");
 
   const payload = {
-    natureza_operacao: u.natureza_operacao,
+    natureza_operacao: naturezaAjustada || u.natureza_operacao,
     data_emissao: new Date().toISOString(),
     tipo_documento: 1,
     finalidade_emissao: 1,
@@ -172,10 +186,11 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
     email_destinatario: c.email || undefined,
     modalidade_frete: pedido.modalidade_frete,
     ...transportadorNfe(pedido.modalidade_frete, pedido.transportadora),
+    ...volumes,
     informacoes_adicionais_contribuinte: (ajustes?.informacoes != null
-      ? [ajustes.informacoes.trim(), observacoes(usadas)]
+      ? [ajustes.informacoes.trim(), entrega, observacoes(usadas)]
       : [`Pedido #${pedido.numero}`, pedido.observacoes, observacoes(usadas), preencherTextoNfe(u.informacoes_complementares, camposDoPedido(pedido))]).filter(Boolean).join(" - "),
-    items,
+    items: itemsNota,
   };
   const valorNota = r2(pedido.itens.reduce((t: number, i: any) => t + Number(i.valor_total), 0) - Number(pedido.desconto || 0) + Number(pedido.frete || 0));
   let motivo: string | null = null;

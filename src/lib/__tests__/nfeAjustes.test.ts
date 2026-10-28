@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aplicarAjustes, conferirMotivo, faturamentoDoPedido } from "../../../supabase/functions/_shared/nfe-ajustes";
+import { aplicarAjustes, aplicarCfops, conferirMotivo, faturamentoDoPedido, textoEntrega, volumesNfe } from "../../../supabase/functions/_shared/nfe-ajustes";
 
 const itens = [{ id: "a", descricao: "Peça A", quantidade: 2, valor_unitario: 10, valor_total: 20 }, { id: "b", descricao: "Peça B", quantidade: 1, valor_unitario: 5, valor_total: 5 }];
 
@@ -46,5 +46,26 @@ describe("faturamentoDoPedido (entrega parcial)", () => {
   });
   it("sem nota: restante é o pedido todo", () => {
     expect(faturamentoDoPedido(150, [])).toEqual({ jaEmitido: 0, restante: 150, emAndamento: false });
+  });
+});
+
+describe("ajustes da conferência: volumes, CFOP e entrega", () => {
+  it("volumes: só o que foi preenchido; recusa negativo e líquido maior que o bruto", () => {
+    expect(volumesNfe(null)).toEqual({});
+    expect(volumesNfe({ quantidade: null, especie: " " })).toEqual({});
+    expect(volumesNfe({ quantidade: 2, especie: "Caixa", peso_bruto: 85.5, peso_liquido: 80 })).toEqual({ volumes: [{ quantidade: 2, especie: "Caixa", peso_bruto: 85.5, peso_liquido: 80 }] });
+    expect(() => volumesNfe({ peso_bruto: -1 })).toThrow(/peso bruto/);
+    expect(() => volumesNfe({ peso_bruto: 10, peso_liquido: 12 })).toThrow(/líquido/);
+  });
+  it("CFOP escolhido troca o calculado; confere o 5 (no estado) e o 6 (outro estado)", () => {
+    const itens = [{ cfop: "5101" }, { cfop: "5102" }];
+    expect(aplicarCfops(itens, ["5910", undefined], false)).toEqual([{ cfop: "5910" }, { cfop: "5102" }]);
+    expect(() => aplicarCfops(itens, ["6910"], false)).toThrow(/dentro do estado/);
+    expect(() => aplicarCfops(itens, ["59"], false)).toThrow(/inválido/);
+  });
+  it("endereço de entrega numa linha", () => {
+    expect(textoEntrega(null)).toBeNull();
+    expect(textoEntrega({ logradouro: "Rua A", numero: "10", bairro: "Centro", municipio: "Joinville", uf: "sc", cep: "89200000" }))
+      .toBe("Local de entrega: Rua A, 10 - Centro - Joinville/SC - CEP 89200-000");
   });
 });
