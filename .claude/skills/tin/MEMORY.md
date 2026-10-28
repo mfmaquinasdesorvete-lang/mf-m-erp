@@ -28,10 +28,15 @@ A base da My Frost (empresa anterior) passou para o MYF em 23/10.
   negado, um cancelamento e as cartas de correção que faltavam (referencia importada-<chave>).
 
 ## Em andamento
+- Pedido "MF SC desde 06/2022" (o FIS coordena, 28/10): mandei ao FIS o levantamento mês a mês. O Tiny da MF só tem
+  movimento a partir de 02/2025, e está todo no ERP. Antes disso há só algumas notas, já no ERP; o resto vem da Sefaz,
+  do contador ou do banco (FIS/FAZ).
 - Virada do Tiny (o GER propõe a data): mandei ao GER a lista do que falta trazer. No ERP, pedidos e NF-e do Tiny vão até o
   fim de setembro, contas a pagar até 20/10 e os recebimentos do Tiny nunca foram buscados.
 
 ## Esperando a usuária
+- Exportar do Tiny, antes de cancelar: NFS-e emitidas (se houver), os anexos e a NF de entrada de 01/2025 que falta.
+- Dar o ok em Sobre → Pedidos para o item de 27/10 (a última gravação ficou sem resposta do Supabase).
 - Backup final do Tiny da MF antes de cancelar a assinatura (o Tiny não é usado desde 28/09): antes, rodar os botões
   de recebimentos e cadastros (a API para quando a assinatura acaba); depois baixar contas a pagar e receber (todas as
   situações), XML das NF-e emitidas e de entrada, NFS-e, pedidos com itens, OCs, OS, propostas, produtos com estoque e
