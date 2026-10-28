@@ -5,6 +5,8 @@ describe("documentos da empresa por tipo", () => {
   it("separa pelo nome do arquivo", () => {
     expect(tipoDocEmpresa("FILIAL- MF MAQUINAS.pfx")).toBe("certificado");
     expect(tipoDocEmpresa("extrato.01May26-29Aug26.ofx")).toBe("extrato");
+    expect(tipoDocEmpresa("Comunicado-notas-fiscais.pdf")).toBe("comunicado");
+    expect(tipoDocEmpresa("Aviso férias 2026.pdf")).toBe("comunicado");
     expect(tipoDocEmpresa("MF MATRIZ - 4° ALTERAÇÃO CONTRATUAL.pdf")).toBe("contrato");
     expect(tipoDocEmpresa("ABERTURA FILIAL - 3° ALTERAÇÃO CONTRATUAL.pdf")).toBe("contrato");
     expect(tipoDocEmpresa("MF MAQUINAS FUNC.pdf")).toBe("outro");

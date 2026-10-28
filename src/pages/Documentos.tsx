@@ -4,7 +4,7 @@
 // os anexos do ERP com busca; ao lado, o acompanhamento com as dicas. Parcelamentos: a tela dos parcelamentos de impostos.
 import { lazy, Suspense, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, FileCheck2, FileText, FolderOpen, Info, KeyRound, Landmark, Paperclip, ReceiptText, ShieldCheck, Trash2, Upload, type LucideIcon } from "lucide-react";
+import { ChevronRight, FileCheck2, FileText, FolderOpen, Info, KeyRound, Landmark, Megaphone, Paperclip, ReceiptText, ShieldCheck, Trash2, Upload, type LucideIcon } from "lucide-react";
 import { Button, Card, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { BotaoResumir } from "@/components/ResumoDocumento";
 import { BuscaDocumentosIA } from "@/components/BuscaDocumentosIA";
@@ -22,7 +22,7 @@ import { ehContaDeImposto, pagasSemComprovante, prazosParaConfirmar, tipoDocEmpr
 const Parcelamentos = lazy(() => import("@/pages/Parcelamentos"));
 const GERAL = "00000000-0000-0000-0000-000000000000";
 type Conta = ContaDoc & { categoria: string | null; fornecedor: { nome: string | null } | null };
-const ICONE_TIPO: Record<TipoDocEmpresa, LucideIcon> = { contrato: FileText, certificado: KeyRound, extrato: Landmark, outro: Paperclip };
+const ICONE_TIPO: Record<TipoDocEmpresa, LucideIcon> = { contrato: FileText, certificado: KeyRound, extrato: Landmark, comunicado: Megaphone, outro: Paperclip };
 
 /** Cartão de uma parte da tela: título, explicação e a ação à direita (como no site). */
 function Quadro({ titulo, texto, acao, destaque, children }: { titulo: string; texto?: string; acao?: ReactNode; destaque?: boolean; children: ReactNode }) {
@@ -152,7 +152,7 @@ function DocsDaEmpresa({ veContas, onParcelamentos }: { veContas: boolean; onPar
           </Quadro>
         )}
 
-        <Quadro titulo="Documentos da empresa" texto="Contrato social, alterações, alvarás, certidões, certificados digitais e extratos, separados por tipo."
+        <Quadro titulo="Documentos da empresa" texto="Contrato social, alterações, alvarás, certidões, certificados digitais, extratos e os comunicados à equipe, separados por tipo."
           acao={<>
             <Button disabled={enviando} onClick={() => input.current?.click()}><Upload size={16} /> {enviando ? "Enviando…" : "Anexar"}</Button>
             <input ref={input} type="file" multiple className="hidden" onChange={(e) => { anexarDaEmpresa(e.target.files); e.target.value = ""; }} />

@@ -1,11 +1,12 @@
 // Contas da tela Documentos: os documentos da empresa por tipo, as contas pagas que ainda não têm o comprovante
 // anexado e as contas vencidas ainda em aberto (prazo passado: confirmar se foi paga).
 
-export type TipoDocEmpresa = "contrato" | "certificado" | "extrato" | "outro";
+export type TipoDocEmpresa = "contrato" | "certificado" | "extrato" | "comunicado" | "outro";
 export const TIPOS_DOC_EMPRESA: { id: TipoDocEmpresa; rotulo: string; dica: string }[] = [
   { id: "contrato", rotulo: "Contratos e alterações", dica: "Contrato social, alterações contratuais, alvarás e certidões" },
   { id: "certificado", rotulo: "Certificados digitais", dica: "Arquivos .pfx e .p12 (A1) para emitir notas" },
   { id: "extrato", rotulo: "Extratos dos bancos", dica: "Arquivos .ofx, .ofc e .csv importados" },
+  { id: "comunicado", rotulo: "Comunicados à equipe", dica: "Avisos e orientações enviados à equipe. Para fazer outro, peça no chat do assunto: \"faz um comunicado para a equipe sobre…\"; o arquivo com \"Comunicado\" no nome cai aqui" },
   { id: "outro", rotulo: "Outros documentos", dica: "O resto: fotos, planilhas, PDFs" },
 ];
 
@@ -16,6 +17,7 @@ export function tipoDocEmpresa(nome: string): TipoDocEmpresa {
   const n = sem(nome);
   if (/\.(pfx|p12)$/.test(n)) return "certificado";
   if (/\.(ofx|ofc)$/.test(n) || /\bextrato\b/.test(n)) return "extrato";
+  if (/^(comunicado|aviso|orientac)/.test(n)) return "comunicado";
   if (/contrat|alteracao|social|alvara|certidao|cnpj|estatuto|procuracao|abertura/.test(n)) return "contrato";
   return "outro";
 }
