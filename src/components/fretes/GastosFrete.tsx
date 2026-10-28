@@ -22,7 +22,7 @@ export function GastosFrete({ podeImportar }: { podeImportar: boolean }) {
     queryKey: ["contas_pagar", "frete", ano],
     queryFn: async () => {
       const linhas = ((await ler(supabase.from("contas_pagar").select("id, emissao, vencimento, valor, status, descricao, fornecedores(nome, nome_fantasia)")
-        .or("categoria.ilike.%frete%,descricao.ilike.%frete%,descricao.ilike.%ct-e%,descricao.ilike.%cte %,descricao.ilike.%transportadora%")
+        .or("categoria.ilike.%frete%,categoria.ilike.%correio%,descricao.ilike.%frete%,descricao.ilike.%ct-e%,descricao.ilike.%cte %,descricao.ilike.%transportadora%")
         .gte("vencimento", `${ano - 1}-11-01`).lte("vencimento", `${ano + 1}-02-28`).limit(5000))) ?? []) as unknown as {
         id: string; emissao: string | null; vencimento: string; valor: number; status: string; descricao: string | null; fornecedores: { nome: string; nome_fantasia: string | null } | null;
       }[];
@@ -117,7 +117,7 @@ export function GastosFrete({ podeImportar }: { podeImportar: boolean }) {
           </div>
         </section>
       )}
-      <p className="text-xs text-slate-500">Contas de frete: categoria "frete" ou descrição de frete, CT-e ou transportadora. Banco sem conta: saídas do extrato para
+      <p className="text-xs text-slate-500">Contas de frete: categoria "frete" ou "correios", ou descrição de frete, CT-e ou transportadora. Banco sem conta: saídas do extrato para
         transportadoras sem conta a pagar ligada. CT-e com fatura já estão nas contas, e os de antes de outubro de 2026 (planilha e e-mail) foram pagos
         pelas contas importadas: aparecem em "CT-e MF paga" para conferir, sem somar no total.</p>
     </div>

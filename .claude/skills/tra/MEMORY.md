@@ -20,7 +20,8 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
 ## Em andamento
 - Rodada de fechamento (desde 27/10): nada novo sem pedido dela; só terminar, consertar e testar.
 - Pronto e não publicado: frete do pedido (FreteVenda) baixa só peso e medidas dos produtos do pedido (dabb127).
-  Vai ao ar na próxima publicação do site que ela autorizar.
+  Gastos com frete conta também a categoria "correios" (envio pago pelos Correios, 28/10, a pedido do GER).
+  Os dois vão ao ar na próxima publicação do site que ela autorizar.
 
 ## Esperando a usuária
 - E-mails enviados por ela pela conta da MF (28/10): usuário de API da Rodonaves e tabelas de frete atualizadas
