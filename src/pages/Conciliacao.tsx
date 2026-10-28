@@ -550,14 +550,19 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
     } catch (e) { notifyError(e); }
   }
 
+  // OFX sem lançamento também entra (pedido de 28/10): ele prova que o banco não teve movimento no período
+  const semMovimento = !linhas.length && res?.formato === "ofx" && !!res.periodoInicio && !!res.periodoFim;
   async function enviar() {
-    if (!res || !linhas.length) return;
+    if (!res || (!linhas.length && !semMovimento)) return;
     setOcupado(true);
     try {
-      const { data, error } = await supabase.rpc("importar_extrato", {
+      const base = {
         p_conta: conta, p_arquivo: arquivo?.name ?? null, p_formato: res.formato, p_linhas: linhas,
         p_saldo_final: res.saldoFinal ?? null, p_saldo_data: res.saldoData ?? null,
-      });
+      };
+      let { data, error } = await supabase.rpc("importar_extrato", { ...base, p_periodo_inicio: res.periodoInicio ?? null, p_periodo_fim: res.periodoFim ?? null });
+      // banco ainda sem a função nova (migração 182): importa como antes, com o período das linhas
+      if (error?.code === "PGRST202" && linhas.length) ({ data, error } = await supabase.rpc("importar_extrato", base));
       if (error) throw error;
       notify(`${data.novas} ${pl(data.novas, "lançamento", "lançamentos")} novos${data.repetidas ? `, ${data.repetidas} já importados antes` : ""}; ${data.conciliadas} ${pl(data.conciliadas, "conciliado", "conciliados")} automaticamente`);
       invalidate("extrato_lancamentos", "extrato_importacoes", "contas_receber", "contas_pagar", "auditoria", "saldos_bancarios", "movimentos_realizados");
@@ -644,12 +649,16 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
                 </table>
               </div>
             </>
+          ) : semMovimento ? (
+            <p className="text-sm text-slate-700">Sem movimento de <b>{dataBR(res.periodoInicio)}</b> a <b>{dataBR(res.periodoFim)}</b>
+              {res.saldoFinal != null && <> · saldo do banco em {dataBR(res.saldoData)}: <b>{brl(res.saldoFinal)}</b></>}.
+              Importe assim mesmo: o ERP guarda que esse período foi conferido com o banco.</p>
           ) : <p className="text-sm text-red-600">Não encontrei lançamentos neste arquivo. {res.csv ? "Confira as colunas de data e valor acima." : "Confira se é o extrato em OFX."}</p>
         )}
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button onClick={enviar} variant={jaEm.length ? "secondary" : "primary"} disabled={!linhas.length || !conta || ocupado}><FileUp size={16} /> {ocupado ? "Importando…" : `${jaEm.length ? "Importar mesmo assim" : "Importar"} ${linhas.length || ""} ${pl(linhas.length || "", "lançamento", "lançamentos")}`}</Button>
+          <Button onClick={enviar} variant={jaEm.length ? "secondary" : "primary"} disabled={(!linhas.length && !semMovimento) || !conta || ocupado}><FileUp size={16} /> {ocupado ? "Importando…" : semMovimento ? "Importar o período sem movimento" : `${jaEm.length ? "Importar mesmo assim" : "Importar"} ${linhas.length || ""} ${pl(linhas.length || "", "lançamento", "lançamentos")}`}</Button>
         </div>
       </div>
     </Modal>

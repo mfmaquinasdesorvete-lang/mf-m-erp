@@ -13,6 +13,9 @@ export type ResultadoExtrato = {
   saldoData?: string | null;
   banco?: string | null;
   conta?: string | null;
+  /** só OFX: o período que o arquivo cobre, mesmo sem lançamento */
+  periodoInicio?: string | null;
+  periodoFim?: string | null;
   /** só CSV: cabeçalho e o mapeamento das colunas usado (pode ser trocado na tela) */
   csv?: { cabecalho: string[]; registros: string[][]; mapa: MapaCsv };
 };

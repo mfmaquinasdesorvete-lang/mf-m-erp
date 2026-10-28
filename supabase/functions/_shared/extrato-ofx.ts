@@ -10,6 +10,9 @@ export type ResultadoOfx = {
   saldoData: string | null;
   banco: string | null;
   conta: string | null;
+  /** período que o banco diz que o arquivo cobre (DTSTART–DTEND): vale também para o mês sem nenhum lançamento */
+  periodoInicio: string | null;
+  periodoFim: string | null;
 };
 
 /** O que o ERP fez com cada OFX que chegou por e-mail (coluna emails.extratos; ver extrato-email.ts). */
@@ -69,6 +72,7 @@ export function lerOfx(texto: string): ResultadoOfx {
     vistos.set(base, n);
     linhas.push({ data, valor, descricao, documento: tag(b, "CHECKNUM") || tag(b, "REFNUM") || undefined, identificador: n > 1 ? `${base}#${n}` : base });
   }
+  const lista = texto.match(/<BANKTRANLIST>[\s\S]*?(?=<STMTTRN>|<\/BANKTRANLIST>)/i)?.[0] ?? texto;
   const saldo = texto.match(/<LEDGERBAL>[\s\S]*?(?=<\/LEDGERBAL>|<AVAILBAL>|<\/STMTRS>)/i)?.[0] ?? "";
   const saldoFinal = saldo ? numero(tag(saldo, "BALAMT")) : NaN;
   return {
@@ -77,5 +81,7 @@ export function lerOfx(texto: string): ResultadoOfx {
     saldoData: saldo ? dataOfx(tag(saldo, "DTASOF")) || null : null,
     banco: tag(texto, "BANKID") || tag(texto, "ORG") || null,
     conta: tag(texto, "ACCTID") || null,
+    periodoInicio: dataOfx(tag(lista, "DTSTART")) || null,
+    periodoFim: dataOfx(tag(lista, "DTEND")) || null,
   };
 }
