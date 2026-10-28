@@ -32,7 +32,7 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   repetido CP-ELE-006 unificado no PC-MEC-021, confirmado),
   iguais ao Tiny (preço das cubas = o do pai, a confirmar com ela).
 
-- Kits com os códigos e preços do Tiny (28/10); custo dos kits = soma das peças (decisão dela, não o custo do Tiny).
+- Kits com os códigos e preços do Tiny e a composição conferida (28/10; 7 Sabores com 14 o-rings dos pistões); custo dos kits = soma das peças (decisão dela, não o custo do Tiny).
 - Tubos inox dos cilindros (CP-CIL-001 açaí, CP-CIL-002 sorvete, em metro) com fornecedores, preços e contatos
   (Vtk preferido, Jati SP, Jatinox Araucária, Krominox), 28/10.
 
@@ -45,6 +45,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- Preço de venda da Sanfona (Tiny 47,60 × ERP 37,60) e do Separador do Cubo (Tiny 75 × ERP 91); O-Ring do dosador no
+  kit 3 Sabores (Tiny 1 pacote de 5 × ERP 4 un.).
 - Vendas antigas sem produto (GER bd91b01 já acha pelo nome limpo): "Quiosque MDF", "Kit Carenagem" (KITREP), "Kit tampa
   superior + cuba" (KITT) e "Kit tampa frontal + pezinhos" (KITTS) não têm cadastro; "Vedacoes (Orings) My Frost
   Maquinas" pode ser mais de um kit. Ela diz se cadastra (com custo) e qual kit é.
