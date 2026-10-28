@@ -15,6 +15,9 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
 - Regras de frete (grátis, acréscimo, retirar na fábrica, peso e medidas padrão) e Peso e medidas dos produtos.
 - Gastos com frete por mês e por transportadora, com envio de XML dos CT-e; CT-e de 2025/2026 vindos do e-mail.
 - Cadastro: 12 transportadoras novas; repetidos do Mercado Envios unificados (filial).
+- Olist Envios (28/10): 68 etiquetas da planilha do Olist (fev a ago/2026) viraram envios ligados à nota, ao cliente e
+  (44) ao pedido, com o custo real; rastreio_fonte = 'olist', código da etiqueta nas observações. Não somam no Gastos
+  com frete (as recargas "envios olist" já estão no contas a pagar).
 - Aba CT-e mais clara (26/10, b50d074): cartão do frete pago do mês, "O que fazer", faturas por transportadora, abas em 3 grupos.
 
 ## Em andamento
