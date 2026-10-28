@@ -49,6 +49,12 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
   avisar GER e ENT. TIN mandou T1 a T4 (Tiny antes de cancelar). Ordem do resumo: T1 (tem prazo: a API para com a assinatura), depois D1,
   T2 a T4 e D2 a D5. Falta o FIS (SEFAZ SC, e-CAC, contador).
 
+## Auditor financeiro no resumo (28/10, pelo AUD)
+- Rodada diária às 07:03 (Brasília). Ler a última linha: `select iniciada_em, total, novos, novos_alta, principal, erro
+  from auditor_rodadas order by iniciada_em desc limit 1`. Se novos > 0: "Auditor: N achados novos (o mais importante:
+  <principal>). Veja em Auditoria financeira." Se novos = 0: "nada novo". Erro preenchido: avisar o AUD.
+  (Conferido em 28/10: rodou às 06:02, 10 achados, 0 novos, sem erro.)
+
 ## Do CNF (27/10)
 - O CNF parou o aviso diário: o resumo é só meu. "Pronto para conferir": `para-conferir.md` (29 itens, 3 por dia; 10, 13, 14 e 16 saíram).
 - "Precisa de você": 76 itens em `pedidos_checklist` (`voce`); os 11 pessoais ficam com o CAR (não ler). Mais antigos
