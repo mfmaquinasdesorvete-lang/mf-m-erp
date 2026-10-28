@@ -28,7 +28,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 - Painéis Produtos e Máquinas leves e avisos do Painel de Produtos abrindo no problema: no ar em 27/10 (index-BKEMOzUS).
 
 - Revisão de custos (28/10): 14 kits com custo = soma das peças; 12 peças pela última compra (as 6 exatamente 13%
-  abaixo ficaram: crédito de ICMS); chaves extratoras como variações do pai PC-CHV-023, iguais ao Tiny.
+  abaixo ficaram: crédito de ICMS); chaves extratoras como variações do pai PC-CHV-023, rodízios do pai CP-EST-035 e cubas GN do pai PC-ACE-001,
+  iguais ao Tiny (preço das cubas = o do pai, a confirmar com ela).
 
 ## Em andamento
 - Rodada de fechamento (27/10): nada novo sem pedido dela; "feito" só depois de testar no ERP no ar.
