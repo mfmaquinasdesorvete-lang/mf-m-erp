@@ -40,6 +40,9 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   das fichas (CP-ELE-003, 004, 010, 014), confirmado.
 
 ## Em andamento
+- 28/10 Cadastro curto: kit novo (6 passos, custo = soma das peças, sem Compra e estoque; ao salvar abre a escolha
+  das peças, aoSalvar no CrudPage) e componente de fabricação novo (4 passos: básico, fiscal, compra e estoque com o
+  custo, códigos). Corrigido no CrudPage: "Próximo" do penúltimo passo salvava sem mostrar o último (botão sem key).
 - 28/10 Cadastro novo de produto em 7 passos curtos (Produtos.tsx, campo `mostrar` novo em CrudPage): básico → custo e
   preço → fiscal → compra e estoque → códigos e variação → peso e medidas → catálogo. O que só funciona salvo (galeria,
   fornecedores, histórico) e o anúncio ficam na edição; componente que não vende pula medidas, catálogo e anúncio.

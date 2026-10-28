@@ -425,7 +425,12 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   // cadastro: o que só aparece depois de salvo (galeria, fornecedores, histórico) e o que só vale para o que vende
   // (medidas de frete, catálogo, anúncio); o componente de produção que não vende tem o cadastro curto
   const salvo = (r: Record<string, any>) => !!r.id;
-  const vende = (r: Record<string, any>) => r.tipo !== "insumo" || !!r.vendavel || !!r.no_catalogo;
+  // componente novo que não vende: sem medidas, catálogo nem anúncio (a tela de Peças já abre com "Mostrar no catálogo")
+  const vende = (r: Record<string, any>) => r.tipo !== "insumo" || !!r.vendavel || (!!r.id && !!r.no_catalogo);
+  // cadastro novo mais curto para o kit (custo e estoque saem das peças) e para o componente de fabricação (não vende)
+  const fabrica = (r: Record<string, any>) => r.tipo === "insumo" && !r.vendavel;
+  const kitNovo = (r: Record<string, any>) => !!r.kit && !r.id;
+  const fabricaNovo = (r: Record<string, any>) => fabrica(r) && !r.id;
   const abasProdutos = [
     { value: "produtos" as const, label: ehMaquinas ? "Máquinas" : "Produtos" },
     // Tornearia: a receita de cada peça usinada (insumos, fornecedor, desenho, custo), fora da ficha das máquinas
@@ -470,6 +475,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         key={cadastro}
         // produto novo: passo a passo (o básico, compra, preço, catálogo, anúncio…), com "Salvar agora" para pular o resto
         passoAPasso
+        // kit novo: logo depois de salvar, abre a escolha das peças (o custo e o estoque do kit saem delas)
+        aoSalvar={(p, novo) => { if (novo && p.kit) { setKitAberto(p); notify("Agora escolha as peças do kit"); } }}
         // a tela começa pelo título; avisos, tipo de cadastro e sugestões vêm logo abaixo dele
         aposTitulo={<>
           {/* avisos discretos numa linha só (pedido de 24/10): tocar abre a lista */}
@@ -596,6 +603,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             ...(Array.isArray(r.especificacoes) ? { especificacoes: (r.especificacoes as Especificacao[]).map((e) => ({ nome: String(e.nome ?? "").trim(), valor: String(e.valor ?? "").trim() })).filter((e) => e.nome && e.valor) } : {}),
             ...(Array.isArray(r.etapas_producao) ? { etapas_producao: (r.etapas_producao as string[]).map((e) => String(e).trim()).filter(Boolean) } : {}),
             ...anuncioAoSalvar(r),
+            ...(!r.id && r.tipo === "insumo" && !r.vendavel ? { no_catalogo: false } : {}), // componente novo não vai ao catálogo
           };
         }}
         fields={cadastro === "servicos" ? [
@@ -621,6 +629,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "categoria", label: "Categoria", type: "custom", span: 1,
             render: (v, set) => <CampoCategoriaProduto valor={v} onChange={set} opcoes={opcoesCategoria(categorias, produtos)} produtos={produtos} podeEditar={pode("editar_produtos")} /> },
           { name: "vendavel", label: "Pode vender (aparece no pedido)", type: "checkbox", span: 1 },
+          { name: "kit", mostrar: (r) => !fabrica(r) && r.tipo !== "maquina", label: "É um kit (várias peças vendidas juntas)", type: "checkbox", span: 1 },
           { name: "marca", label: "Marca", span: 1 },
           { name: "modelo", label: "Modelo", span: 1 },
           {
@@ -634,9 +643,17 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               ) : <span className="text-xs text-emerald-700">nenhum produto com o mesmo código ou a mesma descrição</span>;
             },
           },
-          { name: "secao_preco", label: "Custo e preço", type: "secao", ajuda: "O custo é o valor do item na NF do fornecedor (atualizado sozinho na entrada da nota). O preço sugerido sai do custo e da margem." },
+          {
+            name: "aviso_tipo", mostrar: (r) => kitNovo(r) || fabricaNovo(r), label: "Cadastro curto", type: "custom", span: 4,
+            render: (_v, _s, row) => <p className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900">{row.kit
+              ? "Kit: o custo e o estoque saem das peças dele. Aqui vão só o preço, o fiscal e a foto; ao salvar, abre a escolha das peças."
+              : "Componente de fabricação (não vende): só o custo, o fiscal, de quem se compra e o estoque. Preço, catálogo e anúncio não entram."}</p>,
+          },
+          { name: "secao_preco", mostrar: (r) => !fabricaNovo(r), label: "Custo e preço", type: "secao", ajuda: "O custo é o valor do item na NF do fornecedor (atualizado sozinho na entrada da nota). O preço sugerido sai do custo e da margem." },
 
-          { name: "preco_custo", label: "Custo de compra", type: "number" },
+          { name: "preco_custo", mostrar: (r) => !kitNovo(r), label: "Custo de compra", type: "number" },
+          { name: "custo_kit", mostrar: kitNovo, label: "Custo", type: "custom", span: 1,
+            render: () => <span className="text-sm text-slate-600">soma das peças do kit (escolhidas ao salvar)</span> },
           { name: "ultimas_compras", mostrar: salvo, label: "2 últimas compras (pelas notas)", type: "custom", span: 2,
             render: (_v, _s, row) => row.id ? <UltimasCompras produtoId={row.id} /> : <span className="text-xs text-slate-500">aparece depois de salvar</span> },
           {
@@ -704,8 +721,11 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "cest", label: "CEST", span: 1 },
           { name: "cfop", mostrar: salvo, label: "CFOP (vazio = padrão)", span: 1 },
           { name: "icms_situacao", mostrar: salvo, label: "CSOSN/CST (vazio = padrão)", span: 1 },
-          { name: "secao_compra", label: "Compra e estoque", type: "secao", ajuda: "De quem se compra, em quanto tempo chega e quanto ter guardado. O estoque mínimo deve cobrir o consumo durante o prazo do fornecedor." },
+          { name: "secao_compra", mostrar: (r) => !kitNovo(r), label: "Compra e estoque", type: "secao", ajuda: "De quem se compra, em quanto tempo chega e quanto ter guardado. O estoque mínimo deve cobrir o consumo durante o prazo do fornecedor." },
 
+          { name: "custo_fabrica", mostrar: fabricaNovo, label: "Custo de compra", type: "custom", span: 1,
+            render: (_v, _s, row, setCampo) => <input aria-label="Custo de compra" className="input num" type="number" step="0.01" min="0" inputMode="decimal"
+              value={row.preco_custo ?? ""} onChange={(e) => setCampo("preco_custo", e.target.value === "" ? null : Number(e.target.value))} /> },
           {
             name: "fornecedor_padrao_id", label: "Fornecedor preferencial", type: "select", span: 2,
             options: [{ value: "", label: "—" }, ...fornecedores.map((f) => ({ value: f.id, label: f.nome }))],
@@ -739,21 +759,20 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           },
           { name: "secao_codigos", label: "Códigos, variação e situação", type: "secao", ajuda: "Opcional: código de barras, código do fabricante, variação (ex.: 3 Sabores), garantia e onde fica guardado. Dá para salvar sem isso." },
 
-          { name: "subtitulo", label: "Subtítulo (aparece abaixo do nome)", span: 4, placeholder: "Ex.: Compatível com máquinas de sorvete expresso Top 200 e Top 300" },
+          { name: "subtitulo", mostrar: (r) => !fabricaNovo(r), label: "Subtítulo (aparece abaixo do nome)", span: 4, placeholder: "Ex.: Compatível com máquinas de sorvete expresso Top 200 e Top 300" },
           { name: "codigo_fabricante", label: "Código do fabricante (peça original)", span: 1, placeholder: "Ex.: TYA2446ZES, CFW300A06P0S2NB20" },
-          { name: "codigo_barras", label: "Código de barras (EAN)" },
-          { name: "gtin_isento", label: "Sem GTIN/EAN (produto próprio, sem código de barras)", type: "checkbox", span: 4 },
-          { name: "conferencia_ean", label: "Conferência do código de barras", type: "custom", span: 3, render: (_v, _s, row) => <ConferenciaEan row={row} produtos={produtosTodos} /> },
+          { name: "codigo_barras", mostrar: (r) => !fabricaNovo(r), label: "Código de barras (EAN)" },
+          { name: "gtin_isento", mostrar: (r) => !fabricaNovo(r), label: "Sem GTIN/EAN (produto próprio, sem código de barras)", type: "checkbox", span: 4 },
+          { name: "conferencia_ean", mostrar: (r) => !fabricaNovo(r), label: "Conferência do código de barras", type: "custom", span: 3, render: (_v, _s, row) => <ConferenciaEan row={row} produtos={produtosTodos} /> },
           { name: "codigos_alternativos", label: "Códigos alternativos (separados por vírgula)", span: 3, placeholder: "Código antigo, código do Tiny, EAN da caixa…" },
-          { name: "agrupador", label: "Produto pai (tem variações; não vende sozinho)", type: "checkbox", span: 2 },
-          { name: "produto_pai_id", label: "É variação de", type: "select", span: 1, options: [{ value: "", label: "— não é variação —" }, ...opcoesPai(produtos)] },
-          { name: "variacao", label: "Variação (o que muda)", span: 1, placeholder: "Ex.: 3 Sabores, A 200" },
-          { name: "linha_id", label: "Linha de produtos (comissão)", type: "select", span: 1,
+          { name: "agrupador", mostrar: (r) => !fabricaNovo(r), label: "Produto pai (tem variações; não vende sozinho)", type: "checkbox", span: 2 },
+          { name: "produto_pai_id", mostrar: (r) => !fabricaNovo(r), label: "É variação de", type: "select", span: 1, options: [{ value: "", label: "— não é variação —" }, ...opcoesPai(produtos)] },
+          { name: "variacao", mostrar: (r) => !fabricaNovo(r), label: "Variação (o que muda)", span: 1, placeholder: "Ex.: 3 Sabores, A 200" },
+          { name: "linha_id", mostrar: (r) => !fabricaNovo(r), label: "Linha de produtos (comissão)", type: "select", span: 1,
             options: [{ value: "", label: "Sem linha" }, ...linhas.filter((l) => l.ativo).map((l) => ({ value: l.id, label: l.nome }))] },
-          { name: "garantia_meses", label: "Garantia (meses, vazio = padrão)", type: "number" },
+          { name: "garantia_meses", mostrar: (r) => !fabricaNovo(r), label: "Garantia (meses, vazio = padrão)", type: "number" },
           { name: "localizacao", label: "Localização (depósito/prateleira)", span: 1 },
-          { name: "kit", label: "É um kit (componentes no botão ▦ da lista)", type: "checkbox", span: 2 },
-          { name: "sob_encomenda", label: "Sob encomenda", type: "checkbox", span: 1 },
+          { name: "sob_encomenda", mostrar: (r) => !fabricaNovo(r), label: "Sob encomenda", type: "checkbox", span: 1 },
           { name: "fora_de_linha", label: "Fora de linha (não compra mais; vende até acabar)", type: "checkbox", span: 2 },
           { name: "ativo", mostrar: salvo, label: "Ativo", type: "checkbox", span: 1 },
           { name: "observacoes", label: "Observações internas", type: "textarea", span: 4 },

@@ -119,6 +119,8 @@ type Props<T> = {
   /** Cadastro novo passo a passo (onboarding): cada seção do formulário vira um passo, com Voltar/Próximo e o
    *  "Salvar agora" para pular o que é opcional. Editar continua com o formulário inteiro. */
   passoAPasso?: boolean;
+  /** Depois de gravar (ex.: kit novo abre a escolha das peças). `novo`: era cadastro novo. */
+  aoSalvar?: (salvo: T, novo: boolean) => void;
   /** Marcadores coloridos (os mesmos das notas): chips na lista, filtro, botão na linha e em lote. Nome: ["cliente", "clientes"]. */
   marcadores?: [string, string];
   /** A busca não achou nada: aviso próprio no lugar de "Nenhum registro encontrado" (ex.: cadastrar com o CNPJ digitado). */
@@ -266,9 +268,10 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           gravar = soMudou(row, antes);
         } catch { gravar = row; } // não deu para comparar: grava tudo, como antes
       }
-      if (gravar) await save.mutateAsync(gravar);
+      const salvo = gravar ? await save.mutateAsync(gravar) : null;
       notify("Salvo com sucesso");
       setEditando(null);
+      if (salvo && props.aoSalvar) props.aoSalvar(salvo as T, !row.id);
     } catch (err) {
       notifyError(err);
     }
@@ -653,9 +656,11 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                 <div className="flex flex-wrap gap-2">
                   {/* do 2º passo em diante, o resto é opcional: dá para salvar já */}
                   {passo > 0 && passo < grupos.length - 1 && <Button variant="ghost" carregando={save.isPending}>Salvar agora</Button>}
+                  {/* key diferente: sem ela o React reaproveita o mesmo botão, e o clique em "Próximo" do penúltimo passo
+                      virava "Salvar" e gravava sem mostrar o último passo */}
                   {passo < grupos.length - 1
-                    ? <Button type="button" onClick={avancar}>Próximo <ChevronRight size={16} aria-hidden /></Button>
-                    : <Button carregando={save.isPending}>Salvar</Button>}
+                    ? <Button key="proximo" type="button" onClick={avancar}>Próximo <ChevronRight size={16} aria-hidden /></Button>
+                    : <Button key="salvar" carregando={save.isPending}>Salvar</Button>}
                 </div>
               </div>
             ) : (
