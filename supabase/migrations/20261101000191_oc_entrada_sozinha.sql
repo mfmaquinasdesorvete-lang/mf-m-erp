@@ -100,14 +100,14 @@ begin
       left join public.fornecedores f on f.id = n.fornecedor_id
      where n.processamento = 'a_caminho' and n.chegou_em is null and not n.estoque_lancado and n.excluida_em is null
        and n.data_emissao >= now() - interval '90 days')
-  select count(*), string_agg(nome || coalesce(' (' || ocs || ')', ''), '; ' order by previsto, nome)
+  select count(*), string_agg(nome || coalesce(' (' || ocs || ')', ' (sem OC)'), '; ' order by previsto, nome)
     into v_n, v_lista
     from a_caminho
    where previsto <= (now() at time zone 'America/Sao_Paulo')::date;
   if v_n > 0 then
     perform public.notificar('outro',
       'Chegou? ' || v_n || case when v_n = 1 then ' compra já devia ter chegado' else ' compras já deviam ter chegado' end,
-      left(v_lista, 400) || '. Se chegou, abra a OC em Compras e aperte "Chegou": o estoque entra e a OC é baixada.',
+      left(v_lista, 400) || '. Se chegou, aperte "Chegou" na OC (Compras) ou, sem OC, na nota (Notas fiscais → Recebidas): o estoque entra e a OC é baixada.',
       '/compras', '{financeiro,compras}', null);
   end if;
   return v_n;
