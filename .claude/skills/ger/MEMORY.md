@@ -19,6 +19,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - "Agradecer pagamento" fica em Vendas (não em Cobrança). Painéis: só cobra de quem deve e ignora "não pagar".
 
 ## Em andamento
+- Pedido 21a33e7d (FIS coordena): tudo da MF SC desde 28/06/2022. Levantei os extratos que faltam por conta e mês (mandado ao FIS e o passo a passo ao FAZ, 28/10). Depois que ela importar: conferir e ligar contas pagas/recebidas aos extratos.
 - PRIORIDADE (ELO, 27/10): plano da virada do Tiny em `.claude/skills/ger/virada-tiny.md` (data proposta 09/11; TIN importa os recebimentos dos pedidos do Tiny sem conta a receber). Rodada de fechamento: função nova só se ela pedir; "feito" só depois de testar no ar.
 - Base comum de Configurações (pedido do ELO, a partir de `.claude/configuravel/README.md`):
   catálogo em `supabase/functions/_shared/ajustes.ts` (3 prazos e 12 mensagens de WhatsApp, padrão = texto de hoje)
@@ -29,6 +30,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
   entram depois).
 
 ## Esperando a usuária
+- Publicar a importação de extrato à prova de erro (commit 5a14442) e gravar a anotação do pedido do extrato do Fabiano (Supabase pediu aprovação e expirou).
 - Nota de peças sem OC (4 de 26/10): quer OC automática para as novas?
 - Prestador (a0f29e4a, daa9722f): extrato completo da OLIST de setembro e confirmar os dois empréstimos (estão cancelados no ERP).
 - Virada do Tiny: confirmar a data (proposta 09/11), passar as taxas das formas de pagamento e a lista do que a equipe ainda faz no Tiny.
