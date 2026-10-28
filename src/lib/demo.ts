@@ -3553,6 +3553,41 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     for (const l of db.extrato_lancamentos ?? []) if (contas.has(l.conta_bancaria_id)) somar(l.data, `extrato:${l.conta_bancaria_id}`);
     return { data: [...conta.values()], error: null };
   },
+  // no sistema real: public.registrar_pagamento_cliente (onde o cliente pagou: baixa a parte paga sem cobrança)
+  registrar_pagamento_cliente: ({ p_pedido, p_tipo, p_valor, p_data, p_forma, p_parcelas, p_nfe_recebida, p_fornecedor, p_conta_bancaria, p_observacao }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    const valor = r2(Number(p_valor) || 0);
+    const abertas = db.contas_receber.filter((c) => c.pedido_id === p_pedido && c.status === "aberto");
+    const emAberto = r2(abertas.reduce((t, c) => t + Number(c.valor), 0));
+    if (!(valor > 0)) return erro("informe o valor pago");
+    if (valor > emAberto + 0.004) return erro(`o pedido tem só R$ ${emAberto.toFixed(2)} em aberto`);
+    let resto = valor;
+    for (const c of abertas) {
+      if (resto <= 0) break;
+      const take = Math.min(resto, Number(c.valor));
+      if (take >= Number(c.valor)) c.status = "cancelado"; else c.valor = r2(Number(c.valor) - take);
+      resto = r2(resto - take);
+    }
+    const p = db.pedidos.find((x) => x.id === p_pedido);
+    const nova = { id: uid(), descricao: `Pedido #${p?.numero} - pago`, cliente_id: p?.cliente_id, pedido_id: p_pedido, valor, vencimento: p_data, status: "pago",
+      forma_pagamento: p_forma, data_pagamento: p_data, valor_pago: valor, unidade_id: abertas[0]?.unidade_id, created_at: quando(0) };
+    db.contas_receber.push(nova);
+    (db.pedido_pagamentos ??= []).push({ id: uid(), pedido_id: p_pedido, tipo: p_tipo, valor, data: p_data, forma: p_forma, parcelas: p_parcelas ?? 1,
+      nfe_recebida_id: p_nfe_recebida ?? null, fornecedor_id: p_fornecedor ?? null, conta_bancaria_id: p_conta_bancaria ?? null, conta_receber_id: nova.id,
+      observacao: p_observacao ?? null, excluido_em: null, created_at: quando(0) });
+    return { data: null, error: null };
+  },
+  // no sistema real: public.desfazer_pagamento_cliente
+  desfazer_pagamento_cliente: ({ p_id }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    const r = (db.pedido_pagamentos ?? []).find((x) => x.id === p_id && !x.excluido_em);
+    if (!r) return erro("registro não encontrado ou já desfeito");
+    const c = db.contas_receber.find((x) => x.id === r.conta_receber_id);
+    if (c) c.status = "cancelado";
+    db.contas_receber.push({ ...c, id: uid(), status: "aberto", valor: r.valor, valor_pago: null, data_pagamento: null });
+    r.excluido_em = quando(0);
+    return { data: null, error: null };
+  },
   ctes_sefaz_situacao: () => ({ data: { em: quando(0), novos: 0, atualizados: 0, completos: 0, erro: null, pendentes_xml: 0,
     da_sefaz: (db.ctes ?? []).filter((c) => c.chave).length }, error: null }),
   importar_ctes: ({ p_transportadora, p_linhas, p_arquivo }) => {

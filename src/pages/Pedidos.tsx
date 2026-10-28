@@ -38,6 +38,7 @@ import { ExcluirComLigados } from "@/components/ExcluirComLigados";
 import { AuditoriaPedido } from "@/components/AuditoriaPedido";
 import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { ConferirNfe } from "@/components/nfe/ConferirNfe";
+import { OndeClientePagou } from "@/components/pedidos/OndeClientePagou";
 import { EmitirLote } from "@/components/nfe/EmitirLote";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { AtalhosCliente } from "@/components/pedidos/AtalhosCliente";
@@ -1221,6 +1222,9 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
 
         {p.id && verPagamento && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && (
           <PagamentoPedido pedido={p as any} cliente={cliente} gerarAgora={linkAgora} />
+        )}
+        {p.id && tem("financeiro") && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && (
+          <OndeClientePagou pedido={{ id: p.id, numero: p.numero!, valor_total: p.valor_total ?? total, notas: (p as any).notas }} />
         )}
         {p.itens.length > 0 && (p.status === "orcamento" || !p.id || p.proposta_status) && (
           <PropostaPainel pedido={p} cliente={cliente} podeEditar={podeEditar} gravar={gravar} pdfBase64={pdfBase64} onAlterado={recarregar} />
