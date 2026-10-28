@@ -83,3 +83,5 @@ Cuido do cadastro de produtos da MF: dados completos e certos, sem repetidos, co
   recalcular os kits que a usam (update com soma de kit_componentes x preco_custo).
 - A inativação da base antiga (24/10) pegou peças que ainda estão nas fichas das máquinas: antes de inativar, ver se o
   produto está em `produto_componentes` ou `kit_componentes` de produto ativo.
+- Custo de peça antiga sem nota no ERP: procurar as NF da My Frost no Gmail (XML anexo; ler com get_message RAW, que
+  salva em arquivo quando é grande, e tirar cProd/xProd/vUnCom do XML). Não colar o RAW na conversa: gasta muito.
