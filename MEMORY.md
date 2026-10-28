@@ -69,6 +69,9 @@ Atualizado em 25/10/2026 pelo ELO.
   rascunho nem mandar e-mail da MF por ele; o que for da MF a usuária manda pela conta da MF.
 
 ## Armadilhas conhecidas
+- 28/10: importar extrato nunca pode cair numa conta "por padrão". Dois OFX do cartão do Fabiano (arquivo "Infinit…")
+  entraram no Banco Inter SC porque a tela escolhia a primeira conta da lista quando não reconhecia o arquivo. Conta não
+  reconhecida = campo vazio e escolha obrigatória; número do OFX que não bate com a conta = bloquear (GER conserta).
 - "Feita" na fila de publicação não quer dizer que está no ar: em 24/10, três sites ficaram só montados. Conferir
   sempre o index.html da Hostinger.
 - A Hostinger e o Supabase desconectam no meio do trabalho. Se acontecer, soltar a trava e avisar a usuária que o

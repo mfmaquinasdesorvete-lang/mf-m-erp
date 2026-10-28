@@ -54,6 +54,9 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 - `supabase/migrations/` (a mais nova que mexeu na tabela vale) e `src/lib/__tests__/`.
 
 ## Cuidados conhecidos
+- Importar extrato (Conciliacao.tsx, ImportarModal): nunca escolher conta por padrão (bancos[0]). Em 28/10 dois OFX do
+  cartão do Fabiano ("Infinit…") caíram no Banco Inter SC. Conta não reconhecida = escolha obrigatória; número do OFX
+  diferente do da conta = bloquear.
 - Datas sempre no horário de Brasília: no front `hoje()` (`src/lib/format.ts`) e `diaLocal` (`src/lib/filtroLista.ts`),
   nunca `new Date().toISOString().slice(0, 10)`. O banco roda em UTC: função que usa `current_date` leva
   `set timezone to 'America/Sao_Paulo'` (quem recria com "create or replace" mantém).
