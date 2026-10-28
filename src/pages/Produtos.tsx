@@ -422,6 +422,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       </div>
     );
   };
+  // cadastro: o que só aparece depois de salvo (galeria, fornecedores, histórico) e o que só vale para o que vende
+  // (medidas de frete, catálogo, anúncio); o componente de produção que não vende tem o cadastro curto
+  const salvo = (r: Record<string, any>) => !!r.id;
+  const vende = (r: Record<string, any>) => r.tipo !== "insumo" || !!r.vendavel || !!r.no_catalogo;
   const abasProdutos = [
     { value: "produtos" as const, label: ehMaquinas ? "Máquinas" : "Produtos" },
     // Tornearia: a receita de cada peça usinada (insumos, fornecedor, desenho, custo), fora da ficha das máquinas
@@ -610,12 +614,15 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               : <span className="text-xs text-slate-500">no cadastro novo não precisa</span>,
           },
         ] : [
+          { name: "tipo", label: "Tipo", type: "select", options: tipos },
           { name: "descricao", label: "Descrição", span: 3, required: true, placeholder: "Tipo + marca + modelo + característica. Ex.: Motor do batedor WEG 1/2 CV 220V" },
           { name: "sku", label: "Meu código / SKU (único, não reaproveite)", span: 1 },
-          { name: "subtitulo", label: "Subtítulo (aparece abaixo do nome)", span: 4, placeholder: "Ex.: Compatível com máquinas de sorvete expresso Top 200 e Top 300" },
-          { name: "agrupador", label: "Produto pai (tem variações; não vende sozinho)", type: "checkbox", span: 2 },
-          { name: "produto_pai_id", label: "É variação de", type: "select", span: 1, options: [{ value: "", label: "— não é variação —" }, ...opcoesPai(produtos)] },
-          { name: "variacao", label: "Variação (o que muda)", span: 1, placeholder: "Ex.: 3 Sabores, A 200" },
+          { name: "unidade", label: "Unidade de medida", type: "select", options: opcoesUnidade },
+          { name: "categoria", label: "Categoria", type: "custom", span: 1,
+            render: (v, set) => <CampoCategoriaProduto valor={v} onChange={set} opcoes={opcoesCategoria(categorias, produtos)} produtos={produtos} podeEditar={pode("editar_produtos")} /> },
+          { name: "vendavel", label: "Pode vender (aparece no pedido)", type: "checkbox", span: 1 },
+          { name: "marca", label: "Marca", span: 1 },
+          { name: "modelo", label: "Modelo", span: 1 },
           {
             name: "conferencia", label: "Já cadastrados parecidos", type: "custom", span: 4,
             render: (_v, _s, row) => {
@@ -627,66 +634,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               ) : <span className="text-xs text-emerald-700">nenhum produto com o mesmo código ou a mesma descrição</span>;
             },
           },
-          { name: "tipo", label: "Tipo", type: "select", options: tipos },
-          { name: "unidade", label: "Unidade de medida", type: "select", options: opcoesUnidade },
-          { name: "categoria", label: "Categoria", type: "custom", span: 1,
-            render: (v, set) => <CampoCategoriaProduto valor={v} onChange={set} opcoes={opcoesCategoria(categorias, produtos)} produtos={produtos} podeEditar={pode("editar_produtos")} /> },
-          { name: "linha_id", label: "Linha de produtos (comissão)", type: "select", span: 1,
-            options: [{ value: "", label: "Sem linha" }, ...linhas.filter((l) => l.ativo).map((l) => ({ value: l.id, label: l.nome }))] },
-          { name: "localizacao", label: "Localização (depósito/prateleira)", span: 1 },
-          { name: "marca", label: "Marca", span: 1 },
-          { name: "modelo", label: "Modelo", span: 1 },
-          { name: "codigo_fabricante", label: "Código do fabricante (peça original)", span: 1, placeholder: "Ex.: TYA2446ZES, CFW300A06P0S2NB20" },
-          { name: "codigo_barras", label: "Código de barras (EAN)" },
-          { name: "conferencia_ean", label: "Conferência do código de barras", type: "custom", span: 3, render: (_v, _s, row) => <ConferenciaEan row={row} produtos={produtosTodos} /> },
-          { name: "codigos_alternativos", label: "Códigos alternativos (separados por vírgula)", span: 3, placeholder: "Código antigo, código do Tiny, EAN da caixa…" },
-          { name: "garantia_meses", label: "Garantia (meses, vazio = padrão)", type: "number" },
-          { name: "secao_compra", label: "Compra e reposição", type: "secao", ajuda: "O estoque mínimo deve cobrir o consumo durante o prazo do fornecedor, com folga para as peças críticas." },
-          {
-            name: "fornecedor_padrao_id", label: "Fornecedor preferencial", type: "select", span: 2,
-            options: [{ value: "", label: "—" }, ...fornecedores.map((f) => ({ value: f.id, label: f.nome }))],
-          },
-          { name: "prazo_reposicao_dias", label: "Prazo de entrega (dias)", type: "number", span: 1 },
-          { name: "compra_minima", label: "Compra mínima (embalagem)", type: "number", span: 1 },
-          {
-            name: "codigos_fornecedor", label: "Código do item em cada fornecedor (aprendido na entrada da NF-e)", type: "custom", span: 4,
-            render: (_v, _s, row) => {
-              const lista = codigosForn.filter((c) => c.produto_id === row.id);
-              return lista.length
-                ? <div className="text-sm text-slate-700">{lista.map((c) => `${c.fornecedor?.nome ?? "fornecedor"}: ${c.codigo_fornecedor}${Number(c.fator_conversao) !== 1 ? ` (1 = ${Number(c.fator_conversao)} ${row.unidade ?? ""})` : ""}`).join(" · ")}</div>
-                : <span className="text-xs text-slate-500">nenhum ainda: ao dar entrada de uma NF do fornecedor e vincular o item, o código fica guardado aqui</span>;
-            },
-          },
-          {
-            name: "fornecedores_produto", label: "Fornecedores deste produto (preço, prazo e preferido)", type: "custom", span: 4,
-            render: (_v, set, row) => <FornecedoresProduto produtoId={row.id} podeEditar={pode("editar_produtos") && tem("financeiro", "tecnico")} aoMudarPreferido={set} />,
-          },
-          { name: "estoque_minimo", label: "Estoque mínimo", type: "number" },
-          { name: "estoque_maximo", label: "Estoque máximo", type: "number" },
-          {
-            name: "sugestao_minimo", label: "Mínimo sugerido pelo consumo", type: "custom", span: 2,
-            render: (_v, _s, row) => {
-              const saidas = consumo.get(row.id)?.saidas180 ?? 0;
-              const s = sugerirMinimo(saidas, row.prazo_reposicao_dias);
-              return s
-                ? <span className="text-sm text-slate-700"><b>{s}</b> · consumo de {Math.round((saidas / 6) * 10) / 10}/mês × prazo de {Number(row.prazo_reposicao_dias || 15)} dias + 50% de folga</span>
-                : <span className="text-xs text-slate-500">sem saídas nos últimos 180 dias</span>;
-            },
-          },
-          { name: "peso_kg", label: "Peso (kg) p/ frete", type: "number", span: 1 },
-          { name: "altura_cm", label: "Altura (cm)", type: "number", span: 1 },
-          { name: "largura_cm", label: "Largura (cm)", type: "number", span: 1 },
-          { name: "profundidade_cm", label: "Profundidade (cm)", type: "number", span: 1 },
-          {
-            name: "desenho_medidas", label: "Medidas e peso (desenho)", type: "custom", span: 4,
-            render: (_v, _s, row) => <DesenhoMedidas largura={row.largura_cm} altura={row.altura_cm} profundidade={row.profundidade_cm} peso={row.peso_kg}
-              embalagem={embalagens.find((e) => e.id === row.embalagem_id)?.descricao} />,
-          },
-          { name: "embalagem_id", label: "Embalagem padrão (envio)", type: "select", span: 2, ajuda: "As medidas da embalagem entram na cotação de frete (cubagem)",
-            options: [{ value: "", label: "— sem embalagem —" }, ...embalagens.filter((e) => e.ativo).map((e) => ({ value: e.id, label: e.descricao }))] },
-          { name: "secao_preco", label: "Custo e preço", type: "secao", ajuda: "Custo de compra = valor do item na NF do fornecedor (atualizado na entrada). Alterar custo ou preço já preenchido pede o motivo, que fica no histórico." },
+          { name: "secao_preco", label: "Custo e preço", type: "secao", ajuda: "O custo é o valor do item na NF do fornecedor (atualizado sozinho na entrada da nota). O preço sugerido sai do custo e da margem." },
+
           { name: "preco_custo", label: "Custo de compra", type: "number" },
-          { name: "ultimas_compras", label: "2 últimas compras (pelas notas)", type: "custom", span: 2,
+          { name: "ultimas_compras", mostrar: salvo, label: "2 últimas compras (pelas notas)", type: "custom", span: 2,
             render: (_v, _s, row) => row.id ? <UltimasCompras produtoId={row.id} /> : <span className="text-xs text-slate-500">aparece depois de salvar</span> },
           {
             // componente de produção que não se vende: venda = custo (o banco também garante)
@@ -696,7 +647,6 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               : <input aria-label="Preço de venda" className="input num" type="number" step="0.01" min="0" inputMode="decimal" value={v ?? ""}
                   onChange={(e) => set(e.target.value === "" ? null : Number(e.target.value))} />,
           },
-          { name: "ipi_aliquota", label: "IPI (%) — TIPI do NCM", type: "number", span: 1 },
           { name: "margem_desejada", label: "Margem desejada (%) — vazio usa a da categoria ou do tipo", type: "number", span: 2 },
           {
             name: "preco_sugerido_info", label: "Preço sugerido", type: "custom", span: 2,
@@ -721,29 +671,110 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               return <span className={`text-sm font-semibold ${m < 0 ? "text-red-600" : m < 20 ? "text-amber-700" : "text-emerald-700"}`}>{m.toFixed(1).replace(".", ",")}%</span>;
             },
           },
+          { name: "ipi_aliquota", label: "IPI (%) — TIPI do NCM", type: "number", span: 1 },
           {
-            name: "impostos_venda", label: "Impostos na venda (previsão por destino)", type: "custom", span: 4,
+            name: "impostos_venda", mostrar: vende, label: "Impostos na venda (previsão por destino)", type: "custom", span: 4,
             render: (_v, _s, row) => ["servico", "insumo"].includes(row.tipo)
               ? <span className="text-xs text-slate-500">não se aplica (não é vendido)</span>
               : <QuadroImpostosVenda produto={row} preco={Number(row.preco_venda || 0)} custo={custo(row as Produto)} />,
           },
           {
-            name: "motivo_alteracao", label: "Motivo da alteração (obrigatório ao mudar código, unidade, tipo, custo ou preço já preenchidos)", type: "custom", span: 4,
+            name: "motivo_alteracao", mostrar: salvo, label: "Motivo da alteração (obrigatório ao mudar código, unidade, tipo, custo ou preço já preenchidos)", type: "custom", span: 4,
             render: (v, set, row) => row.id
               ? <input aria-label="Motivo da alteração" className="input" value={v ?? ""} onChange={(e) => set(e.target.value)} placeholder="Ex.: reajuste do fornecedor na NF 1234" />
               : <span className="text-xs text-slate-500">no cadastro novo não precisa</span>,
           },
-          { name: "ativo", label: "Ativo", type: "checkbox", span: 1 },
-          { name: "vendavel", label: "Pode vender (aparece no pedido)", type: "checkbox", span: 2 },
+          { name: "secao_fiscal", label: "Dados fiscais (NF-e)", type: "secao", ajuda: "O NCM é obrigatório para emitir a nota; o botão ao lado sugere pelo nome. O resto pode ficar vazio (usa o padrão)." },
+
+          { name: "ncm", label: "NCM (8 dígitos)", type: "custom", span: 2, render: (v, set, row) => <CampoNcm valor={v} onChange={set} produtoId={row.id} /> },
+          {
+            name: "origem", label: "Origem da mercadoria", type: "select", span: 4,
+            options: [
+              { value: 0, label: "0 - Nacional" },
+              { value: 1, label: "1 - Estrangeira (importação direta)" },
+              { value: 2, label: "2 - Estrangeira (adquirida no mercado interno)" },
+              { value: 3, label: "3 - Nacional, conteúdo de importação > 40% e ≤ 70%" },
+              { value: 4, label: "4 - Nacional, processos produtivos básicos" },
+              { value: 5, label: "5 - Nacional, conteúdo de importação ≤ 40%" },
+              { value: 6, label: "6 - Estrangeira (importação direta), sem similar nacional" },
+              { value: 7, label: "7 - Estrangeira (mercado interno), sem similar nacional" },
+              { value: 8, label: "8 - Nacional, conteúdo de importação > 70%" },
+            ],
+          },
+          { name: "cest", label: "CEST", span: 1 },
+          { name: "cfop", mostrar: salvo, label: "CFOP (vazio = padrão)", span: 1 },
+          { name: "icms_situacao", mostrar: salvo, label: "CSOSN/CST (vazio = padrão)", span: 1 },
+          { name: "secao_compra", label: "Compra e estoque", type: "secao", ajuda: "De quem se compra, em quanto tempo chega e quanto ter guardado. O estoque mínimo deve cobrir o consumo durante o prazo do fornecedor." },
+
+          {
+            name: "fornecedor_padrao_id", label: "Fornecedor preferencial", type: "select", span: 2,
+            options: [{ value: "", label: "—" }, ...fornecedores.map((f) => ({ value: f.id, label: f.nome }))],
+          },
+          { name: "prazo_reposicao_dias", label: "Prazo de entrega (dias)", type: "number", span: 1 },
+          { name: "compra_minima", label: "Compra mínima (embalagem)", type: "number", span: 1 },
+          { name: "estoque_minimo", label: "Estoque mínimo", type: "number" },
+          { name: "estoque_maximo", label: "Estoque máximo", type: "number" },
+          {
+            name: "sugestao_minimo", mostrar: salvo, label: "Mínimo sugerido pelo consumo", type: "custom", span: 2,
+            render: (_v, _s, row) => {
+              const saidas = consumo.get(row.id)?.saidas180 ?? 0;
+              const s = sugerirMinimo(saidas, row.prazo_reposicao_dias);
+              return s
+                ? <span className="text-sm text-slate-700"><b>{s}</b> · consumo de {Math.round((saidas / 6) * 10) / 10}/mês × prazo de {Number(row.prazo_reposicao_dias || 15)} dias + 50% de folga</span>
+                : <span className="text-xs text-slate-500">sem saídas nos últimos 180 dias</span>;
+            },
+          },
+          {
+            name: "fornecedores_produto", mostrar: salvo, label: "Fornecedores deste produto (preço, prazo e preferido)", type: "custom", span: 4,
+            render: (_v, set, row) => <FornecedoresProduto produtoId={row.id} podeEditar={pode("editar_produtos") && tem("financeiro", "tecnico")} aoMudarPreferido={set} />,
+          },
+          {
+            name: "codigos_fornecedor", mostrar: salvo, label: "Código do item em cada fornecedor (aprendido na entrada da NF-e)", type: "custom", span: 4,
+            render: (_v, _s, row) => {
+              const lista = codigosForn.filter((c) => c.produto_id === row.id);
+              return lista.length
+                ? <div className="text-sm text-slate-700">{lista.map((c) => `${c.fornecedor?.nome ?? "fornecedor"}: ${c.codigo_fornecedor}${Number(c.fator_conversao) !== 1 ? ` (1 = ${Number(c.fator_conversao)} ${row.unidade ?? ""})` : ""}`).join(" · ")}</div>
+                : <span className="text-xs text-slate-500">nenhum ainda: ao dar entrada de uma NF do fornecedor e vincular o item, o código fica guardado aqui</span>;
+            },
+          },
+          { name: "secao_codigos", label: "Códigos, variação e situação", type: "secao", ajuda: "Opcional: código de barras, código do fabricante, variação (ex.: 3 Sabores), garantia e onde fica guardado. Dá para salvar sem isso." },
+
+          { name: "subtitulo", label: "Subtítulo (aparece abaixo do nome)", span: 4, placeholder: "Ex.: Compatível com máquinas de sorvete expresso Top 200 e Top 300" },
+          { name: "codigo_fabricante", label: "Código do fabricante (peça original)", span: 1, placeholder: "Ex.: TYA2446ZES, CFW300A06P0S2NB20" },
+          { name: "codigo_barras", label: "Código de barras (EAN)" },
+          { name: "gtin_isento", label: "Sem GTIN/EAN (produto próprio, sem código de barras)", type: "checkbox", span: 4 },
+          { name: "conferencia_ean", label: "Conferência do código de barras", type: "custom", span: 3, render: (_v, _s, row) => <ConferenciaEan row={row} produtos={produtosTodos} /> },
+          { name: "codigos_alternativos", label: "Códigos alternativos (separados por vírgula)", span: 3, placeholder: "Código antigo, código do Tiny, EAN da caixa…" },
+          { name: "agrupador", label: "Produto pai (tem variações; não vende sozinho)", type: "checkbox", span: 2 },
+          { name: "produto_pai_id", label: "É variação de", type: "select", span: 1, options: [{ value: "", label: "— não é variação —" }, ...opcoesPai(produtos)] },
+          { name: "variacao", label: "Variação (o que muda)", span: 1, placeholder: "Ex.: 3 Sabores, A 200" },
+          { name: "linha_id", label: "Linha de produtos (comissão)", type: "select", span: 1,
+            options: [{ value: "", label: "Sem linha" }, ...linhas.filter((l) => l.ativo).map((l) => ({ value: l.id, label: l.nome }))] },
+          { name: "garantia_meses", label: "Garantia (meses, vazio = padrão)", type: "number" },
+          { name: "localizacao", label: "Localização (depósito/prateleira)", span: 1 },
+          { name: "kit", label: "É um kit (componentes no botão ▦ da lista)", type: "checkbox", span: 2 },
           { name: "sob_encomenda", label: "Sob encomenda", type: "checkbox", span: 1 },
           { name: "fora_de_linha", label: "Fora de linha (não compra mais; vende até acabar)", type: "checkbox", span: 2 },
-          { name: "kit", label: "É um kit (componentes no botão ▦ da lista)", type: "checkbox", span: 2 },
+          { name: "ativo", mostrar: salvo, label: "Ativo", type: "checkbox", span: 1 },
           { name: "observacoes", label: "Observações internas", type: "textarea", span: 4 },
-          { name: "secao_catalogo", label: "Catálogo do WhatsApp e vitrine", type: "secao", ajuda: "Produtos marcados aparecem no catálogo do WhatsApp e na vitrine, com foto e preço de venda." },
+          { name: "secao_medidas", mostrar: vende, label: "Peso e medidas (frete)", type: "secao", ajuda: "Peso e medidas da peça embalada: entram na cotação de frete e nos anúncios." },
+
+          { name: "peso_kg", label: "Peso (kg) p/ frete", type: "number", span: 1 },
+          { name: "altura_cm", label: "Altura (cm)", type: "number", span: 1 },
+          { name: "largura_cm", label: "Largura (cm)", type: "number", span: 1 },
+          { name: "profundidade_cm", label: "Profundidade (cm)", type: "number", span: 1 },
+          {
+            name: "desenho_medidas", label: "Medidas e peso (desenho)", type: "custom", span: 4,
+            render: (_v, _s, row) => <DesenhoMedidas largura={row.largura_cm} altura={row.altura_cm} profundidade={row.profundidade_cm} peso={row.peso_kg}
+              embalagem={embalagens.find((e) => e.id === row.embalagem_id)?.descricao} />,
+          },
+          { name: "embalagem_id", label: "Embalagem padrão (envio)", type: "select", span: 2, ajuda: "As medidas da embalagem entram na cotação de frete (cubagem)",
+            options: [{ value: "", label: "— sem embalagem —" }, ...embalagens.filter((e) => e.ativo).map((e) => ({ value: e.id, label: e.descricao }))] },
+          { name: "secao_catalogo", mostrar: vende, label: "Catálogo do WhatsApp e vitrine", type: "secao", ajuda: "Produtos marcados aparecem no catálogo do WhatsApp e na vitrine, com foto e preço de venda." },
           { name: "no_catalogo", label: "Mostrar no catálogo", type: "checkbox", span: 1 },
           { name: "foto_caminho", label: "Foto principal", type: "custom", span: 3, render: (v, set) => <FotoProduto valor={v} onChange={set} /> },
           {
-            name: "galeria", label: "Fotos e vídeos (galeria)", type: "custom", span: 4,
+            name: "galeria", mostrar: salvo, label: "Fotos e vídeos (galeria)", type: "custom", span: 4,
             render: (_v, _s, row, setCampo) => <GaleriaProduto produtoId={row.id} podeEditar={pode("editar_produtos") || tem("tecnico")}
               fotoPrincipal={row.foto_caminho} aoEscolherPrincipal={(url) => setCampo("foto_caminho", url)} />,
           },
@@ -759,7 +790,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             },
           },
           { name: "descricao_catalogo", label: "Texto de venda (o cliente lê no WhatsApp)", type: "textarea", span: 4 },
-          { name: "secao_anuncio", label: "Anúncio (marketplace e Google)", type: "secao", ajuda: "Para Mercado Livre, Shopee, Amazon e loja virtual. O que ficar vazio é preenchido no padrão ao salvar (peças, acessórios e máquinas)." },
+          { name: "secao_anuncio", mostrar: (r) => salvo(r) && vende(r), label: "Anúncio (marketplace e Google)", type: "secao", ajuda: "Para Mercado Livre, Shopee, Amazon e loja virtual. O que ficar vazio é preenchido no padrão ao salvar (peças, acessórios e máquinas)." },
           {
             name: "assistente_ia", label: "Assistente de IA", type: "custom", span: 4,
             render: (_v, _s, row, setCampo) => <AssistenteIA row={row} setCampo={setCampo} produtos={produtosTodos} garantiaPadrao={Number(cfgProd?.garantia_meses_padrao) || 3} />,
@@ -800,15 +831,18 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             ),
           },
           { name: "descricao_anuncio", label: "Texto do anúncio (sem telefone, e-mail ou link: os marketplaces proíbem)", type: "textarea", span: 4 },
-          { name: "gtin_isento", label: "Sem GTIN/EAN (produto próprio, sem código de barras)", type: "checkbox", span: 4 },
-          { name: "secao_campos", label: "Ficha técnica e campos adicionais", type: "secao",
+          { name: "secao_campos", mostrar: salvo, label: "Ficha técnica e campos adicionais", type: "secao",
             ajuda: "Nome e valor (ex.: Voltagem: 220 V; Part number; Compatível com). Saem na ficha do produto, na página da máquina do cliente e ajudam o anúncio." },
           {
             name: "especificacoes", label: "Campos adicionais", type: "custom", span: 4,
             render: (v, set, row) => <EditorEspecificacoes valor={v} onChange={set} sugestoes={row.tipo === "maquina" ? SUGESTOES_ESPEC : SUGESTOES_PECA} />,
           },
+          // peça e insumo: o desenho técnico (PDF, foto ou link) que aparece em toda OP dela (tornearia e mecânica)
+          { name: "desenho_tecnico", mostrar: (r) => r.tipo !== "maquina" && r.tipo !== "servico", label: "Desenho técnico (aparece na OP da tornearia e da mecânica)", type: "custom" as const, span: 4 as const,
+            render: (_v: any, _s: any, row: Record<string, any>) => row.tipo === "maquina" || row.tipo === "servico" ? <span className="text-xs text-slate-500">Só para peças e insumos.</span>
+              : <DocumentosMaquina produtoId={row.id} podeEditar={pode("editar_produtos") || pode("editar_producao")} tipos={["desenho"]} /> },
           ...(cadastro === "maquinas" || cadastro === "todos" ? [
-            { name: "secao_maquina", label: "Máquina: etapas de produção, manuais e dicas", type: "secao" as const,
+            { name: "secao_maquina", mostrar: (r: Record<string, any>) => salvo(r) && r.tipo === "maquina", label: "Máquina: etapas de produção, manuais e dicas", type: "secao" as const,
               ajuda: "As etapas viram a lista de conferência de cada OP; os manuais e as dicas o cliente recebe pelo link da máquina dele." },
             { name: "etapas_producao", label: "Etapas de produção", type: "custom" as const, span: 4 as const,
               render: (v: any, set: (x: any) => void, row: Record<string, any>) => row.tipo === "maquina" ? <EditorEtapas valor={v} onChange={set} /> : <span className="text-xs text-slate-500">Só para máquinas.</span> },
@@ -816,29 +850,6 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             { name: "documentos_maquina", label: "Manuais (máquina, elétrico) e dicas em PDF", type: "custom" as const, span: 4 as const,
               render: (_v: any, _s: any, row: Record<string, any>) => row.tipo === "maquina" ? <DocumentosMaquina produtoId={row.id} podeEditar={pode("editar_produtos") || tem("tecnico")} /> : <span className="text-xs text-slate-500">Só para máquinas.</span> },
           ] : []),
-          // peça e insumo: o desenho técnico (PDF, foto ou link) que aparece em toda OP dela (tornearia e mecânica)
-          { name: "desenho_tecnico", label: "Desenho técnico (aparece na OP da tornearia e da mecânica)", type: "custom" as const, span: 4 as const,
-            render: (_v: any, _s: any, row: Record<string, any>) => row.tipo === "maquina" || row.tipo === "servico" ? <span className="text-xs text-slate-500">Só para peças e insumos.</span>
-              : <DocumentosMaquina produtoId={row.id} podeEditar={pode("editar_produtos") || pode("editar_producao")} tipos={["desenho"]} /> },
-          { name: "secao_fiscal", label: "Dados fiscais (NF-e)", type: "secao" },
-          { name: "ncm", label: "NCM (8 dígitos)", type: "custom", span: 2, render: (v, set, row) => <CampoNcm valor={v} onChange={set} produtoId={row.id} /> },
-          { name: "cest", label: "CEST", span: 1 },
-          { name: "cfop", label: "CFOP (vazio = padrão)", span: 1 },
-          { name: "icms_situacao", label: "CSOSN/CST (vazio = padrão)", span: 1 },
-          {
-            name: "origem", label: "Origem da mercadoria", type: "select", span: 4,
-            options: [
-              { value: 0, label: "0 - Nacional" },
-              { value: 1, label: "1 - Estrangeira (importação direta)" },
-              { value: 2, label: "2 - Estrangeira (adquirida no mercado interno)" },
-              { value: 3, label: "3 - Nacional, conteúdo de importação > 40% e ≤ 70%" },
-              { value: 4, label: "4 - Nacional, processos produtivos básicos" },
-              { value: 5, label: "5 - Nacional, conteúdo de importação ≤ 40%" },
-              { value: 6, label: "6 - Estrangeira (importação direta), sem similar nacional" },
-              { value: 7, label: "7 - Estrangeira (mercado interno), sem similar nacional" },
-              { value: 8, label: "8 - Nacional, conteúdo de importação > 70%" },
-            ],
-          },
         ]}
         columns={[
           {

@@ -36,6 +36,8 @@ export type CampoForm = {
   ajuda?: string;
   span?: 1 | 2 | 3 | 4;
   required?: boolean;
+  /** Mostrar só quando vale para o registro (ex.: só depois de salvo, só para o que vende). Numa "secao", vale para o bloco todo. */
+  mostrar?: (row: Record<string, any>) => boolean;
 };
 
 export type Coluna<T> = { label: string; render: (row: T) => ReactNode; className?: string };
@@ -355,12 +357,16 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   // seções do formulário (cada "secao" abre um bloco); no celular só a primeira parte vem aberta
   const grupos = useMemo(() => {
     const g: { secao: CampoForm | null; campos: CampoForm[] }[] = [{ secao: null, campos: [] }];
+    const vale = (f: CampoForm) => !f.mostrar || !editando || f.mostrar(editando);
+    let pular = false; // seção escondida: os campos dela também saem
     for (const f of fields) {
-      if (f.type === "secao") g.push({ secao: f, campos: [] });
-      else g[g.length - 1].campos.push(f);
+      if (f.type === "secao") { pular = !vale(f); if (!pular) g.push({ secao: f, campos: [] }); }
+      else if (!pular && vale(f)) g[g.length - 1].campos.push(f);
     }
-    return g.filter((x) => x.secao || x.campos.length);
-  }, [fields]);
+    return g.filter((x) => x.campos.length);
+  }, [fields, editando]);
+  // o tipo mudou e um passo sumiu: fica no último que existe
+  useEffect(() => { if (passo > grupos.length - 1) setPasso(Math.max(0, grupos.length - 1)); }, [passo, grupos.length]);
   const emPassos = !!props.passoAPasso && !!editando && !editando.id && grupos.length > 1;
   // trocou de passo: a janela volta para o alto (senão o passo novo abria rolado no fim)
   useEffect(() => { if (emPassos) document.querySelector('[role="dialog"]')?.scrollIntoView({ block: "start" }); }, [passo]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -595,7 +601,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                     <span className="num">{Math.round(((passo + 1) / grupos.length) * 100)}%</span>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden>
-                    <div className="h-full rounded-full bg-gradient-to-r from-modulo to-brand transition-all" style={{ width: `${((passo + 1) / grupos.length) * 100}%` }} />
+                    <div className="h-full rounded-full bg-modulo transition-all" style={{ width: `${((passo + 1) / grupos.length) * 100}%` }} />
                   </div>
                   <ol className="faixa-chips mt-3" aria-label="Passos do cadastro">
                     {grupos.map((x, i) => (
@@ -637,7 +643,8 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
               })}
             </div>
             )}
-            {anexos && <div className="mt-4"><Anexos entidade={anexos} id={editando.id} /></div>}
+            {/* passo a passo do cadastro novo: os anexos só existem depois de salvo (o aviso repetia em todo passo) */}
+            {anexos && !emPassos && <div className="mt-4"><Anexos entidade={anexos} id={editando.id} /></div>}
             {emPassos ? (
               <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
                 {passo === 0

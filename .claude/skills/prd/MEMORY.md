@@ -40,6 +40,9 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   das fichas (CP-ELE-003, 004, 010, 014), confirmado.
 
 ## Em andamento
+- 28/10 Cadastro novo de produto em 7 passos curtos (Produtos.tsx, campo `mostrar` novo em CrudPage): básico → custo e
+  preço → fiscal → compra e estoque → códigos e variação → peso e medidas → catálogo. O que só funciona salvo (galeria,
+  fornecedores, histórico) e o anúncio ficam na edição; componente que não vende pula medidas, catálogo e anúncio.
 - 28/10 Tornearia separada da ficha das máquinas: aba "Peças (receita)" em /produtos/tornearia?aba=receita
   (src/components/producao/ReceitasTornearia.tsx, conta da barra em src/lib/tornearia.ts). A receita fica em
   produto_componentes da peça (a OP já usa). Barra redonda inox por kg: põe o comprimento em mm e grava kg
