@@ -85,3 +85,5 @@ Cuido do cadastro de produtos da MF: dados completos e certos, sem repetidos, co
   produto está em `produto_componentes` ou `kit_componentes` de produto ativo.
 - Custo de peça antiga sem nota no ERP: procurar as NF da My Frost no Gmail (XML anexo; ler com get_message RAW, que
   salva em arquivo quando é grande, e tirar cProd/xProd/vUnCom do XML). Não colar o RAW na conversa: gasta muito.
+- Código do fornecedor ligado ao produto errado dá custo errado (ex.: AON005 da BMD é o-ring 26 x 3,53, não o anel branco
+  chato). Antes de usar o preço de uma nota como custo, comparar a descrição da nota com o produto.
