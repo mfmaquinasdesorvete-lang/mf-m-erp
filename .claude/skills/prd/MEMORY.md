@@ -48,6 +48,7 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- Preço do Kit Pá Agitadora + Sanfona (PC-KIT-018, hoje 187,60 = soma dos avulsos) e 18 sugestões de preço que sobem.
 - Custo do Disjuntor WEG MDW 25 A 4 polos (CP-ELE-010): não achado nas NF da My Frost no e-mail (só MDW-C 20 e 40 A da
   WEG, 2020; 40 A 4 polos a 53,30). Plugue 3P+T gravado a 58,86 (NF Alfatronic 22/11/2022).
 - Preço de venda da Sanfona (Tiny 47,60 × ERP 37,60) e do Separador do Cubo (Tiny 75 × ERP 91); O-Ring do dosador no
@@ -74,6 +75,9 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 - Teste com 3 fotos no padrão (fundo branco, quadrada); as fotos sem logo do Canva ficam com o MKT.
 
 ## Decisões da usuária
+- Kits com várias unidades para o Mercado Livre (28/10): sanfona com 3 (PC-VED-004, kit), pá + sanfona (PC-KIT-018).
+  Cada kit novo: kit_componentes com as unidades; custo = soma; anúncio com o MKT.
+- Preços para revisar após troca de custo: recusar as sugestões que baixam o preço; as que sobem ela aprova (28/10).
 - Custo de kit = soma das peças do ERP (28/10), mesmo quando o Tiny tem outro custo.
 - Chaves extratoras, rodízios, cubas GN e conexões de ar como variações, iguais ao Tiny (28/10).
 - Peça usinada: a tornearia é de fora e cobra por peça; o custo vem desse valor (sem ficha técnica por enquanto).
