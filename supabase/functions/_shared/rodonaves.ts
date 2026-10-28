@@ -5,10 +5,13 @@
 // chamadas; busca da cidade pelo CEP (CityId) e simula-cotacao com CNPJ do cliente da RTE, CEPs e cidades de origem e
 // destino, valor da nota, peso total e volumes.
 
-/** Servidores conhecidos, na ordem em que a função tenta: o do plugin e o do gateway novo (token do rastreio). */
+/** Servidores, na ordem em que a função tenta. Cada API da Rodonaves tem o seu token (dev.rodonaves.com.br →
+ * Autenticação): a cotação usa o do quotation-apigateway. O 01wapi foi desligado pela Rodonaves (aviso "EoF 01wapi",
+ * 10/10/2025) e fica só como último recurso. */
 export const SERVIDORES_RTE = [
+  { nome: "cotacao", token: "https://quotation-apigateway.rte.com.br/token", api: "https://quotation-apigateway.rte.com.br" },
+  { nome: "rastreio", token: "https://tracking-apigateway.rte.com.br/token", api: "https://quotation-apigateway.rte.com.br" },
   { nome: "01wapi", token: "https://01wapi.rte.com.br/token", api: "https://01wapi.rte.com.br" },
-  { nome: "gateway", token: "https://tracking-apigateway.rte.com.br/token", api: "https://quotation-apigateway.rte.com.br" },
 ] as const;
 
 export const corpoToken = (usuario: string, senha: string) =>
