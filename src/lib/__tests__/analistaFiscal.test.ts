@@ -20,6 +20,8 @@ describe("partesDaSaida", () => {
     expect(partesDaSaida(nota(["6101"]))).toEqual({ venda: 1000, transferencia: 0, outras: 0 });
     expect(partesDaSaida(nota(["6151"]))).toEqual({ venda: 0, transferencia: 1000, outras: 0 });
     expect(partesDaSaida(nota(["6912"]))).toEqual({ venda: 0, transferencia: 0, outras: 1000 });
+    // anulada por NF de estorno (entrada de ajuste): não é venda
+    expect(partesDaSaida(nota(["6101"]), { estornada: true })).toEqual({ venda: 0, transferencia: 0, outras: 1000 });
     expect(partesDaSaida(nota(["5101", "5915"]))).toEqual({ venda: 500, transferencia: 0, outras: 500 });
     expect(partesDaSaida(nota(["5101"], { transferencia_id: "x" }))).toEqual({ venda: 0, transferencia: 1000, outras: 0 });
   });

@@ -47,6 +47,10 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
 - Números da série 1 da SC sem nota no ERP (levantado pelo TIN em 28/10): 16 sem rastro e 10 só no Tiny sem XML
   (provável rejeição). Nenhuma inutilização registrada no ERP. Ela confere na SEFAZ SC (consulta de inutilizações)
   e no Tiny; o que não estiver inutilizado, inutilizar pelo ERP (Notas → Conformidade) com o ok dela e do contador.
+  Ela acha que nenhum foi inutilizado. Sobram 16 sem rastro e as 10 do Tiny.
+- Pedido 415 (máquina, marcado uso interno / My Frost, entregue, sem NF): ela diz para onde foi; ver se precisa de nota.
+- NF 14 (venda) foi anulada pela NF 15 (entrada de ajuste, estorno): o cartão Vendas agora tira a saída estornada
+  (montado, falta publicar).
 - Guia do parcelamento do Simples (vence 30/10) chegou na caixa do contador: ela confere de qual empresa é e paga.
 
 - Fim de ano do contador (calendário recebido pelo FUN em 28/10): o escritório para de 18/12 a 04/01. Datas que ele

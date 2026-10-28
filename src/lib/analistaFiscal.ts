@@ -94,9 +94,10 @@ export function valorDeVenda(n: Pick<NotaSaida, "valor_total" | "transferencia_i
 
 /** A nota emitida dividida em venda, transferência entre as unidades (x15x) e o resto (remessa, comodato,
  *  demonstração, conserto, garantia, devolução a fornecedor), para o cartão "Vendas" não misturar nada. */
-export function partesDaSaida(n: Pick<NotaSaida, "valor_total" | "transferencia_id" | "tipo_operacao" | "payload">, opc: { paraOutraUnidade?: boolean | null } = {}) {
+export function partesDaSaida(n: Pick<NotaSaida, "valor_total" | "transferencia_id" | "tipo_operacao" | "payload">, opc: { paraOutraUnidade?: boolean | null; estornada?: boolean } = {}) {
   const total = Number(n.valor_total ?? 0);
-  if ((n.tipo_operacao ?? "saida") === "entrada") return { venda: 0, transferencia: 0, outras: total };
+  // saída anulada por NF de estorno (entrada de ajuste que a referencia) não é venda
+  if ((n.tipo_operacao ?? "saida") === "entrada" || opc.estornada) return { venda: 0, transferencia: 0, outras: total };
   // para outra unidade da própria MF é transferência, mesmo que a nota antiga tenha saído com CFOP de venda
   if (n.transferencia_id || opc.paraOutraUnidade) return { venda: 0, transferencia: total, outras: 0 };
   const venda = valorDeVenda(n);
