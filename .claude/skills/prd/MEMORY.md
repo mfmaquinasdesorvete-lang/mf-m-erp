@@ -45,6 +45,9 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- Vendas antigas sem produto (GER bd91b01 já acha pelo nome limpo): "Quiosque MDF", "Kit Carenagem" (KITREP), "Kit tampa
+  superior + cuba" (KITT) e "Kit tampa frontal + pezinhos" (KITTS) não têm cadastro; "Vedacoes (Orings) My Frost
+  Maquinas" pode ser mais de um kit. Ela diz se cadastra (com custo) e qual kit é.
 - Custo de 3 peças que deixam kits baixos: Cubo do Redutor avulso (PC-MEC-004), Kit Corrente + 2 Engrenagens
   (PC-MEC-008) e O-Ring Anel Preto (PC-VED-009).
 - Preço de venda das cubas GN (hoje o do pai, 158,13) e da conexão reta fêmea (hoje 6,67, igual ao custo).
