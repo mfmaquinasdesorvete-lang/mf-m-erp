@@ -98,6 +98,8 @@ restritiva a mais. Documentos de funcionário só para o financeiro.
 | auditoria | compras / financeiro, contador | — | — | — |
 | auditoria_checklist | financeiro, contador | financeiro, contador | financeiro, contador | — |
 | auditoria_excecoes | financeiro, contador | financeiro, contador | financeiro, contador | — |
+| auditor_achados | financeiro, contador | — (só a função) | — (só a função) | — |
+| auditor_rodadas | financeiro, contador | — (só a função) | — (só a função) | — |
 | avisos | vendas, financeiro, o próprio | — | admin | — |
 | avisos_tipos | equipe | — | admin | — |
 | backups_registro | financeiro | — | — | — |

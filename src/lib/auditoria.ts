@@ -2,7 +2,7 @@
 import { avaliarCadastro } from "./qualidadeProdutos";
 import type { Produto } from "./types";
 import { pl } from "@/lib/format";
-import { conferenciasAuditor, CORTE_AUDITOR, dadoIncompletoPedido } from "./auditorFinanceiro";
+import { conferenciasAuditor, CORTE_AUDITOR, dadoIncompletoPedido, type TipoAuditor } from "./auditorFinanceiro";
 // Cada item é um INDÍCIO até alguém confirmar com documento ou extrato; nunca é prova sozinho.
 
 export type Excecao = {
@@ -15,7 +15,7 @@ export type TipoExcecao =
   | "parcelas_divergentes" | "nfe_sem_lancamento" | "acesso_sem_uso" | "administradores" | "checklist"
   | "produto_duplicado" | "produto_sem_custo" | "estoque_negativo" | "alteracao_produto"
   | "pedido_sem_vendedor" | "entregue_sem_nfe" | "desconto_alto" | "alteracao_pedido"
-  | "venda_sem_recebimento" | "recebimento_sem_venda" | "taxa_cartao" | "despesa_fora_padrao" | "extrato_desatualizado" | "dado_incompleto";
+  | TipoAuditor;
 
 export const TIPOS: Record<TipoExcecao, { rotulo: string; criterio: string }> = {
   duplicidade: { rotulo: "Possível duplicidade", criterio: "Contas a pagar do mesmo fornecedor com o mesmo valor e vencimento em até 5 dias, ou com o mesmo número de documento." },
@@ -50,6 +50,8 @@ export const TIPOS: Record<TipoExcecao, { rotulo: string; criterio: string }> = 
   taxa_cartao: { rotulo: "Taxa do cartão", criterio: "Por conta e mês: bruto, taxas e líquido das vendas no cartão. Alerta quando a taxa efetiva passa da contratada (mais a tolerância) ou quando a taxa contratada não está cadastrada." },
   despesa_fora_padrao: { rotulo: "Despesa fora do padrão", criterio: "Total pago a um fornecedor (ou categoria) no mês bem acima da média dos 6 meses anteriores. Suspeita estatística, não prova." },
   extrato_desatualizado: { rotulo: "Extrato com buraco", criterio: "Conta bancária ativa com 7 dias seguidos ou mais sem extrato desde 01/10/2026: as conferências dela ficam com dado incompleto." },
+  extrato_conta_errada: { rotulo: "Extrato na conta errada", criterio: "Importação desde 01/10/2026 em que a maioria das linhas tem a cara de outro banco, ou arquivo importado numa conta cujo extrato já chega sozinho pelo banco." },
+  extrato_atrasado: { rotulo: "Extrato automático parado", criterio: "Conta cujo extrato chega sozinho pelo banco sem linha nova há mais de 3 dias (Configurações → Prazos e padrões)." },
   dado_incompleto: { rotulo: "Dado incompleto", criterio: "Integração ausente (não é divergência): dados que não vieram do sistema anterior e por isso não dá para conferir." },
   alteracao_produto: { rotulo: "Alteração de produto", criterio: "Código, unidade, tipo, custo ou preço de produto alterado à mão (últimos 90 dias): confira o motivo." },
 };
@@ -60,10 +62,10 @@ type Conta = {
   unidade_id?: string | null; conta_bancaria_id?: string | null; documento?: string | null; nfe_recebida_id?: string | null; fornecedor_id?: string | null;
   categoria?: string; pedido_id?: string | null; os_id?: string | null; nota_fiscal_id?: string | null; created_at?: string;
 };
-type Lanc = { id: string; conta_bancaria_id: string; data: string; valor: number; status: string; descricao: string | null; conta_receber_id: string | null; conta_pagar_id: string | null; par_transferencia_id?: string | null; observacao?: string | null };
+type Lanc = { id: string; conta_bancaria_id: string; data: string; valor: number; status: string; descricao: string | null; conta_receber_id: string | null; conta_pagar_id: string | null; par_transferencia_id?: string | null; observacao?: string | null; origem?: string | null; importacao_id?: string | null };
 type Auditoria = { id: number; tabela: string; registro_id: string | null; acao: string; usuario: string | null; usuario_nome: string | null; campos: string[] | null; antes: any; depois: any; motivo: string | null; origem: string; created_at: string };
-type Banco = { id: string; nome: string; saldo_inicial: number; saldo_inicial_data: string; ativo?: boolean | null };
-type Importacao = { conta_bancaria_id: string; saldo_final: number | null; saldo_final_data: string | null; periodo_inicio: string | null; periodo_fim: string | null };
+type Banco = { id: string; nome: string; saldo_inicial: number; saldo_inicial_data: string; ativo?: boolean | null; banco?: string | null };
+type Importacao = { id?: string; arquivo?: string | null; conta_bancaria_id: string; saldo_final: number | null; saldo_final_data: string | null; periodo_inicio: string | null; periodo_fim: string | null };
 
 export type DadosAuditoria = {
   receber: Conta[]; pagar: Conta[]; lancamentos: Lanc[]; bancos: Banco[]; importacoes: Importacao[]; auditoria: Auditoria[];

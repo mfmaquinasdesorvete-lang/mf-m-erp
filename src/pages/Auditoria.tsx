@@ -22,6 +22,7 @@ import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { Destaque, FiltroAtivo, Pilula } from "@/components/auditoria/BuscaUi";
 import { useNomesRegistros, type Destino } from "@/components/auditoria/useAuditoria";
 import { HistoricoTratativa } from "@/components/auditoria/HistoricoTratativa";
+import { RodadaDiaria } from "@/components/auditoria/RodadaDiaria";
 
 export type Tratativa = { id?: string; chave: string; tipo: string; titulo?: string | null; situacao: "indicio" | "confirmado" | "resolvido" | "descartado"; impacto: string | null; responsavel: string | null; prazo: string | null; observacao: string | null; updated_at?: string };
 
@@ -44,6 +45,7 @@ export default function Auditoria() {
     <div>
       <PageHeader title="Auditoria financeira" subtitle="Painel, checklist do mês, exceções para conferir e o histórico de tudo o que foi alterado" />
       <div ref={topo} className="scroll-mt-4" />
+      <RodadaDiaria verAchado={(chave) => abrir({ aba: "excecoes", filtros: { chave, ver: "todas" } })} />
       <Tabs value={aba} onChange={(a) => { setAba(a); setInicial((x) => ({ n: x.n + 1 })); }} options={[
         { value: "painel", label: "Painel" }, { value: "checklist", label: "Checklist do mês" },
         { value: "excecoes", label: "Exceções" }, { value: "historico", label: "Histórico de alterações" },
@@ -242,7 +244,7 @@ function Excecoes({ dados, inicial, abrir }: { dados: DadosExcecoes; inicial?: P
                 </td>
                 <td className="td text-sm text-slate-600"><Destaque texto={e.detalhe} termos={termos} />{t.observacao && <div className="mt-1 text-xs text-slate-500">Obs.: <Destaque texto={t.observacao} termos={termos} /></div>}</td>
                 <td className={`td whitespace-nowrap text-right ${e.valor != null && e.valor < 0 ? "text-red-600" : ""}`}>{e.valor != null ? <Destaque texto={brl(e.valor)} termos={termos} /> : "—"}</td>
-                <td className="td"><Badge value={t.situacao} />{t.impacto && <div className="mt-1 text-xs text-slate-500">impacto {t.impacto}</div>}</td>
+                <td className="td"><Badge value={t.id ? t.situacao : "novo"} />{t.impacto && <div className="mt-1 text-xs text-slate-500">impacto {t.impacto}</div>}</td>
                 <td className="td text-sm">{t.responsavel ? <Destaque texto={t.responsavel} termos={termos} /> : <span className="text-slate-400">—</span>}{t.prazo && <div className={`text-xs ${atrasados(t) ? "font-semibold text-red-600" : "text-slate-500"}`}>até {dataBR(t.prazo)}</div>}</td>
                 <td className="td text-right"><Button variant="secondary" onClick={() => setEditar({ e, t })}>Tratar</Button></td>
               </tr>
@@ -278,7 +280,7 @@ function TratarExcecao({ e, t, onClose }: { e: Excecao; t: Tratativa; onClose: (
         </div>
         <Field label="Situação">
           <select className="input" value={f.situacao} onChange={(x) => setF({ ...f, situacao: x.target.value as Tratativa["situacao"] })}>
-            <option value="indicio">Indício (a conferir)</option><option value="confirmado">Erro confirmado</option>
+            <option value="indicio">Em análise</option><option value="confirmado">Erro confirmado</option>
             <option value="resolvido">Resolvido</option><option value="descartado">Descartado (estava certo)</option>
           </select>
         </Field>

@@ -67,3 +67,5 @@ bate e mostra as provas. Só leitura: nunca altera lançamento, baixa, pagamento
 - Anexo de conta a pagar em `documentos` usa `entidade = 'conta_pagar'` (singular), não o nome da tabela.
 - A importação de extrato (Conciliação) só aceita arquivo com lançamento e grava como período só as datas dos
   lançamentos, não o DTSTART–DTEND do OFX: mês sem movimento parece "buraco" para o auditor mesmo com o extrato do banco.
+- A rodada diária lê com a chave de serviço (todas as unidades) e grava só em `auditor_rodadas`/`auditor_achados`;
+  a tela continua lendo com o login de quem abre. Achado novo = chave que nunca apareceu (não repetir alerta).

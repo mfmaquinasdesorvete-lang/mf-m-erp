@@ -2,7 +2,7 @@ import { useRows } from "@/lib/data";
 
 const NENHUM: never[] = [];
 
-const SITUACAO: Record<string, string> = { indicio: "Indício", confirmado: "Erro confirmado", resolvido: "Resolvido", descartado: "Descartado" };
+const SITUACAO: Record<string, string> = { indicio: "Em análise", confirmado: "Erro confirmado", resolvido: "Resolvido", descartado: "Descartado" };
 
 /** Quem mudou a situação da exceção, quando e com qual evidência (vem do histórico do banco, que ninguém edita). */
 export function HistoricoTratativa({ id }: { id: string }) {

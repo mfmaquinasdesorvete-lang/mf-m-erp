@@ -367,6 +367,7 @@ const badgeColors: Record<string, string> = {
   ignorado: "bg-slate-100 text-slate-500",
   transferencia: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
   indicio: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
+  novo: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
   confirmado: "bg-red-100 text-red-800 ring-1 ring-inset ring-red-200",
   resolvido: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
   descartado: "bg-slate-100 text-slate-500",
@@ -380,7 +381,7 @@ const badgeLabel: Record<string, string> = {
   em_garantia: "em garantia", vence_logo: "garantia vence em breve", fora_garantia: "fora da garantia",
   em_producao: "em produção", pc_cotacao: "em cotação", pc_enviado: "pedido enviado", pc_parcial: "recebido em parte",
   pc_recebido: "recebido", pc_cancelado: "cancelado", contingencia: "em contingência (fila)",
-  transferencia: "transferência", indicio: "indício", ferias: "em férias",
+  transferencia: "transferência", indicio: "em análise", ferias: "em férias",
 };
 
 /** Selo cheio (fundo forte e letra branca) para a etapa da venda: a lista fica colorida nos dois temas. */

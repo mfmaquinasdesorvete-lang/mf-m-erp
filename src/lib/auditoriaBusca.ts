@@ -519,11 +519,11 @@ export type VerExcecoes = "abertas" | "prazo_vencido" | "confirmadas" | "fechada
 export type FiltrosExcecoes = { busca: string; tipo: "" | TipoExcecao; gravidade: "" | Excecao["gravidade"]; ver: VerExcecoes; chave: string };
 export const FILTROS_EXCECOES: FiltrosExcecoes = { busca: "", tipo: "", gravidade: "", ver: "abertas", chave: "" };
 export const VER_EXCECOES: { valor: VerExcecoes; rotulo: string }[] = [
-  { valor: "abertas", rotulo: "Em aberto (indício ou confirmado)" }, { valor: "prazo_vencido", rotulo: "Com prazo vencido" },
+  { valor: "abertas", rotulo: "Em aberto (novo, em análise ou confirmado)" }, { valor: "prazo_vencido", rotulo: "Com prazo vencido" },
   { valor: "confirmadas", rotulo: "Erro confirmado (em aberto)" }, { valor: "fechadas", rotulo: "Resolvidas ou descartadas" }, { valor: "todas", rotulo: "Todas" },
 ];
 
-const SITUACAO: Record<string, string> = { indicio: "indício a conferir", confirmado: "erro confirmado", resolvido: "resolvido", descartado: "descartado" };
+const SITUACAO: Record<string, string> = { novo: "novo", indicio: "em análise", confirmado: "erro confirmado", resolvido: "resolvido", descartado: "descartado" };
 const GRAVIDADE: Record<string, string> = { alta: "gravidade alta", media: "gravidade média", baixa: "gravidade baixa" };
 
 export function alvoDaExcecao(e: Excecao, t: TratativaBusca, rotuloTipo = ""): Alvo {

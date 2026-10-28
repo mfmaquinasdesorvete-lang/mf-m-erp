@@ -11,7 +11,10 @@ Rodada de fechamento (CLAUDE.md, 27/10): a fase 2 só começa quando a usuária 
   com buraco em OLIST, Mercado Pago, Nubank, Unicred e Inter (antes de 19/10, quando a API começou).
 
 ## Em andamento
-- Nada. Pedidos: "conferências novas da fase 1" (precisa de você: conferir na tela) e "fase 2" (fila, parada).
+- Rodada diária do auditor (pedido 9f211251, 28/10, confirmado por ela no chat): função `auditor-diario` (07:03,
+  pg_cron `erp-auditor-diario`), tabelas `auditor_rodadas` e `auditor_achados` (migração 183), cartão "Rodada de hoje"
+  na Auditoria, conferências novas "extrato na conta errada" e "extrato automático parado". Montado e testado no código;
+  falta "Pode publicar" (site + função + migração) e a rodada real no ar. O FAZ lê a última linha de `auditor_rodadas`.
 
 ## Esperando a usuária
 - Abrir Auditoria financeira → Exceções e confirmar que as conferências novas aparecem; só então marcar "feito".
@@ -46,13 +49,16 @@ Rodada de fechamento (CLAUDE.md, 27/10): a fase 2 só começa quando a usuária 
 ## Decisões da usuária
 - 27/10: começar pela MF, onde os dados já estão; as sorveterias entram depois, com o SOR.
 - 27/10: o auditor é um chat próprio (AUD), só leitura.
+- 28/10: pediu (via ELO e confirmou no chat) o auditor rodando sozinho todo dia de manhã, sem IA e sem aviso
+  externo; o resumo vai no aviso único do FAZ. A fila usa a tratativa: Novo (sem tratativa) → Em análise → Resolvido/Descartado.
 - 27/10: aprovou o plano (fase 1 e depois fase 2). Data de corte 01/10/2026 (`CORTE_AUDITOR`): antes dela,
   falta de dado é "dado incompleto", um aviso só.
 - Fases: 1 diagnóstico; 2 chat de leitura; 3 conferências e provas; 4 margens, tendências e projeções
   (marcadas como estimativa); 5 alertas periódicos e fila de revisão (sem aviso externo sem autorização).
 
 ## Onde está
-- Conferências novas: `src/lib/auditorFinanceiro.ts` (testes em `__tests__/auditorFinanceiro.test.ts`), chamadas no fim
+- Conferências do AUD: `supabase/functions/_shared/auditor.ts` (a mesma conta na tela e na rodada diária;
+  `src/lib/auditorFinanceiro.ts` só reexporta; testes em `__tests__/auditorFinanceiro.test.ts`), chamadas no fim
   de `calcularExcecoes` (`src/lib/auditoria.ts`). Tipos: venda_sem_recebimento, recebimento_sem_venda, taxa_cartao,
   despesa_fora_padrao, extrato_desatualizado, dado_incompleto. `sem_documento` e `parcelas_divergentes` respeitam o corte.
 - Limites: grupo "Auditoria" em `supabase/functions/_shared/ajustes.ts` (`auditor_*`); a tabela `config_ajustes`
@@ -64,8 +70,5 @@ Rodada de fechamento (CLAUDE.md, 27/10): a fase 2 só começa quando a usuária 
 1. Depois que ela conferir a tela, marcar o pedido da fase 1 como feito.
 2. Fase 2: função `ia-auditor` no padrão do `ia-busca`: a IA só escolhe a conferência e o período; a conta roda
    com o login de quem perguntou; resposta no formato fixo; registro em `ia_registros`; interruptor em `ia-controle`.
-3. Ideia do ELO (28/10), só quando ela liberar função nova: conferência "extrato na conta errada": lançamento com cara
-   de outro banco (ex.: descrição típica do InfinitePay) numa conta de outro banco, ou arquivo importado numa conta que
-   recebe pela API (caso real: 2 OFX do cartão InfinitePay caíram no Inter; o GER consertou).
-4. Fase 5: fila Novo → Em análise → Resolvido/Descartado e gravidade crítica/informativa (hoje: alta/média/baixa e
+3. Fase 5: fila Novo → Em análise → Resolvido/Descartado e gravidade crítica/informativa (hoje: alta/média/baixa e
    indício/confirmado/resolvido/descartado).

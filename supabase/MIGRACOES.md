@@ -201,3 +201,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
 178. `20261101000173_paginas_claude.sql` (Sobre → Páginas: as páginas que os chats fizeram para a usuária, com o link; só o administrador vê. Os links ficam no banco, não no código)
 179. `20261027120346_certidoes_indice_unidade.sql` (índice em `certidoes.unidade_id`, a chave estrangeira da unidade; achado da auditoria do REV)
 180. `20261027120543_frete_indices.sql` (índices das chaves estrangeiras de `frete_consultas` (cliente, pedido, unidade) e `frete_tabelas` (unidade), achados na auditoria de 27/10)
+181. `20261101000183_auditor_diario.sql` (Auditor financeiro: rodada diária às 07:03 de Brasília pela função `auditor-diario`, só leitura dos dados; grava a rodada em `auditor_rodadas` e cada achado em `auditor_achados` pela chave, para não repetir; o FAZ lê a última rodada)

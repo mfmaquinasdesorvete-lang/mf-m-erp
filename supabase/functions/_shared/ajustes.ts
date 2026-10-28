@@ -44,6 +44,8 @@ export const NUMEROS: ItemNumero[] = [
     explicacao: "Diferenças menores que este valor não viram alerta, mesmo acima da média." },
   { chave: "auditor_dias_extrato", grupo: "Auditoria", rotulo: "Extrato com buraco: dias seguidos sem extrato", unidade: "dias", padrao: 7, minimo: 1, maximo: 60, dono: "AUD",
     explicacao: "Conta ativa com tantos dias seguidos sem extrato (desde a data de corte) vira aviso de dado incompleto." },
+  { chave: "auditor_dias_api", grupo: "Auditoria", rotulo: "Extrato automático parado há mais de", unidade: "dias", padrao: 3, minimo: 1, maximo: 30, dono: "AUD",
+    explicacao: "Conta cujo extrato chega sozinho pelo banco (ex.: Inter) sem linha nova há mais destes dias vira alerta." },
 ];
 
 export const MENSAGENS: ItemMensagem[] = [

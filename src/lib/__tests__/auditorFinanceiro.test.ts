@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { conferenciasAuditor, type DadosAuditor } from "../auditorFinanceiro";
+import { conferenciasAuditor, resumoRodada, type DadosAuditor } from "../auditorFinanceiro";
 import { calcularExcecoes } from "../auditoria";
 
 const LIM = { diasRecebimento: 7, toleranciaTaxa: 0.5, foraPadraoPct: 50, foraPadraoMinimo: 1000, diasExtrato: 7 };
@@ -110,5 +110,46 @@ describe("dado incompleto separado de divergência", () => {
     const r = calcularExcecoes({ ...vazio, receber: [], pagar, lancamentos: [], bancos: [], importacoes: [], pedidos: [] });
     expect(r.filter((e) => e.tipo === "sem_documento").map((e) => e.chave)).toEqual(["sem_documento:n"]);
     expect(r.find((e) => e.tipo === "dado_incompleto")?.titulo).toContain("1 conta paga");
+  });
+});
+
+describe("extrato na conta errada", () => {
+  const bancos = [{ id: "inter", nome: "Banco Inter", banco: "inter", ativo: true }, { id: "ip", nome: "InfinitePay", banco: "infinitepay", ativo: true }];
+  const importacoes = [{ id: "i1", conta_bancaria_id: "inter", periodo_inicio: "2026-10-02", periodo_fim: "2026-10-05", arquivo: "extrato.ofx" }];
+  it("importação com a cara de outro banco vira um achado só, pela importação", () => {
+    const lancamentos = [1, 2, 3, 4].map((n) => lanc({ id: `l${n}`, conta_bancaria_id: "inter", origem: "arquivo", importacao_id: "i1", descricao: `Cliente ${n} · mfmaquinas` }));
+    const r = conferenciasAuditor(base({ bancos, importacoes, lancamentos }), LIM).filter((e) => e.tipo === "extrato_conta_errada");
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ chave: "extrato_conta_errada:i1", gravidade: "alta" });
+    expect(r[0].detalhe).toContain("InfinitePay");
+  });
+  it("a mesma cara na própria conta não é problema", () => {
+    const lancamentos = [1, 2, 3].map((n) => lanc({ id: `l${n}`, conta_bancaria_id: "ip", origem: "arquivo", importacao_id: "i2", descricao: `Cliente ${n} · mfmaquinas` }));
+    expect(tipos(base({ bancos, lancamentos }))).not.toContain("extrato_conta_errada");
+  });
+  it("arquivo numa conta que já recebe pela API, depois que a API começou", () => {
+    const lancamentos = [
+      lanc({ id: "a", conta_bancaria_id: "inter", origem: "inter", data: "2026-10-19" }),
+      lanc({ id: "b", conta_bancaria_id: "inter", origem: "arquivo", importacao_id: "i1", data: "2026-10-20" }),
+    ];
+    expect(tipos(base({ bancos, importacoes, lancamentos, hoje: "2026-10-21" }))).toContain("extrato_conta_errada");
+  });
+});
+
+describe("extrato automático parado", () => {
+  const bancos = [{ id: "inter", nome: "Banco Inter", banco: "inter", ativo: true }];
+  it("conta da API sem linha nova há mais de 3 dias vira alerta; em dia não", () => {
+    const lancamentos = [lanc({ conta_bancaria_id: "inter", origem: "inter", data: "2026-10-22" })];
+    expect(tipos(base({ bancos, lancamentos }))).toContain("extrato_atrasado");
+    expect(tipos(base({ bancos, lancamentos, hoje: "2026-10-24" }))).not.toContain("extrato_atrasado");
+  });
+});
+
+describe("resumo da rodada", () => {
+  it("só conta como novo o que nunca apareceu, o mais grave primeiro", () => {
+    const a = (chave: string, gravidade: "alta" | "media" | "baixa") => ({ chave, tipo: "taxa_cartao" as const, titulo: chave, detalhe: "", link: "/", gravidade });
+    const r = resumoRodada([a("x", "baixa"), a("y", "alta"), a("z", "media")], new Set(["y"]));
+    expect(r.novos.map((n) => n.chave)).toEqual(["z", "x"]);
+    expect(r).toMatchObject({ total: 3, principal: "z", novosPorGravidade: { alta: 0, media: 1, baixa: 1 } });
   });
 });
