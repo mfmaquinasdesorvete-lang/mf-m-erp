@@ -51,6 +51,7 @@ import { FichaProduto, UltimasCompras } from "@/components/produtos/FichaProduto
 import { ModelosMaquinas } from "@/components/produtos/ModelosMaquinas";
 import { ManuaisMaquinas } from "@/components/produtos/ManuaisMaquinas";
 import { FichaTecnica } from "@/components/producao/FichaTecnica";
+import { ReceitasTornearia } from "@/components/producao/ReceitasTornearia";
 import { ConferirItensNotas } from "@/components/compras/ConferirItensNotas";
 
 const tipos = [
@@ -157,9 +158,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   // Máquinas ganham as abas Ficha técnica e Manuais (?aba=ficha&maquina=<id> abre a ficha daquela máquina)
   // Preços e Tabelas de preço foram para a Gestão de preços (/precos) e Anúncios para a Loja online e marketplace
   // (/mercado-livre?aba=marketplace) em 23/10; os endereços antigos levam para lá.
-  type AbaProdutos = "produtos" | "ficha" | "manuais" | "impostos" | "qualidade" | "contagem" | "categorias";
+  type AbaProdutos = "produtos" | "receita" | "ficha" | "manuais" | "impostos" | "qualidade" | "contagem" | "categorias";
   const abasValidas: readonly AbaProdutos[] = cadastroFixo === "maquinas"
     ? ["produtos", "ficha", "manuais", "impostos", "qualidade", "contagem", "categorias"]
+    : cadastroFixo === "tornearia" ? ["produtos", "receita", "qualidade", "contagem", "categorias"]
     : ["produtos", "qualidade", "contagem", "categorias"];
   const [aba, setAba] = useAbaUrl<AbaProdutos>("produtos", abasValidas);
   useEffect(() => {
@@ -422,6 +424,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   };
   const abasProdutos = [
     { value: "produtos" as const, label: ehMaquinas ? "Máquinas" : "Produtos" },
+    // Tornearia: a receita de cada peça usinada (insumos, fornecedor, desenho, custo), fora da ficha das máquinas
+    ...(cadastro === "tornearia" ? [{ value: "receita" as const, label: "Peças (receita)" }] : []),
     ...(ehMaquinas ? [{ value: "ficha" as const, label: "Ficha técnica" }, { value: "manuais" as const, label: "Manuais" }, { value: "impostos" as const, label: "Impostos" }] : []),
     { value: "qualidade" as const, label: "Qualidade" },
     { value: "categorias" as const, label: "Categorias" },
@@ -439,7 +443,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       <div className="hidden md:block">
         <Tabs value={aba} onChange={(a) => { setAba(a); setEditarAgora(null); }} options={abasProdutos} />
       </div>
-      {aba === "ficha" ? (
+      {aba === "receita" ? (
+        <ReceitasTornearia />
+      ) : aba === "ficha" ? (
         <FichaTecnica inicial={fichaDe} />
       ) : aba === "manuais" ? (
         <ManuaisMaquinas produtos={produtosTodos} podeEditar={pode("editar_produtos") || tem("tecnico")} aoFicha={(id) => { setFichaDe(id); setAba("ficha"); }} />

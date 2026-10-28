@@ -40,6 +40,11 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   das fichas (CP-ELE-003, 004, 010, 014), confirmado.
 
 ## Em andamento
+- 28/10 Tornearia separada da ficha das máquinas: aba "Peças (receita)" em /produtos/tornearia?aba=receita
+  (src/components/producao/ReceitasTornearia.tsx, conta da barra em src/lib/tornearia.ts). A receita fica em
+  produto_componentes da peça (a OP já usa). Barra redonda inox por kg: põe o comprimento em mm e grava kg
+  (densidade 7,93). Próximas abas que ela quer: Insumos (saldo da barra e quantas peças dá), Pedidos (OP da
+  tornearia: enviado → em produção → pronto → conferido) e Painel; OP e estoque são do GER, combinar antes.
 - Rodada de fechamento (27/10): nada novo sem pedido dela; "feito" só depois de testar no ERP no ar.
 - 27/10: os pedidos antigos do assunto foram testados (select e site publicado) a pedido do CNF; o site do ERP não abre
   daqui, então teste de tela com clique fica com a usuária.
