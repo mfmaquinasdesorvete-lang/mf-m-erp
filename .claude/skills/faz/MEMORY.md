@@ -46,7 +46,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
   destrava mais).
 - 28/10: GER e ENT mandaram os extratos (D1 Unicred, D2 Olist, D3 InfinitePay, D4 Sicoob, D5 Inter SC). Falta FIS e TIN.
   Divisão: ENT importa os extratos antigos e explica as entradas; GER lança e concilia as saídas. Quando ela importar:
-  avisar GER e ENT. Próxima do resumo: D1 (começar pelos 5 OFX que ela já tem).
+  avisar GER e ENT. TIN mandou T1 a T4 (Tiny antes de cancelar). Ordem do resumo: T1 (tem prazo: a API para com a assinatura), depois D1,
+  T2 a T4 e D2 a D5. Falta o FIS (SEFAZ SC, e-CAC, contador).
 
 ## Do CNF (27/10)
 - O CNF parou o aviso diário: o resumo é só meu. "Pronto para conferir": `para-conferir.md` (29 itens, 3 por dia; 10, 13, 14 e 16 saíram).

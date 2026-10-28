@@ -95,8 +95,18 @@ de extratos do ERP. Prefira OFX; se o banco não tiver, PDF. Depois de importar,
   Extrato → período → OFX ou PDF, de quando abriu até o encerramento. Conta encerrada: pedir à cooperativa.
 - **D5. Banco Inter SC** (GER) — o ERP só tem desde 10/2026 (ligação automática). Se a conta é mais antiga: app Inter →
   Extrato → período → Exportar → OFX.
-- (ainda esperando o FIS e o TIN: SEFAZ SC, e-CAC, SPED/balanços/guias com o contador e exportações do Tiny antes de
-  cancelar)
+**Tiny, antes de cancelar a assinatura** (TIN; o resto do Tiny já está no ERP). Mandar os arquivos no chat do TIN.
+- **T1. Primeiro de tudo (2 cliques, a API do Tiny para quando a assinatura acabar):** no ERP, Importar → Tiny →
+  **Buscar recebimentos do Tiny** e **Atualizar cadastros do Tiny** (período: tudo).
+- **T2. NFS-e emitidas pelo Tiny:** Tiny → Serviços → Notas fiscais de serviço → período 01/2023 a 09/2026 → selecionar
+  todas → Exportar XML (e PDF, se tiver). Se a lista estiver vazia, avise o TIN: não há nada a trazer.
+- **T3. 3 notas de entrada de 01/2025:** Tiny → Notas fiscais (ou Suprimentos → Notas de entrada) → tipo "Entrada" →
+  01/01/2025 a 31/01/2025 → Baixar XML de todas.
+- **T4. Anexos:** Tiny → menu do usuário → Configurações → Backup / Exportar dados → marcar Anexos → período todo →
+  baixar o zip.
+(Os nomes dos menus do Tiny podem variar um pouco na conta.)
+
+- (ainda esperando o FIS: SEFAZ SC, e-CAC e SPED/balanços/guias com o contador)
 
 ---
 Fora desta lista (são decisões ou dados que você responde no chat do assunto; quem acompanha é o CNF): planilhas de
