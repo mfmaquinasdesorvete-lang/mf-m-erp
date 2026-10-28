@@ -6,7 +6,7 @@ Vendas, compras, financeiro, assistência e estoque funcionando no ar. O trabalh
 do código" (levar regras e mensagens para Configurações), parado esperando a tabela nova no banco.
 
 ## No ar
-- 28/10 (migração 194 no banco; site esperando publicar): nota de compra com "Como chegou: Retirada no local (sem frete)" (marca chegada, `retirada_local`), "À vista no Pix (já pago)" (`nfe_pago_no_pix`: baixa as contas a pagar da nota no Pix na data da nota, sem conta bancária) e nome do produto editável ao cadastrar pela nota + botão Nome. Teste no banco (desfeito) na nota da MadeiraGreen.
+- 28/10 (site 3505f34, migração 194): nota de compra com "Como chegou: Retirada no local (sem frete)" (marca chegada, `retirada_local`), "À vista no Pix (já pago)" (`nfe_pago_no_pix`: baixa as contas a pagar da nota no Pix na data da nota, sem conta bancária) e nome do produto editável ao cadastrar pela nota + botão Nome. Teste no banco (desfeito) na nota da MadeiraGreen.
 - 28/10 (função email-caixa 6fdc8e0, migração 193): caixa de e-mail lê até 10 e-mails/6 MB por rodada e grava o último UID a cada e-mail; acima de 8 MB só o cabeçalho; agendamento chama uma conta por vez. Causa: conta nova do Gmail (Comercial - Fornecedores) estourava a CPU a cada 5 min desde 04h37 UTC e derrubava as outras.
 - 28/10 (site 954436f, funções nfe-recebidas-sync/nfe-processar/focus-webhook/email-caixa, migração 191): OC até o estoque sozinha. Item da nota casa com a OC ligada (MK #247 e Integral #248 casaram no ar, de-para gravado), entrada automática baixa a OC (teste desfeito na #244), nota ligada volta para a fila, "Chegou" dentro da OC, aviso dias úteis 16h43. Falta ela apertar Chegou nas OCs #244, #247 e #248 (treino) para fechar o teste. São Miguel sem rastreio automático (TRA: planilha do portal ou EDI OCOREN).
 - 28/10 (migração 190, banco): comissão de parcela que já teve comissão cancelada reabre a cancelada com os valores novos (antes o "on conflict do nothing" travava). #628 parcela 1/2: R$ 300 a pagar. Pedidos antigos do Tiny pagos sem comissão ficaram como estão (de antes do ERP).
@@ -44,6 +44,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Pedidos aprovados sem pagamento e sem NF (três): cancelar ou esperar.
 - Pagamentos de um prestador esperam a planilha do Tiny (TIN).
 - Compras: apertar "Chegou" nas OCs #244, #247 e #248 (treino; fecha o teste da OC até o estoque).
+- Nota da MadeiraGreen (Fabiano retirou): marcar Retirada no local e À vista no Pix, renomear os 2 produtos (botão Nome) e Confirmar entrada (fecha o teste).
 - Compras sem OC paradas em "item sem produto" (MadeiraGreen, VTK, Frigelar, ND Distribuidora, 26-28/10): ligar o item ao produto ou marcar uso e consumo (Conferir itens das notas).
 - São Miguel: pedir à transportadora o EDI OCOREN ou a API de rastreio (TRA), ou importar a planilha de CT-e do portal.
 
