@@ -1,18 +1,11 @@
 # O que só você faz — lista do FAZ
-Atualizada em 27/10/2026. Em ordem: o que trava mais coisa vem primeiro.
+Atualizada em 28/10/2026. Em ordem: o que trava mais coisa vem primeiro.
 Nunca mande senha, chave ou token no chat: cole direto no lugar indicado. Eu confiro sozinho quando ficar feito.
 
 Conferido no banco e no GitHub em 27/10: as funções do Supabase estão todas no ar e iguais ao código, as Actions
 (CI, Publicar Supabase e Backup diário) estão verdes e não há site que ficou só montado. O que falta é isto:
 
 ---
-
-## 0. URGENTE: entrar de novo na Hostinger (conector do Claude) — 1 minuto
-**O que é:** o acesso dos chats à Hostinger saiu (pede login de novo). Sem ele nenhum chat publica o site.
-**Por que importa:** 4 consertos estão prontos esperando ir ao ar (FIS: NF-e menor que o pedido e transferências ×
-remessas; SEG: botão Voltar do "Ver como"; PRD: avisos do painel de Produtos).
-**Onde:** claude.ai → Configurações → **Conectores** → Hostinger → **Conectar** (entrar com a sua conta da Hostinger).
-Depois disso o FIS publica; eu confiro e aviso.
 
 ## 1. Rodar um arquivo no SQL Editor do Supabase (5 coisas de uma vez) — ~3 minutos
 **O que é:** 5 partes do banco que os chats escreveram e não conseguem criar sozinhos (a ferramenta deles trava ao
@@ -77,6 +70,12 @@ obrigatório (7 dias depois) e avisa a equipe.
 ## 9. Conectar o Gmail do contador (FIS)
 **Onde:** claude.ai → Configurações → Conectores → Gmail → **Conectar** com o e-mail do contador da MF (está na
 skill do FIS). Serve para o FIS achar guias, parcelamentos e avisos do DTEC.
+
+## Bloco "Dossiê MF SC" (pedido de 28/10: tudo da MF SC desde a abertura, 28/06/2022)
+O FIS coordena (pedido 21a33e7d), com TIN, GER e ENT. Aqui entra só o que você busca nos portais e painéis; cada
+tarefa com o passo a passo, na ordem do que destrava mais. No resumo da manhã vai **uma por dia**.
+- (esperando os chats mandarem a lista: extratos antigos nos bancos, SEFAZ SC, e-CAC, SPED/balanços/guias com o
+  contador e exportações do Tiny antes de cancelar)
 
 ---
 Fora desta lista (são decisões ou dados que você responde no chat do assunto; quem acompanha é o CNF): planilhas de

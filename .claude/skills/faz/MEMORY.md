@@ -1,5 +1,5 @@
 # MEMORY — FAZ (ERP Line – O que só você faz)
-Atualizado em 27/10/2026.
+Atualizado em 28/10/2026.
 
 ## Estado agora
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
@@ -12,8 +12,6 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Cobrar e conferir as 9 tarefas abaixo.
 
 ## Esperando a usuária (conferido no banco em 27/10)
-0. URGENTE (27/10, 17h, pelo CNF): reconectar a Hostinger em claude.ai → Conectores (o conector pede login). Trava
-   a publicação do site: e529b35 e c289b2c (FIS), 6fc224c (SEG), 7896712 (PRD). Quando voltar, avisar o FIS.
 1. SQL Editor: `sql/rodar-no-sql-editor.sql` — `config_ajustes` (GER), `recibos.de_funcionario` + gatilho e regra
    (FUN; achado do FAZ), `paginas_claude` (ELO; o ELO grava as 16 páginas depois), gatilho `produto_variacao` (PRD),
    3 índices repetidos (REV). Conferir: `to_regclass`, `pg_trigger`, coluna em `information_schema.columns`, `pg_indexes`.
@@ -25,6 +23,9 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 7. Telegram dos avisos: `TELEGRAM_BOT_TOKEN` e `TELEGRAM_WEBHOOK_SECRET` + Ligar o robô (19/10).
 8. Login com o rosto: cadastrar em Meu rosto (SEG); depois o SEG marca a data.
 9. Conectar o Gmail do contador (FIS).
+
+## Já resolvido
+- 28/10: Hostinger reconectada (conferido pela lista de sites); FIS avisado para publicar.
 
 ## Decisões da usuária
 - 27/10: este chat dá a lista do que só ela faz no Supabase, no GitHub e na Hostinger e fica cobrando.
@@ -38,6 +39,11 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Conferência das migrações: extrair `create table` e `create function` de `supabase/migrations/*.sql` e procurar
   com `to_regclass` e `pg_proc` (em 27/10 só faltavam as do item 1).
 - Secrets não dá para ler daqui (as funções pedem login): conferir pelo "Testar conexão" ou pelo uso (dados novos).
+
+## Dossiê MF SC (28/10, pelo ELO)
+- Juntar no ERP tudo da MF SC desde 28/06/2022. FIS coordena (pedido 21a33e7d) com TIN, GER e ENT; eles me mandam o
+  que só ela busca. Bloco "Dossiê MF SC" em `lista.md`; no resumo, só a próxima tarefa do bloco (uma por dia, a que
+  destrava mais).
 
 ## Do CNF (27/10)
 - O CNF parou o aviso diário: o resumo é só meu. "Pronto para conferir": `para-conferir.md` (29 itens, 3 por dia; 10, 13, 14 e 16 saíram).
