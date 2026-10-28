@@ -34,6 +34,10 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
 8. XML do diesel em NF-e recebidas.
 - Guia do parcelamento do Simples (vence 30/10) chegou na caixa do contador: ela confere de qual empresa é e paga.
 
+- Fim de ano do contador (calendário recebido pelo FUN em 28/10): o escritório para de 18/12 a 04/01. Datas que ele
+  pede em dezembro: 10/12 ISS de novembro; 18/12 DARF INSS/IRRF (e do 13º), FGTS e ICMS; 23/12 PIS/COFINS/IPI
+  (o DAS de 22/12 é das empresas do Simples, não da MF). Em dezembro, cobrar as guias da MF até 18/12.
+
 ## Decisões da usuária
 - As listas de notas (emitidas e recebidas) abrem na semana atual.
 - Tudo que não é da MF vai para o painel pessoal (CAR). A Soft Premium não é deste ERP: não buscar nada dela.
