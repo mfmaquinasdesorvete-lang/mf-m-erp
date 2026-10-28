@@ -400,8 +400,11 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           </div>
           <div className="min-w-0 px-1">
             <dt className="text-2xs text-slate-500">Venda</dt>
-            <dd className="truncate text-xs font-bold tabular-nums">{brl(r.preco_venda)}</dd>
-            {m !== null && !servico && <dd className={`text-2xs ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>{m}%</dd>}
+            {/* insumo que não vende (MDF, tubo, chapa): só o custo importa, sem preço nem margem */}
+            {r.tipo === "insumo" && r.vendavel === false
+              ? <dd className="truncate text-xs text-slate-500">não vende</dd>
+              : <dd className="truncate text-xs font-bold tabular-nums">{brl(r.preco_venda)}</dd>}
+            {m !== null && !servico && !(r.tipo === "insumo" && r.vendavel === false) && <dd className={`text-2xs ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>{m}%</dd>}
           </div>
           {/* serviço não tem estoque: no lugar dele, a margem (a faixa fica com 4 números, como nas peças) */}
           {servico ? (
@@ -660,15 +663,15 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             render: (_v, _s, row) => row.id ? <UltimasCompras produtoId={row.id} /> : <span className="text-xs text-slate-500">aparece depois de salvar</span> },
           {
             // componente de produção que não se vende: venda = custo (o banco também garante)
-            name: "preco_venda", label: "Preço de venda", type: "custom", span: 1,
+            name: "preco_venda", mostrar: (r) => !fabrica(r), label: "Preço de venda", type: "custom", span: 1,
             render: (v, set, row) => row.tipo === "insumo" && !row.vendavel
               ? <span className="text-sm text-slate-700"><b className="num">{brl(Number(row.preco_custo || 0))}</b> <span className="text-xs text-slate-500">· igual ao custo (componente de produção)</span></span>
               : <input aria-label="Preço de venda" className="input num" type="number" step="0.01" min="0" inputMode="decimal" value={v ?? ""}
                   onChange={(e) => set(e.target.value === "" ? null : Number(e.target.value))} />,
           },
-          { name: "margem_desejada", label: "Margem desejada (%) — vazio usa a da categoria ou do tipo", type: "number", span: 2 },
+          { name: "margem_desejada", mostrar: (r) => !fabrica(r), label: "Margem desejada (%) — vazio usa a da categoria ou do tipo", type: "number", span: 2 },
           {
-            name: "preco_sugerido_info", label: "Preço sugerido", type: "custom", span: 2,
+            name: "preco_sugerido_info", mostrar: (r) => !fabrica(r), label: "Preço sugerido", type: "custom", span: 2,
             render: (_v, _s, row) => {
               const cfgPreco = configPreco(cfgProd?.precificacao);
               const alvo = margemAlvo({ tipo: row.tipo, categoria: row.categoria, margem_desejada: row.margem_desejada === "" ? null : row.margem_desejada }, cfgPreco, categorias);
@@ -682,7 +685,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             },
           },
           {
-            name: "margem_info", label: "Margem bruta", type: "custom", span: 1,
+            name: "margem_info", mostrar: (r) => !fabrica(r), label: "Margem bruta", type: "custom", span: 1,
             render: (_v, _s, row) => {
               // kit: custo pela soma dos componentes (o mesmo da lista)
               const m = margemBruta(row.preco_venda, custo(row as Produto));
@@ -690,7 +693,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               return <span className={`text-sm font-semibold ${m < 0 ? "text-red-600" : m < 20 ? "text-amber-700" : "text-emerald-700"}`}>{m.toFixed(1).replace(".", ",")}%</span>;
             },
           },
-          { name: "ipi_aliquota", label: "IPI (%) — TIPI do NCM", type: "number", span: 1 },
+          { name: "ipi_aliquota", mostrar: (r) => !fabrica(r), label: "IPI (%) — TIPI do NCM", type: "number", span: 1 },
           {
             name: "motivo_alteracao", mostrar: salvo, label: "Motivo da alteração (obrigatório ao mudar código, unidade, tipo, custo ou preço já preenchidos)", type: "custom", span: 4,
             render: (v, set, row) => row.id
@@ -909,9 +912,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               const c = custo(r), m = margem(r);
               return (
                 <span>
-                  {brl(r.preco_venda)}
+                  {r.tipo === "insumo" && r.vendavel === false ? <span className="text-slate-500">não vende</span> : brl(r.preco_venda)}
                   <span className={`block text-xs ${c ? "text-slate-500" : "text-amber-600"}`}>{c ? `custo ${brl(c)}` : "sem custo"}</span>
-                  {m !== null && <span className={`block whitespace-nowrap text-xs ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>margem {m}%</span>}
+                  {m !== null && !(r.tipo === "insumo" && r.vendavel === false) && <span className={`block whitespace-nowrap text-xs ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>margem {m}%</span>}
                 </span>
               );
             },

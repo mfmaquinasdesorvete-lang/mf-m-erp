@@ -40,6 +40,9 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   das fichas (CP-ELE-003, 004, 010, 014), confirmado.
 
 ## Em andamento
+- 28/10 Insumo que não vende (MDF dos quiosques, tubos do dosador): só custo. Na edição saem preço, margem, preço
+  sugerido e IPI; na lista aparece "não vende" no lugar do preço. O banco já não sugere preço para quem não vende
+  (registrar_sugestao_preco); a última sugestão aberta de um insumo assim foi fechada como substituída.
 - 28/10 Material cortado em peças (aproveitamento): produtos.material_formato (barra/tubo/chapa) e
   material_comprimento/largura/espessura_mm; produto_componentes.uso (como a peça foi medida). Migração
   20261101000193 aplicada. Conta em src/lib/material.ts (peças por barra com perda do corte, peças por chapa no
