@@ -1,5 +1,5 @@
 # MEMORY — TRA (ERP Line – Transportadoras)
-Atualizado em 27/10/2026.
+Atualizado em 28/10/2026.
 
 ## Estado agora
 A cotação de frete (equipe e loja) está no ar e já cota pelo Mercado Envios (conta do Mercado Livre da MF).
@@ -25,7 +25,9 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
 ## Esperando a usuária
 - Mandar os 6 rascunhos do Gmail pedindo a tabela de frete atualizada (São Miguel, Rodonaves, Braspress, Aceville,
   Norte Brasil e MIR; os dois últimos sem destinatário) e mandar aqui as tabelas que chegarem.
-- Rodonaves: o acesso cadastrado é recusado ("login ou senha inválidos"); pedir o usuário da API, não o do site.
+- Rodonaves: o ERP já pede o token no endereço novo da cotação (28/10, cb565ea, no ar), mas os 3 servidores recusam
+  o login dos secrets. Ela abriu o portal dev.rodonaves.com.br: pegar lá (Account) o usuário e a senha da API e pôr
+  em RODONAVES_USUARIO e RODONAVES_SENHA; depois "Testar conexão" no cadastro da Rodonaves.
 - Braspress: o acesso de API antigo é de outro CNPJ; pedir um para o CNPJ da MF e cadastrar nos secrets.
 - Melhor Envio: cadastrar o token nos secrets, se for usar.
 - Depois de cada acesso cadastrado: clicar em "Testar conexão" no cadastro da transportadora; aí eu testo uma cotação real.
