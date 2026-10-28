@@ -14,7 +14,8 @@ const COR = { alta: "bg-red-500", media: "bg-amber-500", baixa: "bg-slate-400" }
 const quando = (s: string) => new Date(s).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
 const diaBrasilia = (s: string) => new Date(s).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 
-/** Cartão do topo da Auditoria: a rodada diária do auditor (07:03, sozinha) e os achados novos dela. */
+/** Cartão do topo da Auditoria: a rodada diária do auditor (07:03, sozinha) e os achados novos do dia dela
+ * (rodar de novo no mesmo dia não esconde o que apareceu de manhã). */
 export function RodadaDiaria({ verAchado }: { verAchado: (chave: string) => void }) {
   const invalidate = useInvalidate();
   // rodar na hora é do financeiro (o contador só vê)
@@ -27,7 +28,7 @@ export function RodadaDiaria({ verAchado }: { verAchado: (chave: string) => void
         .order("iniciada_em", { ascending: false }).limit(1))) as Rodada[] | null;
       const rodada = r?.[0] ?? null;
       const achados = rodada ? ((await ler(supabase.from("auditor_achados").select("chave, gravidade, titulo, valor")
-        .eq("primeira_rodada", rodada.id).eq("ativo", true).limit(200))) as Achado[] | null) ?? [] : [];
+        .gte("primeira_vez", `${diaBrasilia(rodada.iniciada_em)}T00:00:00-03:00`).eq("ativo", true).limit(200))) as Achado[] | null) ?? [] : [];
       const peso = { alta: 0, media: 1, baixa: 2 };
       return { rodada, novos: achados.sort((a, b) => peso[a.gravidade] - peso[b.gravidade]) };
     },
@@ -53,7 +54,7 @@ export function RodadaDiaria({ verAchado }: { verAchado: (chave: string) => void
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-fg">
             {!rodada ? "O auditor ainda não rodou" : rodada.erro ? "A última rodada não terminou"
-              : `${deHoje ? "Rodada de hoje" : "Última rodada"}: ${rodada.novos ?? 0} ${pl(rodada.novos ?? 0, "achado novo", "achados novos")}`}
+              : `${deHoje ? "Rodada de hoje" : "Última rodada"}: ${novos.length} ${pl(novos.length, "achado novo", "achados novos")}`}
           </h2>
           <p className="text-sm text-slate-500">
             {rodada ? `${quando(rodada.iniciada_em)} · ${rodada.total ?? 0} ${pl(rodada.total ?? 0, "achado", "achados")} no total` : "Ele roda sozinho todo dia às 07:03, só lendo os dados."}
