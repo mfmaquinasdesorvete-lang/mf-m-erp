@@ -65,3 +65,5 @@ bate e mostra as provas. Só leitura: nunca altera lançamento, baixa, pagamento
 - A OLIST cobra tarifa de Pix, boleto e lembretes no mesmo extrato: só a tarifa que fala de cartão/crédito/débito
   entra na taxa do cartão.
 - Anexo de conta a pagar em `documentos` usa `entidade = 'conta_pagar'` (singular), não o nome da tabela.
+- A importação de extrato (Conciliação) só aceita arquivo com lançamento e grava como período só as datas dos
+  lançamentos, não o DTSTART–DTEND do OFX: mês sem movimento parece "buraco" para o auditor mesmo com o extrato do banco.
