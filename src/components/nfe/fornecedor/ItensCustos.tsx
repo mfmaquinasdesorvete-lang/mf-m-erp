@@ -2,10 +2,10 @@
 // ou à mão), a conversão de unidade, o custo de entrada com a conta aberta e a confirmação da entrada
 // (estoque + custo + preço + baixa na ordem de compra, tudo de uma vez).
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Calculator, Link2, PackagePlus, Plus, RefreshCw, Save, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Calculator, Link2, PackagePlus, Pencil, Plus, RefreshCw, Save, X } from "lucide-react";
 import { Button, Field } from "@/components/ui";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
-import { confirmar } from "@/components/Dialogos";
+import { confirmar, pedirTexto } from "@/components/Dialogos";
 import { supabase } from "@/lib/supabase";
 import { useInvalidate } from "@/lib/data";
 import { unidadeDeEmbalagem, unidadeDoErp } from "@/lib/itensNotas";
@@ -14,7 +14,7 @@ import { notify, notifyError } from "@/lib/notify";
 import {
   ALIQUOTA_COFINS, ALIQUOTA_PIS, FINALIDADES, ROTULO_ORIGEM, conferirTotal, numeroBR, variacaoPct, type ContaCusto, type Finalidade,
 } from "@/lib/notaFornecedor";
-import { CondicaoCompra, faltaCondicao, useCondicaoCompra } from "./CondicaoCompra";
+import { CondicaoCompra, RetiradaCompra, faltaCondicao, useCondicaoCompra } from "./CondicaoCompra";
 import { itensParaCusto, itensParaEstoque, opcoesParaBanco, type DadosNota, type LinhaItem, type NotaBase } from "./useNotaFornecedor";
 
 const qtd = (v: number) => Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
@@ -93,6 +93,7 @@ export function ItensCustos({ d, nota, podeEditar }: { d: DadosNota; nota: NotaB
         <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-fg"><Calculator size={16} className="text-modulo-texto" aria-hidden /> Como calcular o custo</h3>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <CondicaoCompra nfeId={nota.id} podeEditar={podeEditar && !nota.estoque_lancado} />
+          <RetiradaCompra nfeId={nota.id} podeEditar={podeEditar && !nota.estoque_lancado} />
           <Field label="Para que é a compra">
             <select className="input" value={o.finalidade} disabled={!podeEditar} onChange={(e) => d.setOpcoes({ ...o, finalidade: e.target.value as Finalidade })}>
               {FINALIDADES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
@@ -159,16 +160,19 @@ function ItemNota({ l, conta, d, podeEditar, trocando, onTrocar }: {
   const invalidate = useInvalidate();
   const [criando, setCriando] = useState(false);
 
-  // cadastra o produto com os dados da nota (o preço de venda sai pela aba Preços)
+  // cadastra o produto com os dados da nota (o preço de venda sai pela aba Preços); o nome no ERP pode ser outro que o
+  // da nota (pedido de 28/10): o nome do fornecedor continua guardado no vínculo
   async function cadastrarNovo() {
     const embalagem = unidadeDeEmbalagem(i.unidade);
     const fator = embalagem ? (l.fatorSugerido ?? 1) : 1;
     const custo = conta && conta.quantidade_erp > 0 ? Math.round((conta.custo_total / (i.quantidade * fator)) * 100) / 100 : 0;
-    if (!(await confirmar(`Cadastrar "${i.descricao}" como produto novo (peça, ${embalagem ? "UN" : unidadeDoErp(i.unidade)}, custo ${brl(custo)})?`, { ok: "Cadastrar" }))) return;
+    const nome = (await pedirTexto(`Nome do produto no ERP (peça, ${embalagem ? "UN" : unidadeDoErp(i.unidade)}, custo ${brl(custo)}). Veio da nota; mude se quiser outro nome.`,
+      i.descricao, { titulo: "Cadastrar produto novo", ok: "Cadastrar", minimo: 3 }))?.trim();
+    if (!nome) return;
     setCriando(true);
     try {
       const { data, error } = await supabase.from("produtos").insert({
-        descricao: i.descricao, tipo: "peca", unidade: embalagem ? "UN" : unidadeDoErp(i.unidade), ncm: i.ncm, codigo_barras: i.ean,
+        descricao: nome, tipo: "peca", unidade: embalagem ? "UN" : unidadeDoErp(i.unidade), ncm: i.ncm, codigo_barras: i.ean,
         preco_custo: custo > 0 ? custo : 0,
       }).select("id").single();
       if (error) throw error;
@@ -177,6 +181,16 @@ function ItemNota({ l, conta, d, podeEditar, trocando, onTrocar }: {
       onTrocar(false);
       notify("Produto cadastrado. Confira o preço de venda na aba Preços.");
     } catch (e) { notifyError(e); } finally { setCriando(false); }
+  }
+  // nome do produto no ERP (o da nota fica no vínculo com o fornecedor)
+  async function renomear() {
+    if (!p) return;
+    const nome = (await pedirTexto("Nome do produto no ERP", p.descricao, { titulo: "Renomear produto", ok: "Salvar", minimo: 3 }))?.trim();
+    if (!nome || nome === p.descricao) return;
+    const { error } = await supabase.from("produtos").update({ descricao: nome }).eq("id", p.id);
+    if (error) return notifyError(error);
+    invalidate("produtos");
+    notify("Nome do produto salvo");
   }
   const salvo = d.custosSalvos.get(i.numero);
   const variacao = conta && p ? variacaoPct(Number(p.preco_custo), conta.custo_unitario) : null;
@@ -203,6 +217,7 @@ function ItemNota({ l, conta, d, podeEditar, trocando, onTrocar }: {
               <b className="text-fg [overflow-wrap:anywhere]">{p.descricao}</b>
               <span className="block text-xs text-slate-500">{[p.sku && `SKU ${p.sku}`, l.origem && ROTULO_ORIGEM[l.origem], l.mudou && "falta guardar"].filter(Boolean).join(" · ")}</span>
             </span>
+            {podeEditar && <Button type="button" variant="ghost" className="!px-2" onClick={renomear} title="Mudar o nome do produto no ERP"><Pencil size={14} /> Nome</Button>}
             {podeEditar && <Button type="button" variant="ghost" className="!px-2" onClick={() => onTrocar(true)}><RefreshCw size={14} /> Trocar</Button>}
             {podeEditar && <Button type="button" variant="ghost" className="!px-2" aria-label="Tirar o produto (o item fica de fora da entrada)" title="Tirar o produto (o item fica de fora da entrada)"
               onClick={() => d.mudarLinha(i.numero, { produto_id: null, origem: null })}><X size={14} /></Button>}
