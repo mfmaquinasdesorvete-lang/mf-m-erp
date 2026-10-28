@@ -44,6 +44,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Juntar no ERP tudo da MF SC desde 28/06/2022. FIS coordena (pedido 21a33e7d) com TIN, GER e ENT; eles me mandam o
   que só ela busca. Bloco "Dossiê MF SC" em `lista.md`; no resumo, só a próxima tarefa do bloco (uma por dia, a que
   destrava mais).
+- 28/10: GER e ENT mandaram os extratos (D1 Unicred, D2 Olist, D3 InfinitePay, D4 Sicoob, D5 Inter SC). Falta FIS e TIN.
+  Quando ela importar: avisar GER e ENT. Próxima do resumo: D1 (começar pelos 5 OFX que ela já tem).
 
 ## Do CNF (27/10)
 - O CNF parou o aviso diário: o resumo é só meu. "Pronto para conferir": `para-conferir.md` (29 itens, 3 por dia; 10, 13, 14 e 16 saíram).

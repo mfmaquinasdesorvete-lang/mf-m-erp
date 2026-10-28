@@ -74,8 +74,29 @@ skill do FIS). Serve para o FIS achar guias, parcelamentos e avisos do DTEC.
 ## Bloco "Dossiê MF SC" (pedido de 28/10: tudo da MF SC desde a abertura, 28/06/2022)
 O FIS coordena (pedido 21a33e7d), com TIN, GER e ENT. Aqui entra só o que você busca nos portais e painéis; cada
 tarefa com o passo a passo, na ordem do que destrava mais. No resumo da manhã vai **uma por dia**.
-- (esperando os chats mandarem a lista: extratos antigos nos bancos, SEFAZ SC, e-CAC, SPED/balanços/guias com o
-  contador e exportações do Tiny antes de cancelar)
+**Como mandar cada extrato:** no ERP, Financeiro → Bancos e conciliação → **Importar extrato** (a tela mostra "Vai
+entrar na conta X" e trava conta errada; importar de novo o mesmo período não duplica) ou mande o arquivo para o e-mail
+de extratos do ERP. Prefira OFX; se o banco não tiver, PDF. Depois de importar, eu aviso o GER e o ENT para conferir.
+
+**Antes de tudo (responder no chat do ENT):** a data de abertura de cada conta da MF SC e quais bancos a MF SC usou em
+2022 e 2023 (não há nenhum extrato desses anos no ERP). Antes da abertura não falta nada.
+
+- **D1. Unicred MF SC** (GER e ENT) — o maior buraco.
+  1. Primeiro importe os 5 OFX que você já tem (jun/2025 a out/2026).
+  2. Internet banking Unicred → Conta corrente → Extrato → período personalizado (até 90 dias por vez, se o banco
+     limitar) → Exportar → **OFX (Money)**. Pode ser um arquivo por ano.
+  3. Períodos: da abertura da conta (06/2022) até 12/2024, e de 05/2025 até hoje.
+  4. Se a conta foi encerrada, peça ao gerente o extrato de encerramento.
+- **D2. Olist (conta encerrada)** (GER) — painel Olist/Tiny Conta Digital → Extrato → exportar OFX. Períodos: da
+  abertura até 03/2025, e setembro/2026 inteiro (hoje só há 8 dias).
+- **D3. InfinitePay SC** (GER e ENT) — app ou site InfinitePay → Extrato → filtrar o período → Exportar (OFX ou CSV).
+  Período: da abertura até 07/2024 (se houve movimento antes de 08/2024).
+- **D4. Sicoob MF SC** (GER e ENT) — primeiro diga se a conta teve movimento. Se teve: app Sicoob → Conta corrente →
+  Extrato → período → OFX ou PDF, de quando abriu até o encerramento. Conta encerrada: pedir à cooperativa.
+- **D5. Banco Inter SC** (GER) — o ERP só tem desde 10/2026 (ligação automática). Se a conta é mais antiga: app Inter →
+  Extrato → período → Exportar → OFX.
+- (ainda esperando o FIS e o TIN: SEFAZ SC, e-CAC, SPED/balanços/guias com o contador e exportações do Tiny antes de
+  cancelar)
 
 ---
 Fora desta lista (são decisões ou dados que você responde no chat do assunto; quem acompanha é o CNF): planilhas de
