@@ -11,11 +11,12 @@ Nada de código novo deste chat esperando publicação.
 - Marca myfrost/yozzy e sócios por unidade (migração `20261101000066_licenciados_marca_socios.sql`).
 - Painel das licenças (só leitura).
 - Período das licenças com "Esta semana" e "Este mês"; a tela e o painel abrem em "Esta semana" (27/10).
+- Marcas no INPI: aba na tela e seção no painel, com alerta de prazo (60 dias da RPI) e de RPI sem conferir há
+  mais de 7 dias; tabela `licenciados_marcas` (migração 20261101000180) com as 2 marcas (site 8b465c0, 28/10).
 
 ## Em andamento
-- Marcas no INPI (27/10): aba "Marcas no INPI" na tela e seção no painel, com alerta de prazo (60 dias da RPI) e de
-  RPI sem conferir há mais de 7 dias. Código pronto; falta criar a tabela `licenciados_marcas` no banco (migração
-  20261101000180, a gravação pediu a aprovação dela), cadastrar as 2 marcas e publicar o site com o "Pode publicar".
+- Checklist: 3 atualizações (marcas feito, "Esta semana" feito, teste da Yozzy Natal) esperam a aprovação dela no
+  Supabase: as gravações com update pedem aprovação; os insert passam.
 
 ## Esperando a usuária
 - Yozzy Natal: rascunho dos pagamentos que a dona mandou. Falta ela dizer se a linha "Loja 50 mil" é a soma das
@@ -27,6 +28,7 @@ Nada de código novo deste chat esperando publicação.
 - Endereço da Piracicaba 02; CEP de Americana e Campinas.
 - Freezers dos quiosques: 4 freezers verticais numa nota do fornecedor de refrigeração (abr/2026), sem marcador. Ela diz
   se entram no custo dos quiosques (lançar como custo da loja, sem pôr o marcador na nota).
+- Relatório do INPI em PDF: ela anexa em Documentos (sem login daqui não dá).
 - Plano fiscal das sorveterias (#332, veio do FIS): ainda não começou.
 
 ## Decisões da usuária
@@ -41,7 +43,7 @@ Nada de código novo deste chat esperando publicação.
 ## Onde está
 - Telas: `src/pages/Licenciados.tsx`, `src/components/licenciados/Unidades.tsx`, `src/pages/paineis/PainelLicencas.tsx`.
 - Regras: `src/lib/licenciados.ts`.
-- Banco: `licenciados_lojas`, `licenciados_pagamentos`, `licenciados_maquinas`, `licenciados_custos`, `licenciados_arquivos`.
+- Banco: `licenciados_lojas`, `licenciados_marcas`, `licenciados_pagamentos`, `licenciados_maquinas`, `licenciados_custos`, `licenciados_arquivos`.
 - Fontes de dados: o Drive da conta das sorveterias (planilha "Unidades", contratos, extratos da Stone da loja de
   Paulínia em PDF e OFX) e as entradas dos extratos da MF marcadas como "por conta de terceiros".
 
