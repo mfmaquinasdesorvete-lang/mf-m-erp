@@ -194,3 +194,11 @@ export function estabelecimento(descricao: string | null | undefined) {
   const s = String(descricao ?? "").split(" · ")[0].replace(/\s{2,}/g, " ").trim();
   return s.toLowerCase().replace(/(^|[\s(/-])(\p{L})/gu, (_, a, b) => a + b.toUpperCase()) || "—";
 }
+
+/** Data de abertura da conta para mostrar: "27/09/2023", só o ano quando só se sabe o ano, ou null. */
+export function textoAbertura(abertaEm: string | null | undefined, soAno = false): string | null {
+  if (!abertaEm) return null;
+  const [a, m, d] = abertaEm.slice(0, 10).split("-");
+  if (!a) return null;
+  return soAno ? a : `${d}/${m}/${a}`;
+}

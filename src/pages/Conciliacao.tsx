@@ -20,7 +20,7 @@ import { PagamentosAnotados } from "@/components/voz/PagamentosAnotados";
 import type { ConexaoOF } from "@/components/financeiro/OpenFinance";
 import type { ConexaoInter } from "@/components/financeiro/Inter";
 import { AvisoContasRepetidas, ResumoExtrato } from "@/components/financeiro/ResumoExtrato";
-import { contasRepetidas, semRepetidos, TIPOS_LANC, tipoLancamento, transferenciasInternas, type TipoLanc } from "@/lib/extratoTipos";
+import { contasRepetidas, semRepetidos, textoAbertura, TIPOS_LANC, tipoLancamento, transferenciasInternas, type TipoLanc } from "@/lib/extratoTipos";
 
 export type ContaBancaria = {
   id: string; unidade_id: string; nome: string; banco: string; agencia: string | null; numero: string | null; tipo: string;
@@ -29,6 +29,9 @@ export type ContaBancaria = {
   extrato_remetentes?: string[];
   /** selo no cartão da conta (ex.: de quem é a conta) */
   etiqueta?: string | null;
+  /** quando a conta foi aberta (desde quando deve haver extrato); só o ano se aberta_em_so_ano */
+  aberta_em?: string | null;
+  aberta_em_so_ano?: boolean;
 };
 type Lancamento = {
   id: string; conta_bancaria_id: string; data: string; valor: number; descricao: string | null; documento: string | null;
@@ -268,6 +271,7 @@ export default function Conciliacao() {
                         <dt>Banco em {dataBR(s.informadoData)}</dt><dd>{brl(s.informado)}{difBanco ? " ≠" : " ✓"}</dd>
                       </div>
                     )}
+                    {b.aberta_em && <div className="flex justify-between gap-2 text-slate-500"><dt>Aberta em</dt><dd>{textoAbertura(b.aberta_em, b.aberta_em_so_ano)}</dd></div>}
                     <div className="flex justify-between gap-2 text-slate-500"><dt>Pendentes</dt><dd className={s.pendentes ? "font-semibold text-amber-700" : ""}>{s.pendentes}</dd></div>
                   </dl>
                 </button>
@@ -443,6 +447,12 @@ export function ContaBancariaModal({ conta, onClose }: { conta: Partial<ContaBan
         <Field label="Conta"><input className="input" value={c.numero ?? ""} onChange={(e) => setC({ ...c, numero: e.target.value })} placeholder="ajuda a reconhecer o arquivo OFX" /></Field>
         <Field label="Saldo inicial"><input className="input" type="number" step="0.01" value={c.saldo_inicial ?? 0} onChange={(e) => setC({ ...c, saldo_inicial: Number(e.target.value) })} /></Field>
         <Field label="Saldo em (data)"><input className="input" type="date" value={c.saldo_inicial_data ?? ""} onChange={(e) => setC({ ...c, saldo_inicial_data: e.target.value })} required /></Field>
+        <Field label={c.aberta_em_so_ano ? "Aberta em (ano)" : "Aberta em"}>
+          {c.aberta_em_so_ano
+            ? <input className="input" type="number" min={1990} max={2100} value={c.aberta_em?.slice(0, 4) ?? ""} onChange={(e) => setC({ ...c, aberta_em: e.target.value ? `${e.target.value}-01-01` : null })} placeholder="ex.: 2023" />
+            : <input className="input" type="date" value={c.aberta_em ?? ""} onChange={(e) => setC({ ...c, aberta_em: e.target.value || null })} />}
+        </Field>
+        <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={c.aberta_em_so_ano ?? false} onChange={(e) => setC({ ...c, aberta_em_so_ano: e.target.checked })} /> Só sei o ano</label>
         <p className="text-xs text-slate-500 sm:col-span-2">O saldo inicial é o saldo do banco no fim do dia anterior ao primeiro lançamento que você vai importar.</p>
         <Field label="Extrato por e-mail: remetentes autorizados" className="sm:col-span-2">
           <input className="input" value={remetentes} onChange={(e) => setRemetentes(e.target.value)} placeholder="ex.: nubank.com.br, seu-email@gmail.com" autoComplete="off" />

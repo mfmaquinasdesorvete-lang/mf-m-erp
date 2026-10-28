@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contasRepetidas, ehCombustivel, esferaImposto, estabelecimento, funcionarioDoLancamento, origemTarifa, resumoPorMes, resumoPorTipo, tipoLancamento, transferenciasInternas } from "../extratoTipos";
+import { contasRepetidas, ehCombustivel, esferaImposto, estabelecimento, funcionarioDoLancamento, origemTarifa, resumoPorMes, resumoPorTipo, textoAbertura, tipoLancamento, transferenciasInternas } from "../extratoTipos";
 
 describe("tipoLancamento", () => {
   it("entradas", () => {
@@ -95,5 +95,14 @@ describe("transferenciasInternas", () => {
       { id: "e3", conta_bancaria_id: "B", data: "2026-10-09", valor: 300 }, // longe demais
     ];
     expect([...transferenciasInternas(l)].sort()).toEqual(["e1", "s1"]);
+  });
+});
+
+describe("textoAbertura", () => {
+  it("data completa, só o ano e vazio", () => {
+    expect(textoAbertura("2023-09-27")).toBe("27/09/2023");
+    expect(textoAbertura("2023-01-01", true)).toBe("2023");
+    expect(textoAbertura(null)).toBeNull();
+    expect(textoAbertura("")).toBeNull();
   });
 });
