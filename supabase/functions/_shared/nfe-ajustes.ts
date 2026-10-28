@@ -7,6 +7,8 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export type AjustesNfe = {
   itens?: { id: string; descricao?: string; quantidade?: number; valor_unitario?: number }[];
   desconto?: number; frete?: number; informacoes?: string;
+  /** transportadora e modalidade do frete da nota (escolhidas na tela Conferir a NF-e; null = sem transportadora) */
+  transportadora_id?: string | null; modalidade_frete?: number;
   /** obrigatório quando a nota fica menor que o pedido (só os casos que a lei permite) */
   motivo?: string;
 };

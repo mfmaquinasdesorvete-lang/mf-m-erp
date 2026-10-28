@@ -830,7 +830,8 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
     // o que veio junto da lista (contas, envios, transportadora) não é campo do pedido
     const { itens, cliente: _c, notas: _n, contas: _cr, envios: _en, transportadora: _tr, numero: _num, valor_produtos: _vp, valor_total: _vt, created_at: _ca,
       proposta_token: _pt, proposta_status: _ps, proposta_enviada_em: _pe, proposta_visualizada_em: _pv, proposta_respondida_em: _pr,
-      proposta_validade: _pval, proposta_resposta_nome: _pn, desconto_aprovado_pct: _dap, desconto_aprovado_por: _dapp, desconto_aprovado_em: _dae, ...cab } = p as any;
+      proposta_validade: _pval, proposta_resposta_nome: _pn, desconto_aprovado_pct: _dap, desconto_aprovado_por: _dapp, desconto_aprovado_em: _dae,
+      __clone: _clone, __acao: _acao, ...cab } = p as any; // __clone e __acao são marcas da tela (clonar, ação do menu), não colunas
     const dados = limpar({
       ...cab,
       parcelas: Number(cab.parcelas), intervalo_dias: Number(cab.intervalo_dias),

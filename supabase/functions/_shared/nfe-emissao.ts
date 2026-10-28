@@ -6,6 +6,7 @@
 import { json } from "./cors.ts";
 import { preencherTextoNfe, type CamposNfe } from "./textoNfe.ts";
 import { HttpError, onlyDigits } from "./supabase.ts";
+import { transportadorNfe } from "./nfe-transportador.ts";
 import { type AliquotasUf, type ConfigIbsCbs, type ItemBase, itemDoCadastro, itensTransferencia, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
 import { codigoUnidade, focusProducao } from "./focusnfe.ts";
@@ -81,7 +82,7 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
   const [{ data: cfg }, { data: pedido }, { data: ufsLista }] = await Promise.all([
     db.from("configuracoes").select("*").eq("id", 1).single(),
     db.from("pedidos")
-      .select("*, unidade:unidades(*), cliente:clientes(*), itens:pedido_itens(*, produto:produtos(*))")
+      .select("*, unidade:unidades(*), cliente:clientes(*), itens:pedido_itens(*, produto:produtos(*)), transportadora:transportadoras(nome, cnpj, inscricao_estadual, logradouro, numero, bairro, municipio, uf)")
       .eq("id", pedidoId)
       .single(),
     db.from("icms_uf").select("*"),
@@ -90,6 +91,18 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
   try { pedido.itens = aplicarAjustes(pedido.itens, ajustes); } catch (e) { throw new HttpError(400, (e as Error).message); }
   if (ajustes?.desconto != null) { if (!(Number(ajustes.desconto) >= 0)) throw new HttpError(400, "desconto inválido"); pedido.desconto = Number(ajustes.desconto); }
   if (ajustes?.frete != null) { if (!(Number(ajustes.frete) >= 0)) throw new HttpError(400, "frete inválido"); pedido.frete = Number(ajustes.frete); }
+  if (ajustes?.modalidade_frete != null) {
+    if (![0, 1, 2, 3, 4, 9].includes(Number(ajustes.modalidade_frete))) throw new HttpError(400, "modalidade do frete inválida");
+    pedido.modalidade_frete = Number(ajustes.modalidade_frete);
+  }
+  if (ajustes && "transportadora_id" in ajustes) {
+    pedido.transportadora = null;
+    if (ajustes.transportadora_id) {
+      const { data: t } = await db.from("transportadoras").select("nome, cnpj, inscricao_estadual, logradouro, numero, bairro, municipio, uf").eq("id", ajustes.transportadora_id).maybeSingle();
+      if (!t) throw new HttpError(400, "transportadora não encontrada");
+      pedido.transportadora = t;
+    }
+  }
   const { data: existentes } = await db.from("notas_fiscais").select("status, ambiente, valor_total").eq("pedido_id", pedidoId);
   const fat = faturamentoDoPedido(Number(pedido.valor_total), existentes ?? []);
   if (fat.emAndamento) throw new HttpError(400, "pedido já possui NF-e em processamento: aguarde a resposta da SEFAZ");
@@ -158,6 +171,7 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
     telefone_destinatario: onlyDigits(c.telefone || c.whatsapp) || undefined,
     email_destinatario: c.email || undefined,
     modalidade_frete: pedido.modalidade_frete,
+    ...transportadorNfe(pedido.modalidade_frete, pedido.transportadora),
     informacoes_adicionais_contribuinte: (ajustes?.informacoes != null
       ? [ajustes.informacoes.trim(), observacoes(usadas)]
       : [`Pedido #${pedido.numero}`, pedido.observacoes, observacoes(usadas), preencherTextoNfe(u.informacoes_complementares, camposDoPedido(pedido))]).filter(Boolean).join(" - "),

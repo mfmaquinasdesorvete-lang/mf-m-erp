@@ -14,6 +14,7 @@ import { faturamentoDoPedido, MOTIVOS_NOTA_MENOR, problemaIeDestinatario } from 
 type Item = { id: string; descricao: string; quantidade: number; valor_unitario: number; numero_serie?: string | null };
 type PedidoNfe = {
   id: string; numero: number; valor_total: number; desconto: number; frete: number; observacoes: string | null;
+  transportadora_id?: string | null; modalidade_frete?: number | null;
   cliente?: { nome: string; nome_fantasia?: string | null; cpf_cnpj: string | null; inscricao_estadual: string | null; contribuinte_icms: number | null; tipo_pessoa: string | null } | null; unidade?: { informacoes_complementares?: string | null; telefone?: string | null; whatsapp?: string | null } | null; vendedor?: string | null; forma_pagamento?: string | null; itens: Item[];
 };
 
@@ -31,6 +32,10 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
   const [desconto, setDesconto] = useState("0");
   const [frete, setFrete] = useState("0");
   const [info, setInfo] = useState("");
+  // transportadora da nota (28/10: não dava para pôr a transportadora na nota): vem do pedido e dá para trocar aqui
+  const [transportadoras, setTransportadoras] = useState<{ id: string; nome: string; nome_fantasia: string | null }[]>([]);
+  const [transportadora, setTransportadora] = useState("");
+  const [modalidade, setModalidade] = useState(9);
   const [enviando, setEnviando] = useState(false);
   const [motivo, setMotivo] = useState("");
   // entrega parcial: o que já tem NF-e autorizada; esta nota é do restante
@@ -41,7 +46,9 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
       if (error) return notifyError(error);
       setJaEmitido(faturamentoDoPedido(0, data ?? []).jaEmitido);
     });
-    supabase.from("pedidos").select("id, numero, valor_total, desconto, frete, observacoes, vendedor, forma_pagamento, cliente:clientes(nome, nome_fantasia, cpf_cnpj, inscricao_estadual, contribuinte_icms, tipo_pessoa), unidade:unidades(informacoes_complementares, telefone, whatsapp), " +
+    supabase.from("transportadoras").select("id, nome, nome_fantasia").eq("ativo", true).is("unificado_em", null).order("nome")
+      .then(({ data }) => setTransportadoras((data ?? []) as { id: string; nome: string; nome_fantasia: string | null }[]));
+    supabase.from("pedidos").select("id, numero, valor_total, desconto, frete, observacoes, transportadora_id, modalidade_frete, vendedor, forma_pagamento, cliente:clientes(nome, nome_fantasia, cpf_cnpj, inscricao_estadual, contribuinte_icms, tipo_pessoa), unidade:unidades(informacoes_complementares, telefone, whatsapp), " +
       "itens:pedido_itens(id, descricao, quantidade, valor_unitario, numero_serie)").eq("id", pedidoId).single()
       .then(({ data, error }) => {
         if (error) return notifyError(error);
@@ -50,6 +57,8 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
         setItens(d.itens.map((i) => ({ id: i.id, descricao: i.descricao, quantidade: String(i.quantidade), valor: String(i.valor_unitario).replace(".", ",") })));
         setDesconto(String(d.desconto ?? 0).replace(".", ","));
         setFrete(String(d.frete ?? 0).replace(".", ","));
+        setTransportadora(d.transportadora_id ?? "");
+        setModalidade(d.modalidade_frete ?? 9);
         setInfo([`Pedido #${d.numero}`, d.observacoes, preencherTextoNfe(d.unidade?.informacoes_complementares, camposDoPedido(d))].filter(Boolean).join(" - "));
       });
   }, [pedidoId]);
@@ -76,6 +85,7 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
       const ajustes = {
         itens: itens.map((i) => ({ id: i.id, descricao: i.descricao.trim(), quantidade: num(i.quantidade), valor_unitario: num(i.valor) })),
         desconto: num(desconto), frete: num(frete), informacoes: info, motivo: menor ? motivo : undefined,
+        transportadora_id: transportadora || null, modalidade_frete: modalidade,
       };
       await callFunction("nfe-emitir", { pedido_id: p.id, ajustes });
       notify("NF-e enviada para a SEFAZ. Acompanhe em Notas fiscais.");
@@ -120,6 +130,22 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
               <span className="block text-xs font-bold uppercase tracking-wide text-slate-500">Total da nota</span>
               <span className="text-xl font-extrabold text-fg">{brl(total)}</span>
             </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Frete por conta de">
+              <select className="input" value={modalidade} onChange={(e) => setModalidade(Number(e.target.value))}>
+                <option value={0}>Remetente (MF paga o frete)</option>
+                <option value={1}>Destinatário (cliente paga o frete)</option>
+                <option value={2}>Terceiros</option>
+                <option value={9}>Sem frete (retira)</option>
+              </select>
+            </Field>
+            <Field label="Transportadora (sai na nota)">
+              <select className="input" value={transportadora} onChange={(e) => { setTransportadora(e.target.value); if (e.target.value && modalidade === 9) setModalidade(0); }} disabled={modalidade === 9}>
+                <option value="">{modalidade === 9 ? "Sem frete" : "Escolha…"}</option>
+                {transportadoras.map((t) => <option key={t.id} value={t.id}>{t.nome_fantasia || t.nome}</option>)}
+              </select>
+            </Field>
           </div>
           <Field label="Informações complementares (vão impressas na nota)">
             <textarea className="input min-h-[70px]" value={info} onChange={(e) => setInfo(e.target.value)} />
