@@ -44,10 +44,10 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Pagamentos de um prestador esperam a planilha do Tiny (TIN).
 - Compras: apertar "Chegou" nas OCs #244, #247 e #248 (treino; fecha o teste da OC até o estoque).
 - Compras sem OC paradas em "item sem produto" (MadeiraGreen, VTK, Frigelar, ND Distribuidora, 26-28/10): ligar o item ao produto ou marcar uso e consumo (Conferir itens das notas).
-- 3 paquímetros com calibração vencida: calibrar ou inativar (aviso "Tem coisa parada", 28/10).
 - São Miguel: pedir à transportadora o EDI OCOREN ou a API de rastreio (TRA), ou importar a planilha de CT-e do portal.
 
 ## Decisões da usuária
+- 28/10: os 3 paquímetros digitais com calibração vencida ficam inativos até segunda ordem (inativados, com o motivo na observação).
 - "Produção" fica na área Fábrica e estoque, depois de Produtos e estoque; o quadro antigo de contas a pagar (KanbanPagar) foi apagado (REV, 27/10).
 - Tela com período abre em "Esta semana" (27/10, pelo ELO): Gastos separados e Início também. Ficam como estão: Cartão (abre no cartão tocado), Conferir itens das notas (fila do ano), Garantias e Propostas do Tiny (sem período).
 - Relatório de vendas para imprimir (botão "Relatório" em Vendas): vendas aprovadas, faturadas e entregues do período, cartões (faturamento, lucro, custo, ticket), gráfico por dia, por vendedor e a lista com total e lucro; lucro = total − frete − custo do cadastro, item sem custo marcado com * (27/10).
