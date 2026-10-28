@@ -32,6 +32,10 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   repetido CP-ELE-006 unificado no PC-MEC-021, confirmado),
   iguais ao Tiny (preço das cubas = o do pai, a confirmar com ela).
 
+- Kits com os códigos e preços do Tiny (28/10); custo dos kits = soma das peças (decisão dela, não o custo do Tiny).
+- Tubos inox dos cilindros (CP-CIL-001 açaí, CP-CIL-002 sorvete, em metro) com fornecedores, preços e contatos
+  (Vtk preferido, Jati SP, Jatinox Araucária, Krominox), 28/10.
+
 ## Em andamento
 - Rodada de fechamento (27/10): nada novo sem pedido dela; "feito" só depois de testar no ERP no ar.
 - 27/10: os pedidos antigos do assunto foram testados (select e site publicado) a pedido do CNF; o site do ERP não abre
@@ -41,6 +45,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- Custo de 3 peças que deixam kits baixos: Cubo do Redutor avulso (PC-MEC-004), Kit Corrente + 2 Engrenagens
+  (PC-MEC-008) e O-Ring Anel Preto (PC-VED-009).
 - Preço de venda das cubas GN (hoje o do pai, 158,13) e da conexão reta fêmea (hoje 6,67, igual ao custo).
 - Custo das 16 peças feitas aqui que vendemos sem custo (planilha custo_pecas_feitas_aqui.xlsx, 28/10); inclui as chaves
   5 e 7 Sabores com custo acima do preço e a Italianinha.
@@ -58,6 +64,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 - Teste com 3 fotos no padrão (fundo branco, quadrada); as fotos sem logo do Canva ficam com o MKT.
 
 ## Decisões da usuária
+- Custo de kit = soma das peças do ERP (28/10), mesmo quando o Tiny tem outro custo.
+- Chaves extratoras, rodízios, cubas GN e conexões de ar como variações, iguais ao Tiny (28/10).
 - Peça usinada: a tornearia é de fora e cobra por peça; o custo vem desse valor (sem ficha técnica por enquanto).
 - Compra à vista ou a prazo: marcada na entrada da nota (o GER põe a escolha na tela); Pix e parcelas se marcam
   sozinhos pelo XML. A formação de preço usa o custo à vista.
