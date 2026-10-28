@@ -35,11 +35,15 @@ guias e os parcelamentos que chegam na caixa do contador.
   (migrações 185 a 188, aplicadas). Tela: src/components/pedidos/OndeClientePagou.tsx; regras em
   src/lib/pagamentosCliente.ts. Montado, falta publicar e o teste real com o pedido #628.
   Orientação dada: a venda com NF menor que o pedido é subfaturamento; o ERP mostra o aviso e não ajuda a esconder.
+- Validador de NF-e na nota emitida dava "Failed to fetch" (o navegador não baixa o XML direto da Focus). Agora vem
+  pelo servidor: nfe-consultar, ação "xml" (vendas, financeiro e contador; só manda o token para a própria Focus).
+  Falta publicar o site e a função e validar uma nota emitida no ar.
 
 ## Esperando a usuária
-- Pedido #628: descartar o link de pagamento aberto (valor antigo) antes de registrar onde o cliente pagou; depois
-  registrar a NF do fornecedor paga pelo cliente e as entradas na conta da sócia que ela passou no chat.
-- Máquina da loja Yozzy paga numa NF de fornecedor: falta o valor e a data da venda para achar ou criar o pedido.
+- Pedido #628: link antigo descartado e registrados a NF do fornecedor paga pelo cliente e as entradas na conta da
+  sócia (28/10). Falta ela dizer onde foi pago o restante.
+- NF de compra paga por uma loja Yozzy (material da montagem da loja toda, não de máquina): observação interna na NF,
+  custo da loja passado ao SOR. Contador: compra em nome da MF paga por terceiro (venda ou remessa do material à loja).
 - Filial SP, série 1: os números 2 e 3 (05/2026) foram usados fora do ERP (contabilidade); a contabilidade pôs o
   próximo número na Focus em 399 (a NF 399 saiu em 28/10). Inutilizar 4 a 398 (e o 1, se não foi usado) pelo ERP
   (Notas fiscais → Inutilizar numeração) até 10/11/2026, e pedir os XML das notas 1 a 3 para o ERP.

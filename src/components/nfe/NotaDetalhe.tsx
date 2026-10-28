@@ -215,9 +215,8 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
       {janela === "marcadores" && <AplicarMarcadores tabela="notas_fiscais" notas={[n]} onClose={() => setJanela(null)} />}
       {janela === "validar" && <ValidarNfe situacaoErp={n.status === "cancelada" ? "cancelada" : null} onClose={() => setJanela(null)} obterXml={async () => {
         if (importada) return (await supabase.from("notas_fiscais_xml").select("xml").eq("nota_id", n.id).maybeSingle()).data?.xml ?? null;
-        const r = await fetch(n.xml_url!);
-        if (!r.ok) throw new Error(`Não deu para baixar o XML da Focus (${r.status}).`);
-        return r.text();
+        // pelo servidor: o navegador não baixa direto da Focus (dava "Failed to fetch")
+        return ((await callFunction("nfe-consultar", { acao: "xml", nota_id: n.id })) as { xml?: string })?.xml ?? null;
       }} />}
       {janela === "carta" && <CartaCorrecaoModal nota={n} onClose={() => setJanela(null)} />}
       {janela === "devolucao" && <DevolucaoModal origem={{ tipo: "emitida", id: n.id }} onClose={() => { setJanela(null); onClose(); }} />}
