@@ -3537,6 +3537,22 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     }).filter(Boolean).sort((a, b) => String(b!.data).localeCompare(String(a!.data)));
     return { data: linhas.slice(0, Number(p_limite) || 50), error: null };
   },
+  dossie_empresa: ({ p_unidade, p_desde }) => {
+    const conta = new Map<string, { mes: string; tipo: string; qtd: number; completos: number }>();
+    const somar = (mes: unknown, tipo: string, ok = true) => {
+      const m = String(mes ?? "").slice(0, 7);
+      if (!/^\d{4}-\d{2}$/.test(m) || (p_desde && m < String(p_desde).slice(0, 7))) return;
+      const x = conta.get(`${m}|${tipo}`) ?? { mes: m, tipo, qtd: 0, completos: 0 };
+      x.qtd++; if (ok) x.completos++;
+      conta.set(`${m}|${tipo}`, x);
+    };
+    for (const n of db.notas_fiscais) if (n.unidade_id === p_unidade && ["autorizada", "cancelada"].includes(n.status) && (n.tipo_operacao ?? "saida") === "saida") somar(n.created_at, "nfe_emitidas");
+    for (const r of db.nfe_recebidas ?? []) if (r.unidade_id === p_unidade && !r.excluida_em) somar(r.data_emissao, "nfe_recebidas", !!r.nfe_completa);
+    for (const c of db.contas_pagar) if (c.unidade_id === p_unidade && ["impostos", "folha"].includes(c.categoria) && c.status !== "cancelado") somar(c.competencia ?? c.vencimento, c.categoria === "impostos" ? "guias" : "folha", c.status === "pago");
+    const contas = new Set((db.contas_bancarias ?? []).filter((c) => c.unidade_id === p_unidade).map((c) => c.id));
+    for (const l of db.extrato_lancamentos ?? []) if (contas.has(l.conta_bancaria_id)) somar(l.data, `extrato:${l.conta_bancaria_id}`);
+    return { data: [...conta.values()], error: null };
+  },
   ctes_sefaz_situacao: () => ({ data: { em: quando(0), novos: 0, atualizados: 0, completos: 0, erro: null, pendentes_xml: 0,
     da_sefaz: (db.ctes ?? []).filter((c) => c.chave).length }, error: null }),
   importar_ctes: ({ p_transportadora, p_linhas, p_arquivo }) => {

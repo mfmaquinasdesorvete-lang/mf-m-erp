@@ -60,10 +60,13 @@ async function gerar(db: Db, competencia: string, unidadeId: string) {
   const arquivos: Record<string, Uint8Array> = {};
   const faltando: string[] = [];
 
-  // NF-e emitidas no mês (autorizadas e canceladas)
-  const { data: notas } = await db.from("notas_fiscais")
+  // NF-e emitidas no mês (autorizadas e canceladas), pela data de emissão do XML: nota antiga importada cai no mês dela
+  const { data: idsDoMes, error: erroIds } = await db.rpc("notas_emitidas_no_mes", { p_unidade: unidadeId, p_competencia: competencia });
+  if (erroIds) throw erroIds;
+  const ids = (idsDoMes ?? []) as string[];
+  const { data: notas } = !ids.length ? { data: [] } : await db.from("notas_fiscais")
     .select("id, numero, serie, chave, status, valor_total, created_at, xml_url, danfe_url, resposta, payload, destinatario_nome, destinatario_doc, tipo_operacao, pedido:pedidos(numero, cliente:clientes(nome, cpf_cnpj, uf)), importado:notas_fiscais_xml(xml, xml_cancelamento)")
-    .eq("unidade_id", unidadeId).gte("created_at", ini).lt("created_at", fim).in("status", ["autorizada", "cancelada"]).neq("ambiente", "homologacao")
+    .in("id", ids).in("status", ["autorizada", "cancelada"]).neq("ambiente", "homologacao")
     .is("excluida_em", null);
   const cfops = new Map<string, { base: number; icms: number; ipi: number; pis: number; cofins: number; valor: number; n: number }>();
   for (const n of notas ?? []) {

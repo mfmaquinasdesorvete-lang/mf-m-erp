@@ -1,5 +1,5 @@
 # MEMORY — FIS (ERP Line – Fiscal e contábil)
-Atualizado em 28/10/2026 (caixa do contador ligada no ERP).
+Atualizado em 28/10/2026 (Dossiê da empresa).
 
 ## Estado agora
 A emissão da NF-e, o DIFAL, as certidões e a previsão de imposto por máquina estão no ar. O que falta depende
@@ -20,6 +20,11 @@ guias e os parcelamentos que chegam na caixa do contador.
 ## Em andamento
 - NF-e do restante do pedido (entrega parcial) e cartão de vendas sem as transferências: no ar (e529b35, c289b2c).
   Falta o teste real: emitir a NF do restante de um pedido com entrega parcial; só então "feito" no checklist.
+
+- Dossiê da empresa (pedido de 28/10 pelo ELO, histórico da MF SC desde a abertura): tela no Painel do contador
+  (aba Dossiê; lib/dossie.ts; função dossie_empresa; unidades.aberta_em) e o pacote do contador agora pega a NF-e
+  pelo mês de emissão do XML (notas_emitidas_no_mes). Montado, falta publicar e testar no ar. Depois: lista do que
+  falta com o FAZ, importar o que chegar (TIN, GER, ENT).
 
 ## Esperando a usuária
 Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de risco"):
@@ -49,7 +54,7 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
 - Funcionários (RH) é o chat FUN; a folha fiscal (eSocial, INSS, FGTS, DCTFWeb) fica no FIS.
 
 ## Onde está
-- Telas: src/components/contador/Certidoes.tsx, src/components/produtos/ImpostosVenda.tsx,
+- Telas: src/components/contador/Certidoes.tsx, src/components/contador/Dossie.tsx, src/components/produtos/ImpostosVenda.tsx,
   src/components/fiscal/DifalPorEstado.tsx, src/components/nfe/NotasConsertoOS.tsx, src/pages/AnalistaFiscal.tsx.
 - Regras: src/lib/certidoes.ts, src/lib/impostoMaquina.ts, src/lib/difal.ts, src/lib/consertoOS.ts.
 - Cálculo da nota: supabase/functions/_shared/nfe-impostos.ts (itensVenda, regraAplicavel).

@@ -202,3 +202,6 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
 179. `20261027120346_certidoes_indice_unidade.sql` (índice em `certidoes.unidade_id`, a chave estrangeira da unidade; achado da auditoria do REV)
 180. `20261027120543_frete_indices.sql` (índices das chaves estrangeiras de `frete_consultas` (cliente, pedido, unidade) e `frete_tabelas` (unidade), achados na auditoria de 27/10)
 181. `20261101000183_auditor_diario.sql` (Auditor financeiro: rodada diária às 07:03 de Brasília pela função `auditor-diario`, só leitura dos dados; grava a rodada em `auditor_rodadas` e cada achado em `auditor_achados` pela chave, para não repetir; o FAZ lê a última rodada)
+182. `20261028085444_dossie_empresa.sql` (Painel do contador → Dossiê da empresa: `dossie_empresa(unidade, desde)` conta, mês a mês, NF-e emitidas e recebidas (com XML), NFS-e, CT-e, guias, folha, obrigações, fechamento e extrato de cada conta; só leitura, security invoker)
+183. `20261028085530_unidades_aberta_em.sql` (`unidades.aberta_em`: data de abertura da unidade, início do Dossiê da empresa)
+184. `20261028085712_notas_emitidas_no_mes.sql` (`notas_emitidas_no_mes(unidade, competência)`: as NF-e emitidas do mês pela data de emissão do XML; o pacote do contador usa, para a nota antiga importada cair no mês certo)
