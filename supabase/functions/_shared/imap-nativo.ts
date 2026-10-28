@@ -169,9 +169,25 @@ export class ImapNativo {
     return [...new Set(uids)].sort((a, b) => a - b);
   }
 
-  /** Mensagens inteiras (o e-mail original) de um intervalo, por UID ou pela posição na caixa. */
-  async buscar(intervalo: string, porUid: boolean): Promise<Mensagem[]> {
-    const r = await this.comando(`${porUid ? "UID " : ""}FETCH ${intervalo} (UID BODY.PEEK[])`);
+  /** Tamanho (bytes) de cada e-mail, por UID, sem baixar o conteúdo. */
+  async tamanhos(uids: number[]): Promise<Map<number, number>> {
+    const out = new Map<number, number>();
+    if (!uids.length) return out;
+    const r = await this.comando(`UID FETCH ${uids.join(",")} (UID RFC822.SIZE)`);
+    if (r.status !== "OK") throw new ErroImap(`não consegui ler o tamanho dos e-mails: ${r.texto}`, "FetchFailed", { responseText: r.texto });
+    for (const { linha } of r.linhas) {
+      const uid = Number(linha.match(/UID (\d+)/i)?.[1] ?? 0), tam = linha.match(/RFC822\.SIZE (\d+)/i)?.[1];
+      if (uid && tam) out.set(uid, Number(tam));
+    }
+    return out;
+  }
+
+  /**
+   * Mensagens de um intervalo, por UID ou pela posição na caixa: o e-mail original inteiro, ou só o cabeçalho
+   * (`soCabecalho`, para e-mail grande demais para ler na função).
+   */
+  async buscar(intervalo: string, porUid: boolean, soCabecalho = false): Promise<Mensagem[]> {
+    const r = await this.comando(`${porUid ? "UID " : ""}FETCH ${intervalo} (UID BODY.PEEK[${soCabecalho ? "HEADER" : ""}])`);
     if (r.status !== "OK") throw new ErroImap(`não consegui buscar os e-mails: ${r.texto}`, "FetchFailed", { responseText: r.texto });
     const out: Mensagem[] = [];
     for (const { linha, literais } of r.linhas) {

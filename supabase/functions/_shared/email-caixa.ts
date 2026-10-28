@@ -13,6 +13,12 @@ export type Conta = {
 };
 
 const LOTE = 50;
+// A função tem pouco tempo de CPU por chamada: lê poucos e-mails por rodada e grava até onde chegou depois de cada um
+// (28/10: a conta nova do Gmail tentava ler 50 de uma vez, estourava o limite e recomeçava do zero a cada 5 minutos).
+const POR_RODADA = 10;
+const BYTES_RODADA = 6_000_000;
+/** E-mail maior que isto entra só com o cabeçalho (assunto, remetente, data); os anexos ficam no servidor. */
+const GRANDE = 8_000_000;
 
 /** Leitura da caixa por IMAP com SSL (porta 993). A ImapFlow perde a conexão com a Hostinger no runtime do Supabase. */
 export function imap(c: Pick<Conta, "imap_host" | "imap_porta">) {
@@ -81,15 +87,14 @@ export async function sincronizarConta(db: SupabaseClient, conta: Conta) {
       await cli.sair();
       return 0;
     }
-    // primeira vez: os últimos LOTE e-mails; depois: os próximos LOTE UIDs depois do último lido
-    const lidos = primeiraVez
-      ? await cli.buscar(`${Math.max(1, caixa.exists - LOTE + 1)}:*`, false)
-      : await (async () => {
-        const uids = (await cli.uidsDesde(ultimo + 1)).slice(0, LOTE);
-        return uids.length ? await cli.buscar(uids.join(","), true) : [];
-      })();
-    const mensagens = lidos.filter((m) => m.uid > ultimo).sort((a, b) => a.uid - b.uid).slice(0, LOTE);
-    await cli.sair();
+    // primeira vez: os últimos LOTE e-mails; depois: os seguintes ao último lido. Os já gravados não são lidos de novo.
+    const desde = await cli.uidsDesde(primeiraVez ? 1 : ultimo + 1);
+    const pendentes = (primeiraVez ? desde.slice(-LOTE) : desde).filter((u) => u > ultimo).slice(0, LOTE);
+    const { data: jaGravados } = pendentes.length
+      ? await db.from("emails").select("uid").eq("conta_id", conta.id).in("uid", pendentes)
+      : { data: [] as { uid: number }[] };
+    const gravados = new Set((jaGravados ?? []).map((e) => Number(e.uid)));
+    const tamanhos = await cli.tamanhos(pendentes.filter((u) => !gravados.has(u)).slice(0, POR_RODADA));
 
     // clientes e fornecedores pelo e-mail do remetente
     const [{ data: clientes }, { data: fornecedores }] = await Promise.all([
@@ -99,11 +104,24 @@ export async function sincronizarConta(db: SupabaseClient, conta: Conta) {
     const porEmail = (lista: { id: string; email: string }[] | null, e: string) =>
       (lista ?? []).find((x) => x.email?.trim().toLowerCase() === e)?.id ?? null;
 
-    for (const m of mensagens) {
+    const guardarAte = (uid: number) =>
+      db.from("email_contas").update({ ultimo_uid: uid, uid_validade: validade }).eq("id", conta.id);
+    const recente = Date.now() - 2 * 86_400_000;   // aviso de e-mail novo só do que chegou nos últimos 2 dias
+    let lidosNaRodada = 0, bytes = 0;
+    for (const uid of pendentes) {
+      if (gravados.has(uid)) { ultimo = uid; continue; }
+      if (lidosNaRodada >= POR_RODADA || bytes >= BYTES_RODADA) break;   // o resto fica para a próxima rodada
+      const grande = (tamanhos.get(uid) ?? 0) > GRANDE;
+      const [m] = await cli.buscar(String(uid), true, grande);
+      lidosNaRodada++;
+      if (!m) { ultimo = uid; await guardarAte(ultimo); continue; }   // apagado no servidor entre a lista e a leitura
+      bytes += m.source.length;
       const p = await simpleParser(Buffer.from(m.source));
       const de = p.from?.value?.[0];
       const deEmail = (de?.address ?? "").toLowerCase();
-      const texto = (p.text ?? "").slice(0, 100_000);
+      const texto = grande
+        ? `E-mail grande (${Math.round((tamanhos.get(uid) ?? 0) / 1_000_000)} MB): o ERP guardou só o assunto e o remetente; abra os anexos em ${conta.email}.`
+        : (p.text ?? "").slice(0, 100_000);
       type Anexo = { indice: number; nome: string; tipo: string; tamanho: number; nfe: boolean; extrato: boolean };
       const ofx: AnexoOfx[] = [];
       const anexos: Anexo[] = (p.attachments ?? []).map((a: any, i: number): Anexo => {
@@ -122,7 +140,7 @@ export async function sincronizarConta(db: SupabaseClient, conta: Conta) {
         anexos, cliente_id: porEmail(clientes, deEmail), fornecedor_id: porEmail(fornecedores, deEmail),
       }, { onConflict: "conta_id,uid", ignoreDuplicates: true }).select("id");
       const emailId = gravado?.[0]?.id as string | undefined;
-      if (!error) {
+      if (!error && gravado?.length && (p.date?.getTime() ?? Date.now()) >= recente) {
         novos++;
         resumo.push({ de: de?.name || deEmail, assunto: p.subject ?? "" });
       }
@@ -136,13 +154,15 @@ export async function sincronizarConta(db: SupabaseClient, conta: Conta) {
         }
       }
       ultimo = Math.max(ultimo, m.uid);
+      await guardarAte(ultimo);
     }
+    await cli.sair();
 
     await db.from("email_contas").update({
       ultimo_uid: ultimo, uid_validade: validade, sincronizado_em: new Date().toISOString(), erro: null,
     }).eq("id", conta.id);
 
-    if (novos && !primeiraVez) {
+    if (novos) {
       await db.rpc("notificar", {
         p_tipo: "email", p_titulo: novos === 1 ? `Novo e-mail em ${conta.nome}` : `${novos} e-mails novos em ${conta.nome}`,
         p_texto: resumo.slice(-2).map((r) => `${r.de}: ${r.assunto}`).join(" · ").slice(0, 300), p_link: "/email", p_papeis: conta.papeis,
