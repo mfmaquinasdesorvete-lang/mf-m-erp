@@ -35,7 +35,7 @@ A base da My Frost (empresa anterior) passou para o MYF em 23/10.
   fim de setembro, contas a pagar até 20/10 e os recebimentos do Tiny nunca foram buscados.
 
 ## Esperando a usuária
-- Ver no Tiny a situação de 10 NF de saída sem XML (96, 101, 132, 203, 255, 278, 318, 360, 393, 426; a 255 é o pedido 418,
+- Ver no Tiny a situação de 10 NF de saída sem XML (96, 101, 132, 203, 255, 278, 318, 360, 393, 426; a 255 é o pedido 415 do ERP (418 no Tiny),
   sem NF autorizada). Auditoria de 28/10: os 386 XML de saída de 2023 a 2026 estão todos no ERP. Avisei o FIS, que confere
   também 16 números sem nota (inutilização).
 - Exportar do Tiny, antes de cancelar: NFS-e emitidas (se houver), os anexos e a NF de entrada de 01/2025 que falta.
