@@ -48,7 +48,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
-- Preço do Kit Pá Agitadora + Sanfona (PC-KIT-018, hoje 187,60 = soma dos avulsos) e 18 sugestões de preço que sobem.
+- Preço e foto do Kit Pá Agitadora + Sanfona (PC-KIT-018, hoje 187,60 = soma dos avulsos; sem foto e fora do catálogo;
+  quando tiver os dois, marcar no catálogo e avisar o MKT para o anúncio) e 18 sugestões de preço que sobem.
 - Custo do Disjuntor WEG MDW 25 A 4 polos (CP-ELE-010): não achado nas NF da My Frost no e-mail (só MDW-C 20 e 40 A da
   WEG, 2020; 40 A 4 polos a 53,30). Plugue 3P+T gravado a 58,86 (NF Alfatronic 22/11/2022).
 - Preço de venda da Sanfona (Tiny 47,60 × ERP 37,60) e do Separador do Cubo (Tiny 75 × ERP 91); O-Ring do dosador no
