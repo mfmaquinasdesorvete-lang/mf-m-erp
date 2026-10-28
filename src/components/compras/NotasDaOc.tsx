@@ -1,12 +1,13 @@
 // Ordem de compra → notas fiscais do fornecedor: as ligadas (com a baixa feita ou a fazer) e as do mesmo fornecedor
 // para ligar. Daqui o financeiro, o Compras e o técnico (que compra peças) ligam a nota e dão baixa na OC pela nota.
 // O técnico não vê o valor das notas. O estoque entra pela nota (Notas fiscais); a baixa só soma o recebido na OC.
+// Nota a caminho: "Chegou" aqui mesmo põe no estoque e baixa a OC (pedido de 28/10).
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, FileText, Link2, PackageCheck, Unlink } from "lucide-react";
+import { CheckCircle2, FileText, Link2, PackageCheck, RefreshCw, Truck, Unlink } from "lucide-react";
 import { Button } from "@/components/ui";
 import { confirmar } from "@/components/Dialogos";
-import { supabase } from "@/lib/supabase";
+import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { useInvalidate } from "@/lib/data";
 import { brl, dataBR, pl } from "@/lib/format";
@@ -23,17 +24,35 @@ type NotaOc = {
     produto_id: string | null; fator: number }[];
 };
 
+/** Notas do fornecedor para a OC (ligadas e para ligar); o mesmo cache serve a OC (esconde "Receber sem nota"). */
+export function useNotasDaOc(pedidoId: string | undefined, ativo = true) {
+  return useQuery({
+    queryKey: ["notas_para_oc", pedidoId],
+    enabled: !!pedidoId && ativo,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("notas_para_oc", { p_pedido: pedidoId });
+      if (error) throw error;
+      return (data ?? []) as NotaOc[];
+    },
+  });
+}
+
 export function NotasDaOc({ pedido, onBaixa }: { pedido: { id: string; numero: number; status: string; itens: ItemCompra[]; valor_total?: number | null }; onBaixa?: () => void }) {
   const { tem } = usePerfil();
   const podeMexer = tem("financeiro", "compras", "tecnico");
   const invalidate = useInvalidate();
   const [ocupado, setOcupado] = useState(false);
-  const { data = [], error } = useQuery({
-    queryKey: ["notas_para_oc", pedido.id],
+  const { data = [], error } = useNotasDaOc(pedido.id);
+  // quem recebe compras vê se a nota ligada está a caminho ou se chegou e travou (e o motivo)
+  const podeChegou = tem("financeiro", "compras");
+  const semEntrada = data.filter((n) => n.ligada && !n.estoque_lancado).map((n) => n.id);
+  const { data: estados } = useQuery({
+    queryKey: ["nfe_recebidas", "da_oc", pedido.id, semEntrada.join(",")],
+    enabled: podeChegou && semEntrada.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("notas_para_oc", { p_pedido: pedido.id });
+      const { data, error } = await supabase.from("nfe_recebidas").select("id, processamento, processamento_msg, chegou_em").in("id", semEntrada);
       if (error) throw error;
-      return (data ?? []) as NotaOc[];
+      return new Map((data ?? []).map((e) => [e.id as string, e as { processamento: string; processamento_msg: string | null; chegou_em: string | null }]));
     },
   });
   if (error || !data.length) return null;   // sem acesso, sem nota do fornecedor ou migração ainda não aplicada
@@ -69,6 +88,21 @@ export function NotasDaOc({ pedido, onBaixa }: { pedido: { id: string; numero: n
       sim ? `NF ${n.numero} ligada à OC #${pedido.numero}` : `NF ${n.numero} desligada`);
   }
 
+  async function chegou(n: NotaOc, jaChegou: boolean) {
+    if (!jaChegou && !(await confirmar(`A mercadoria da NF ${n.numero} chegou? O estoque entra agora e a OC #${pedido.numero} é baixada.`, { ok: "Chegou" }))) return;
+    setOcupado(true);
+    try {
+      if (!jaChegou) {
+        const { error } = await supabase.rpc("marcar_chegada_compra", { p_nfe: n.id });
+        if (error) throw error;
+      }
+      const r = await callFunction<{ processamento: string; processamento_msg: string | null }>("nfe-recebidas-sync", { acao: "processar", nfe_id: n.id });
+      invalidate("notas_para_oc", "nfe_recebidas", "pedidos_compra", "produtos", "estoque_movimentos");
+      if (r.processamento === "concluido") { notify(`Chegou: estoque lançado e OC #${pedido.numero} baixada`); onBaixa?.(); }
+      else notifyError(new Error(`Chegada anotada, mas o estoque ainda não entrou: ${r.processamento_msg ?? String(r.processamento).replace(/_/g, " ")}`));
+    } catch (e) { notifyError(e); } finally { setOcupado(false); }
+  }
+
   async function baixar(n: NotaOc) {
     const { linhas, baixas } = comparar(n);
     const avisos = linhas.filter((l) => l.situacao !== "confere" || l.alerta_preco).length;
@@ -98,6 +132,8 @@ export function NotasDaOc({ pedido, onBaixa }: { pedido: { id: string; numero: n
                 ? <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"><CheckCircle2 size={13} aria-hidden /> baixa na OC feita em {dataBR(n.baixado_em)}: o estoque entrou pela nota</p>
                 : pedido.status === "recebido" && !n.estoque_lancado
                   ? <PrecoOrdem pedido={pedido} nota={n} />
+                : !n.estoque_lancado && estados?.get(n.id)
+                  ? <EntradaPendente estado={estados.get(n.id)!} ocupado={ocupado} onChegou={() => chegou(n, !!estados.get(n.id)!.chegou_em)} />
                 : !n.estoque_lancado
                   ? <p className="mt-1 text-xs text-amber-800">A entrada no estoque desta nota ainda não foi feita (Notas fiscais → a nota → Itens e custos). A baixa da OC vai junto.</p>
                   : c && (
@@ -134,6 +170,23 @@ export function NotasDaOc({ pedido, onBaixa }: { pedido: { id: string; numero: n
         </details>
       )}
     </section>
+  );
+}
+
+/** Nota ligada ainda sem estoque: a caminho (botão "Chegou") ou chegou e travou (o motivo e "Tentar de novo"). */
+function EntradaPendente({ estado, ocupado, onChegou }: { estado: { processamento: string; processamento_msg: string | null; chegou_em: string | null }; ocupado: boolean; onChegou: () => void }) {
+  const travou = !!estado.chegou_em || !["a_caminho", "pendente", "aguardando_xml"].includes(estado.processamento);
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+      <p className={`min-w-0 flex-1 text-xs [overflow-wrap:anywhere] ${travou ? "text-amber-800" : "text-slate-600"}`}>
+        {estado.chegou_em ? `Chegou em ${dataBR(estado.chegou_em)}, mas ainda não entrou no estoque: ` : travou ? "Ainda não entra no estoque sozinha: " : ""}
+        {travou ? (estado.processamento_msg ?? estado.processamento.replace(/_/g, " "))
+          : "A caminho. Quando chegar, aperte Chegou: o estoque entra e a OC é baixada."}
+      </p>
+      <Button type="button" variant={estado.chegou_em ? "secondary" : "primary"} disabled={ocupado} onClick={onChegou}>
+        {estado.chegou_em ? <><RefreshCw size={15} /> Tentar de novo</> : <><Truck size={15} /> Chegou</>}
+      </Button>
+    </div>
   );
 }
 

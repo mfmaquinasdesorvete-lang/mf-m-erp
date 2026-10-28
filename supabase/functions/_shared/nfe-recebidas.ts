@@ -6,6 +6,7 @@ import { HttpError, onlyDigits } from "./supabase.ts";
 import { ambienteParaMensagem, codigoUnidade, erroDeToken, focus, focusJson, recebidasDisponiveis } from "./focusnfe.ts";
 import { type Duplicata, type ItemNota, lerCabecalho, lerNfe } from "./nfe-xml.ts";
 import { custosAutomaticos, opcoesPadraoNota } from "./nota-custo.ts";
+import { casarItensComOc, type ItemOcCasar } from "./nfe-itens-oc.ts";
 
 export type RecebidaFocus = {
   chave_nfe: string;
@@ -127,8 +128,11 @@ export async function lancarContaPagar(db: SupabaseClient, nfe: any, duplicatas:
   return contas!.length;
 }
 
-/** Vincula os itens da nota a produtos: 1º pelo de-para do fornecedor, 2º pelo código de barras (EAN). */
-export async function vincularItens(db: SupabaseClient, fornecedorId: string | null, itens: ItemNota[]) {
+/**
+ * Vincula os itens da nota a produtos: 1º pelo de-para do fornecedor, 2º pelo código de barras (EAN), 3º pelo item da
+ * OC ligada à nota (`nfeId`; ver nfe-itens-oc.ts), marcado com `pela_oc`.
+ */
+export async function vincularItens(db: SupabaseClient, fornecedorId: string | null, itens: ItemNota[], nfeId?: string) {
   const { data: vinculos } = fornecedorId
     ? await db.from("produto_fornecedor").select("codigo_fornecedor, produto_id, fator_conversao").eq("fornecedor_id", fornecedorId)
     : { data: [] as any[] };
@@ -145,7 +149,7 @@ export async function vincularItens(db: SupabaseClient, fornecedorId: string | n
     : { data: [] as any[] };
   const mapaEan = new Map((porEan ?? []).map((p: any) => [p.codigo_barras, p.id]));
 
-  return itens.map((i) => {
+  const vinculados = itens.map((i) => {
     const v = porCodigo.get(i.codigo);
     const semEstoque = !v && foraDoEstoque.has(i.codigo);
     return {
@@ -153,8 +157,21 @@ export async function vincularItens(db: SupabaseClient, fornecedorId: string | n
       produto_id: (v?.produto_id ?? (i.ean && !semEstoque ? mapaEan.get(i.ean) : null) ?? null) as string | null,
       fator: Number(v?.fator_conversao ?? 1),
       sem_estoque: semEstoque,
+      pela_oc: false,
     };
   });
+  if (!nfeId || !vinculados.some((i) => !i.produto_id && !i.sem_estoque)) return vinculados;
+  const { data: ligacoes } = await db.from("nfe_oc_vinculos").select("pedido_compra_id").eq("nfe_id", nfeId).eq("ativo", true);
+  const ocs = (ligacoes ?? []).map((l: any) => l.pedido_compra_id);
+  if (!ocs.length) return vinculados;
+  const { data: itensOc } = await db.from("pedido_compra_itens")
+    .select("produto_id, quantidade, quantidade_recebida, codigo_fornecedor").in("pedido_compra_id", ocs).not("produto_id", "is", null);
+  const casados = casarItensComOc(
+    vinculados.map((i) => (i.produto_id || i.sem_estoque ? null : { codigo: i.codigo, quantidade: Number(i.quantidade) })),
+    (itensOc ?? []) as ItemOcCasar[],
+    vinculados.flatMap((i) => (i.produto_id ? [i.produto_id] : [])),
+  );
+  return vinculados.map((i, k) => (casados.has(k) ? { ...i, produto_id: casados.get(k)!, fator: 1, pela_oc: true } : i));
 }
 
 // Compra para revenda/industrialização/uso (vendas do fornecedor: 51xx, 54xx, 61xx, 64xx, 71xx).
@@ -229,7 +246,14 @@ export async function processarNota(db: SupabaseClient, nfe: any, cfg: Config) {
     if (cfg.conta_pagar_automatica) await lancarContaPagar(db, nfe, lido.duplicatas);
     if (!cfg.entrada_automatica_estoque) return await marcar("aguardando_vinculo", "Entrada automática desligada em Configurações.");
 
-    const itens = await vincularItens(db, nfe.fornecedor_id, lido.itens);
+    const itens = await vincularItens(db, nfe.fornecedor_id, lido.itens, nfe.id);
+    // o que casou pela OC vira de-para do fornecedor: a próxima nota dele já vem com o produto
+    const pelaOc = itens.filter((i) => i.pela_oc && i.codigo);
+    if (pelaOc.length && nfe.fornecedor_id) {
+      await db.from("produto_fornecedor").upsert(pelaOc.map((i) => ({
+        fornecedor_id: nfe.fornecedor_id, codigo_fornecedor: i.codigo, descricao_fornecedor: i.descricao, produto_id: i.produto_id, fator_conversao: 1,
+      })), { onConflict: "fornecedor_id,codigo_fornecedor", ignoreDuplicates: true });
+    }
     const semVinculo = itens.filter((i) => !i.produto_id && !i.sem_estoque);
     if (semVinculo.length) {
       return await marcar("aguardando_vinculo",

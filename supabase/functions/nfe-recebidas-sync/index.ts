@@ -82,10 +82,10 @@ Deno.serve(async (req) => {
         // nota lançada à mão (pelo DANFE, sem XML): os itens já estão nela e não há o que buscar na SEFAZ
         // (a Focus responde "documento fiscal não encontrado" para nota que não veio pela distribuição)
         if (!nfe.xml && Array.isArray(nfe.itens) && nfe.itens.length) {
-          return json({ ok: true, itens: await vincularItens(db, nfe.fornecedor_id, nfe.itens) });
+          return json({ ok: true, itens: await vincularItens(db, nfe.fornecedor_id, nfe.itens, nfe.id) });
         }
         const { itens } = await itensDaNota(db, nfe);
-        return json({ ok: true, itens: await vincularItens(db, nfe.fornecedor_id, itens) });
+        return json({ ok: true, itens: await vincularItens(db, nfe.fornecedor_id, itens, nfe.id) });
       }
 
       case "lancar_conta": {

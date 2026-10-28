@@ -114,3 +114,9 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   liga a nota à única OC enviada do mesmo fornecedor e com o mesmo total (até 2%); com mais de uma possível, só avisa.
   A lista de Compras mostra o passo por `ocs_andamento()` + `passoDaOC` (paga, nota emitida, a caminho, chegou).
   O MCP pede confirmação para `drop trigger`/`delete`: crie gatilho novo sem drop (ou peça à usuária no SQL Editor).
+- OC até o estoque sozinha (28/10, migração 191): item da nota sem produto casa com o item da OC ligada
+  (`_shared/nfe-itens-oc.ts`: código do fornecedor guardado na OC, senão quantidade única; na dúvida não casa) e vira
+  de-para em `produto_fornecedor`; `entrada_automatica_nota` dá a baixa na OC (OC recebida sem nota não entra sozinha);
+  nota ligada a OC parada em `aguardando_vinculo` volta para `pendente` (gatilho em `nfe_oc_vinculos`). A Expresso São
+  Miguel não está no SSW: a entrega dela não chega sozinha; "Chegou" fica na própria OC (Notas fiscais do fornecedor) e
+  o aviso `avisar_compras_para_chegar` (dias úteis, 16h43) lembra o que já devia ter chegado.

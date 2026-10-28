@@ -20,7 +20,7 @@ import { folhasDaFicha, pecasDaFicha } from "@/lib/fichaMontagem";
 import { useConfig } from "@/lib/useConfig";
 import { textoPadrao } from "@/lib/textosPadrao";
 import { UltimasCompras } from "@/components/compras/UltimasCompras";
-import { NotasDaOc } from "@/components/compras/NotasDaOc";
+import { NotasDaOc, useNotasDaOc } from "@/components/compras/NotasDaOc";
 import { ContasDaOc, lancarContasOc, useContasDaOc } from "@/components/compras/ContasDaOc";
 import { podeLancarOc } from "@/lib/contasOc";
 import { DadosOc, ObservacoesOc, PagamentoOc, TotaisDaOc, TransporteOc } from "@/components/compras/CamposOc";
@@ -787,6 +787,9 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
   const { unidades, padrao } = useUnidade();
   const invalidate = useInvalidate();
   const editavel = pode("editar_producao") && ["cotacao", "enviado"].includes(p.status ?? "cotacao");
+  // OC com nota do fornecedor ligada entra pela nota ("Chegou" em Notas fiscais do fornecedor): sem "Receber sem nota"
+  const { data: notasOc = [] } = useNotasDaOc(p.id, ["enviado", "parcial"].includes(p.status ?? ""));
+  const temNotaLigada = notasOc.some((n) => n.ligada);
   const fornecedor = fornecedores.find((f) => f.id === p.fornecedor_id);
   // compra nova já vem para a unidade em que se está trabalhando; dá para trocar (SC ou SP) até confirmar
   const unidadeId = (p as any).unidade_id ?? (p.id ? null : padrao);
@@ -969,7 +972,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
               <CheckCircle2 size={16} /> Confirmar pedido
             </Button>
           )}
-          {pode("receber_compras") && p.id && ["enviado", "parcial"].includes(p.status ?? "") && (
+          {pode("receber_compras") && p.id && ["enviado", "parcial"].includes(p.status ?? "") && !temNotaLigada && (
             <Button type="button" onClick={() => setReceber(true)}><PackageCheck size={16} /> Receber sem nota</Button>
           )}
         </div>
