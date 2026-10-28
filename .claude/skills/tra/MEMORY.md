@@ -28,7 +28,8 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
 - Rodonaves: o ERP já pede o token no endereço novo da cotação (28/10, cb565ea, no ar), mas os 3 servidores recusam
   o login dos secrets. Ela abriu o portal dev.rodonaves.com.br: pegar lá (Account) o usuário e a senha da API e pôr
   em RODONAVES_USUARIO e RODONAVES_SENHA; depois "Testar conexão" no cadastro da Rodonaves.
-- Braspress: o acesso de API antigo é de outro CNPJ; pedir um para o CNPJ da MF e cadastrar nos secrets.
+- Braspress: os secrets BRASPRESS_USUARIO e BRASPRESS_SENHA não existem (testado 28/10). O acesso de produção
+  vem da filial de atendimento (vendedor); o de 2022 é de outro CNPJ. Pedir para o CNPJ da MF e cadastrar.
 - Melhor Envio: cadastrar o token nos secrets, se for usar.
 - Depois de cada acesso cadastrado: clicar em "Testar conexão" no cadastro da transportadora; aí eu testo uma cotação real.
 
