@@ -14,7 +14,7 @@
 // POST { nota_id, acao: "xml" }                               -> o XML da nota na Focus (para o Validador; o navegador não baixa direto)
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
-import { codigoUnidade, focus, focusProducao, focusToken, focusUrl } from "../_shared/focusnfe.ts";
+import { codigoUnidade, focus, focusBaseUrl, focusProducao, focusToken, focusUrl } from "../_shared/focusnfe.ts";
 import { aplicarRetornoNfe } from "../_shared/nfe-status.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "../_shared/nfe-envio.ts";
 import { importarXmlEmitida } from "../_shared/nfe-importar.ts";
@@ -39,15 +39,24 @@ Deno.serve(async (req) => {
     if (acao === "diagnostico") return json({ ok: true, ...(await diagnosticoNfe(db)) });
 
     if (acao === "xml") {
-      const { data: n } = await db.from("notas_fiscais").select("xml_url, unidade_id").eq("id", nota_id).maybeSingle();
+      const { data: n } = await db.from("notas_fiscais").select("xml_url, unidade_id").eq("id", nota_id).is("excluida_em", null).maybeSingle();
+      if (!n) throw new HttpError(404, "nota não encontrada");
       let url: URL | null = null;
-      try { url = n?.xml_url ? new URL(n.xml_url) : null; } catch { url = null; }
-      // o token só vai para a própria Focus
+      try { url = n.xml_url ? new URL(n.xml_url) : null; } catch { url = null; }
       if (!url || url.protocol !== "https:" || !/^(api|homologacao)\.focusnfe\.com\.br$/.test(url.hostname)) throw new HttpError(404, "esta nota não tem o XML na Focus");
-      const token = focusToken(await codigoUnidade(db, n!.unidade_id));
-      const r = await fetch(url, { headers: token ? { Authorization: "Basic " + btoa(`${token}:`) } : {}, signal: AbortSignal.timeout(20_000) });
-      if (!r.ok) throw new HttpError(502, `A Focus não entregou o XML desta nota (HTTP ${r.status})`);
-      return json({ ok: true, xml: await r.text() });
+      // o token só vai para a Focus do mesmo ambiente (igual ao pacote do contador)
+      const token = focusToken(await codigoUnidade(db, n.unidade_id));
+      const headers: Record<string, string> = token && url.href.startsWith(focusBaseUrl()) ? { Authorization: "Basic " + btoa(`${token}:`) } : {};
+      let xml: string;
+      try {
+        const r = await fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
+        if (!r.ok) throw new HttpError(502, `A Focus não entregou o XML desta nota (HTTP ${r.status})`);
+        xml = await r.text();
+      } catch (e) {
+        if (e instanceof HttpError) throw e;
+        throw new HttpError(504, "A Focus não respondeu a tempo; tente de novo em instantes");
+      }
+      return json({ ok: true, xml });
     }
 
     if (acao === "importar_xml") {
