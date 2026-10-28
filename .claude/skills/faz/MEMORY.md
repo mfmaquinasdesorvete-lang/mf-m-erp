@@ -45,7 +45,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
   que só ela busca. Bloco "Dossiê MF SC" em `lista.md`; no resumo, só a próxima tarefa do bloco (uma por dia, a que
   destrava mais).
 - 28/10: GER e ENT mandaram os extratos (D1 Unicred, D2 Olist, D3 InfinitePay, D4 Sicoob, D5 Inter SC). Falta FIS e TIN.
-  Quando ela importar: avisar GER e ENT. Próxima do resumo: D1 (começar pelos 5 OFX que ela já tem).
+  Divisão: ENT importa os extratos antigos e explica as entradas; GER lança e concilia as saídas. Quando ela importar:
+  avisar GER e ENT. Próxima do resumo: D1 (começar pelos 5 OFX que ela já tem).
 
 ## Do CNF (27/10)
 - O CNF parou o aviso diário: o resumo é só meu. "Pronto para conferir": `para-conferir.md` (29 itens, 3 por dia; 10, 13, 14 e 16 saíram).
@@ -53,8 +54,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
   (19 e 20/10) primeiro. Consulta: `select left(id::text,8), grupo, pedido_em, item from pedidos_checklist
   where situacao='voce' order by pedido_em`.
 
-- Decisão que espera por ela (no resumo): "Pode publicar" no chat continuação (GER) do conserto da função
-  nfe-recebidas (o XML da nota de compra não ficava guardado; pedido a8d2634a).
+- Decisão que espera por ela (no resumo): "Pode publicar" no GER da importação de extrato à prova de erro (5a14442).
+  (a8d2634a, nfe-recebidas, já foi publicada em 27/10; falta só conferir na próxima nota de fornecedor.)
 
 - Decisão dela (FIS): testar a NF-e em lote emitindo de verdade (b369f5d6).
 
