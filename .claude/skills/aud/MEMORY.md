@@ -6,17 +6,18 @@ Fase 1 no ar desde 27/10 (site 19e62bf): 6 conferências novas + histórico da t
 Rodada de fechamento (CLAUDE.md, 27/10): a fase 2 só começa quando a usuária aprovar de novo.
 
 ## No ar
+- Rodada diária do auditor (28/10, site 29b0daa): função `auditor-diario`, agendamento `erp-auditor-diario` às 07:03
+  de Brasília, tabelas `auditor_rodadas`/`auditor_achados`, cartão "Rodada de hoje" e "Rodar agora" (financeiro).
+  Teste real: 1ª rodada 10 achados, 2ª rodada 0 novos. O FAZ lê a última linha de `auditor_rodadas`.
 - Conferências novas na Auditoria financeira → Exceções (site 19e62bf). Conferido nos dados de 27/10: 5 entradas
   ignoradas, 0 vendas sem recebimento, 89 contas pagas sem documento desde 01/10, 0 despesas fora do padrão, extrato
   com buraco em OLIST, Mercado Pago, Nubank, Unicred e Inter (antes de 19/10, quando a API começou).
 
 ## Em andamento
-- Rodada diária do auditor (pedido 9f211251, 28/10, confirmado por ela no chat): função `auditor-diario` (07:03,
-  pg_cron `erp-auditor-diario`), tabelas `auditor_rodadas` e `auditor_achados` (migração 183), cartão "Rodada de hoje"
-  na Auditoria, conferências novas "extrato na conta errada" e "extrato automático parado". Montado e testado no código;
-  falta "Pode publicar" (site + função + migração) e a rodada real no ar. O FAZ lê a última linha de `auditor_rodadas`.
+- Nada. Rodada diária no ar (ver "No ar").
 
 ## Esperando a usuária
+- Abrir a Auditoria financeira e ver o cartão "Rodada de hoje" (pedido 9f211251 → "feito" depois disso).
 - Abrir Auditoria financeira → Exceções e confirmar que as conferências novas aparecem; só então marcar "feito".
 - Cadastrar a taxa contratada nas formas de pagamento de cartão (todas em 0%), ligadas à conta bancária; sem ela a
   conferência do cartão só mostra a taxa efetiva.
