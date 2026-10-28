@@ -64,5 +64,8 @@ Rodada de fechamento (CLAUDE.md, 27/10): a fase 2 só começa quando a usuária 
 1. Depois que ela conferir a tela, marcar o pedido da fase 1 como feito.
 2. Fase 2: função `ia-auditor` no padrão do `ia-busca`: a IA só escolhe a conferência e o período; a conta roda
    com o login de quem perguntou; resposta no formato fixo; registro em `ia_registros`; interruptor em `ia-controle`.
-3. Fase 5: fila Novo → Em análise → Resolvido/Descartado e gravidade crítica/informativa (hoje: alta/média/baixa e
+3. Ideia do ELO (28/10), só quando ela liberar função nova: conferência "extrato na conta errada": lançamento com cara
+   de outro banco (ex.: descrição típica do InfinitePay) numa conta de outro banco, ou arquivo importado numa conta que
+   recebe pela API (caso real: 2 OFX do cartão InfinitePay caíram no Inter; o GER consertou).
+4. Fase 5: fila Novo → Em análise → Resolvido/Descartado e gravidade crítica/informativa (hoje: alta/média/baixa e
    indício/confirmado/resolvido/descartado).
