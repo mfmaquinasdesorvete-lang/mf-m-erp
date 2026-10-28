@@ -26,6 +26,8 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Topo da Venda de Peças compacto no celular: Relatório, Exportar e quadro/lista no "Mais", "Novo" curto, Pagamento
   numa fila só, "Marcar todos" só com algo marcado, "Limpar" some sem busca nem filtro (27/10, montado).
 
+- Nota fiscal: caixa da rejeição e da GNRE legíveis no escuro; tons rose e 950 seguem o tema (28/10, montado).
+
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 

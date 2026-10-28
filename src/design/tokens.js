@@ -9,7 +9,8 @@ import paleta from "tailwindcss/colors";
 // As do tema são variáveis CSS (src/index.css): o mesmo nome serve aos temas claro e escuro, em "R G B" para o
 // Tailwind aplicar transparência (bg-brand/15). As outras são fixas e não mudam com o tema.
 const v = (nome) => `rgb(var(--${nome}) / <alpha-value>)`;
-const escala = (cor, passos) => Object.fromEntries(passos.map((p) => [p, v(`${cor}-${p}`)]));
+// 950 usa o 900 do tema: o 950 fixo do Tailwind (quase preto) sumia no escuro (nota rejeitada, 28/10).
+const escala = (cor, passos) => ({ ...Object.fromEntries(passos.map((p) => [p, v(`${cor}-${p}`)])), ...(passos.includes(900) ? { 950: v(`${cor}-900`) } : {}) });
 const TONS = [50, 100, 200, 500, 600, 700, 800, 900];
 // "fixo-…": as cores padrão do Tailwind que NÃO mudam com o tema (slate, emerald… do tema se invertem no escuro).
 // Ficam aqui para nenhuma tela escrever cor solta (#10b981) na classe: bg-fixo-emerald-500, from-fixo-sky-500.
@@ -27,6 +28,8 @@ export const COR = {
   green: escala("emerald", TONS),
   amber: escala("amber", TONS),
   red: escala("red", TONS),
+  // rose segue o vermelho do tema (o rose fixo ficava rosa claro com letra escura no tema escuro)
+  rose: escala("red", TONS),
   sky: escala("sky", TONS),
   blue: escala("sky", TONS),
   indigo: escala("indigo", TONS),

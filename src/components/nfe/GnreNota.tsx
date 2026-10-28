@@ -62,9 +62,9 @@ export function GnreNota({ nota: n, podeFin }: { nota: NotaGnre; podeFin: boolea
 
   const sit = guia ? situacaoGnre(guia) : null;
   return (
-    <section className="rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-sm" aria-label="GNRE">
+    <section className="rounded-cartao border border-amber-200 bg-amber-50 p-3 text-sm" aria-label="GNRE">
       <div className="flex flex-wrap items-center gap-2">
-        <Landmark size={16} className="text-rose-700" aria-hidden />
+        <Landmark size={16} className="text-amber-600" aria-hidden />
         <b className="text-fg">GNRE para {uf || "outro estado"}</b>
         <span className="font-semibold text-fg">{brl(guia?.valor_total ?? v.total)}</span>
         {sit && <span className={`rounded px-1.5 py-0.5 text-2xs font-semibold ${sit.cor}`}>{sit.rotulo}</span>}
@@ -72,7 +72,7 @@ export function GnreNota({ nota: n, podeFin }: { nota: NotaGnre; podeFin: boolea
       </div>
       <p className="mt-1 text-xs text-slate-600">{partes}. {sit ? sit.dica : "Ainda sem conta a pagar lançada para esta guia."} Regra do imposto: confirmar com o contador.</p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <a href={PORTAL_GNRE} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-brand hover:bg-white">
+        <a href={PORTAL_GNRE} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-brand hover:bg-surface">
           <ExternalLink size={13} aria-hidden /> Portal da GNRE
         </a>
         {guia?.conta_pagar_id && (

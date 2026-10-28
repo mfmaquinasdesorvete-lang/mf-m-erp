@@ -201,7 +201,7 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
           {n.chave && (importada || n.xml_url) && <Button type="button" variant="ghost" onClick={() => setJanela("validar")} title="Conferir o XML com as regras oficiais da SEFAZ"><ShieldCheck size={15} /> Validar</Button>}
           {!leitura && n.status === "processando" && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => acao({}, "Situação atualizada")}><RefreshCw size={15} /> Atualizar</Button>}
           {podeFiscal && n.status === "contingencia" && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => acao({ acao: "reenviar" }, "Nota reenviada")}><Send size={15} /> Reenviar</Button>}
-          {podeFiscal && n.status === "erro" && !importada && <Button type="button" variant="secondary" onClick={() => setJanela("corrigir")}><Wrench size={15} /> Corrigir e reenviar</Button>}
+          {podeFiscal && n.status === "erro" && !importada && <Button type="button" onClick={() => setJanela("corrigir")}><Wrench size={15} /> Corrigir e reenviar</Button>}
           {podeFiscal && !importada && n.status === "autorizada" && <Button type="button" variant="secondary" onClick={() => setJanela("carta")}><FilePen size={15} /> Carta de correção</Button>}
           {podeFiscal && podeDevolverEmitida(n) && <Button type="button" variant="secondary" onClick={() => setJanela("devolucao")}><Undo2 size={15} /> NF de devolução</Button>}
           {podeFiscal && !importada && n.status === "autorizada" && <Button type="button" variant="ghost" className="!text-red-600" onClick={() => setJanela("cancelar")}>Cancelar nota</Button>}
