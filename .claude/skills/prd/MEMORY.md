@@ -36,6 +36,9 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 - Tubos inox dos cilindros (CP-CIL-001 açaí, CP-CIL-002 sorvete, em metro) com fornecedores, preços e contatos
   (Vtk preferido, Jati SP, Jatinox Araucária, Krominox), 28/10.
 
+- Cálculos Internos do Tiny (14 kits, 193 linhas) conferidos com o ERP em 28/10: batem. Reativadas 4 peças elétricas
+  das fichas (CP-ELE-003, 004, 010, 014), confirmado.
+
 ## Em andamento
 - Rodada de fechamento (27/10): nada novo sem pedido dela; "feito" só depois de testar no ERP no ar.
 - 27/10: os pedidos antigos do assunto foram testados (select e site publicado) a pedido do CNF; o site do ERP não abre
@@ -45,6 +48,7 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- Custo do Disjuntor WEG MDW 25 A (CP-ELE-010) e do Plugue 3P+T 32 A (CP-ELE-014): sem nota de compra no ERP.
 - Preço de venda da Sanfona (Tiny 47,60 × ERP 37,60) e do Separador do Cubo (Tiny 75 × ERP 91); O-Ring do dosador no
   kit 3 Sabores (Tiny 1 pacote de 5 × ERP 4 un.).
 - Vendas antigas sem produto (GER bd91b01 já acha pelo nome limpo): "Quiosque MDF", "Kit Carenagem" (KITREP), "Kit tampa

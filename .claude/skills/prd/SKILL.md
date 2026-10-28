@@ -81,3 +81,5 @@ Cuido do cadastro de produtos da MF: dados completos e certos, sem repetidos, co
 - O DRE usa o custo do cadastro no dia da venda; kit precisa do custo gravado (soma das peças), senão entra como zero.
 - Custo de kit gravado (soma das peças) fica velho quando o custo de uma peça muda: depois de mexer em custo de peça,
   recalcular os kits que a usam (update com soma de kit_componentes x preco_custo).
+- A inativação da base antiga (24/10) pegou peças que ainda estão nas fichas das máquinas: antes de inativar, ver se o
+  produto está em `produto_componentes` ou `kit_componentes` de produto ativo.
