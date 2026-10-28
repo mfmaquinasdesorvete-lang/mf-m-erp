@@ -23,11 +23,13 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
   Vai ao ar na próxima publicação do site que ela autorizar.
 
 ## Esperando a usuária
+- Os 7 rascunhos (6 tabelas de frete + usuário de API da Rodonaves) ficaram no Gmail da My Frost, por engano: ela
+  manda pela conta da MF (copiando o texto) e apaga os de lá. O de API ainda aparecia como rascunho em 28/10.
 - Mandar os 6 rascunhos do Gmail pedindo a tabela de frete atualizada (São Miguel, Rodonaves, Braspress, Aceville,
   Norte Brasil e MIR; os dois últimos sem destinatário) e mandar aqui as tabelas que chegarem.
 - Rodonaves: o ERP já pede o token no endereço certo (28/10, cb565ea, no ar). Ela testou no portal com o login do
   site: 400 invalid_grant. O usuário de API é pedido à unidade de vínculo (Cotação, Rastreio, Comprovante de entrega):
-  e-mail enviado por ela em 28/10 à equipe comercial da unidade; esperando a resposta. Quando chegar: RODONAVES_USUARIO e RODONAVES_SENHA nos
+  e-mail para a equipe comercial da unidade (mandar pela conta da MF). Quando chegar: RODONAVES_USUARIO e RODONAVES_SENHA nos
   secrets e "Testar conexão". Ela precisa trocar a senha do site (apareceu num print).
 - Braspress: os secrets BRASPRESS_USUARIO e BRASPRESS_SENHA não existem (testado 28/10). O acesso de produção
   vem da filial de atendimento (vendedor); o de 2022 é de outro CNPJ. Pedir para o CNPJ da MF e cadastrar.
