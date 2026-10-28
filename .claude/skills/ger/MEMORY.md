@@ -1,11 +1,12 @@
 # MEMORY — GER (ERP Line – continuação (22/10))
-Atualizado em 27/10/2026.
+Atualizado em 28/10/2026.
 
 ## Estado agora
 Vendas, compras, financeiro, assistência e estoque funcionando no ar. O trabalho grande aberto é "menos dependente
 do código" (levar regras e mensagens para Configurações), parado esperando a tabela nova no banco.
 
 ## No ar
+- 28/10 (migração 190, banco): comissão de parcela que já teve comissão cancelada reabre a cancelada com os valores novos (antes o "on conflict do nothing" travava). #628 parcela 1/2: R$ 300 a pagar. Pedidos antigos do Tiny pagos sem comissão ficaram como estão (de antes do ERP).
 - 28/10 (site c791b58 + funções nfe-emitir/nfe-processar): clonar pedido sem erro; transportadora e frete na NF-e (também na tela Conferir a NF-e); extrato à prova de erro ("Vai entrar na conta", trava de número); DRE com "Vendas sem custo" e cruzamento pela descrição limpa. Falta testar no ar. Mais campos no rascunho da nota (valor, volumes/peso, natureza/CFOP, destinatário) passados ao FIS.
 - 28/10 (site 62e7017): importação do extrato reconhece a conta pelo número do OFX ou nome do arquivo; sem certeza, conta em branco com aviso. Extratos do cartão de SP que caíram no Inter SC foram movidos (19 lançamentos, 2 importações, 10 contas a pagar).
 - 28/10 (site fadea68, migração 182): Conciliação aceita OFX sem lançamento e grava o período do arquivo (DTSTART–DTEND). Saldo inicial Unicred MF SC = 28,09 em 17/10/2026. OLIST encerrada; Pix 426,19 → "transferência para a sócia" (fora da DRE), Pix 195 → correios. Falta ela importar os 5 OFX da Unicred (teste no ar).
