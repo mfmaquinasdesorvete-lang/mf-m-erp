@@ -6,6 +6,7 @@ Vendas, compras, financeiro, assistência e estoque funcionando no ar. O trabalh
 do código" (levar regras e mensagens para Configurações), parado esperando a tabela nova no banco.
 
 ## No ar
+- 28/10 (site c791b58 + funções nfe-emitir/nfe-processar): clonar pedido sem erro; transportadora e frete na NF-e (também na tela Conferir a NF-e); extrato à prova de erro ("Vai entrar na conta", trava de número); DRE com "Vendas sem custo" e cruzamento pela descrição limpa. Falta testar no ar. Mais campos no rascunho da nota (valor, volumes/peso, natureza/CFOP, destinatário) passados ao FIS.
 - 28/10 (site 62e7017): importação do extrato reconhece a conta pelo número do OFX ou nome do arquivo; sem certeza, conta em branco com aviso. Extratos do cartão de SP que caíram no Inter SC foram movidos (19 lançamentos, 2 importações, 10 contas a pagar).
 - 28/10 (site fadea68, migração 182): Conciliação aceita OFX sem lançamento e grava o período do arquivo (DTSTART–DTEND). Saldo inicial Unicred MF SC = 28,09 em 17/10/2026. OLIST encerrada; Pix 426,19 → "transferência para a sócia" (fora da DRE), Pix 195 → correios. Falta ela importar os 5 OFX da Unicred (teste no ar).
 - 27/10 (site 63df953): sino só com a equipe, Responder visível, avisos no Ver como, Fluxo sem o Tiny, extrato .ofx pelo iPhone; avisos do Claude e de Segurança só para a master (migração 177). Falta testar no ar.
@@ -30,7 +31,6 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
   entram depois).
 
 ## Esperando a usuária
-- Publicar a importação de extrato à prova de erro (commit 5a14442) e gravar a anotação do pedido do extrato do Fabiano (Supabase pediu aprovação e expirou).
 - Nota de peças sem OC (4 de 26/10): quer OC automática para as novas?
 - Prestador (a0f29e4a, daa9722f): extrato completo da OLIST de setembro e confirmar os dois empréstimos (estão cancelados no ERP).
 - Virada do Tiny: confirmar a data (proposta 09/11), passar as taxas das formas de pagamento e a lista do que a equipe ainda faz no Tiny.
