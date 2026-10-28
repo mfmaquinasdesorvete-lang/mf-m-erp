@@ -15,8 +15,7 @@ Nada de código novo deste chat esperando publicação.
   mais de 7 dias; tabela `licenciados_marcas` (migração 20261101000180) com as 2 marcas (site 8b465c0, 28/10).
 
 ## Em andamento
-- Checklist: 3 atualizações (marcas feito, "Esta semana" feito, teste da Yozzy Natal) esperam a aprovação dela no
-  Supabase: as gravações com update pedem aprovação; os insert passam.
+- Nada parado no meio. (No Supabase, as gravações com update pedem a aprovação dela; os insert passam.)
 
 ## Esperando a usuária
 - Yozzy Natal: rascunho dos pagamentos que a dona mandou. Falta ela dizer se a linha "Loja 50 mil" é a soma das
