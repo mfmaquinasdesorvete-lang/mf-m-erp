@@ -10,6 +10,8 @@ import type { Item, Pedido, Produto } from "./types";
 export const CFOP_VENDA = /^[567](10\d|11\d|12[0-5]|40[1-5])$/;
 
 export type ItemNota = {
+  /** produto do ERP, quando a nota foi emitida aqui */
+  produto_id?: string | null;
   codigo_produto?: string | null; descricao?: string | null; cfop?: string | number | null; quantidade_comercial?: number | string | null;
   valor_bruto?: number | string | null; icms_valor?: number | string | null; pis_valor?: number | string | null; cofins_valor?: number | string | null;
   ipi_valor?: number | string | null;
@@ -30,10 +32,19 @@ export const SELECT_NOTAS_VENDA =
 const n = (v: unknown) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const chaveTexto = (s: string | null | undefined) => (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
-/** Acha o produto do item da nota: código (SKU, fabricante, alternativos) ou descrição igual. */
+/** Descrição sem o que muda entre o Tiny antigo e o cadastro de hoje: "My Frost", "Compatível com Máquinas My Frost",
+ * acentos e pontuação (28/10: ~R$ 60 mil de vendas não achavam produto e entravam sem custo no DRE). */
+export const descricaoLimpa = (s: string | null | undefined) => chaveTexto(s)
+  .replace(/-?\s*compat[ií]vel com (as )?m[aá]quinas? my ?frost/g, " ")
+  .replace(/\bmy ?frost\b/g, " ")
+  .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+
+/** Acha o produto do item da nota: produto do ERP, código (SKU, fabricante, alternativos) ou descrição (igual ou limpa). */
 export function indiceProdutos(produtos: Produto[]) {
+  const porId = new Map(produtos.map((p) => [p.id, p]));
   const porCodigo = new Map<string, Produto>();
   const porTexto = new Map<string, Produto>();
+  const porLimpa = new Map<string, Produto>();
   // os unificados e os inativos só servem se não houver outro com o mesmo código
   const ordem = [...produtos].sort((a, b) => Number(!!a.unificado_em) - Number(!!b.unificado_em) || Number(b.ativo) - Number(a.ativo));
   for (const p of ordem) {
@@ -42,8 +53,17 @@ export function indiceProdutos(produtos: Produto[]) {
     for (const c of codigos) if (!porCodigo.has(c)) porCodigo.set(c, alvo);
     const t = chaveTexto(p.descricao);
     if (t && !porTexto.has(t)) porTexto.set(t, alvo);
+    // a descrição limpa do produto e a de cada código alternativo (o PRD cadastra ali o nome antigo do Tiny,
+    // ex.: "My Frost Prime" na máquina Prime), separados por vírgula ou ponto e vírgula
+    for (const l of [p.descricao, ...(p.codigos_alternativos ?? "").split(/[,;]/)].map(descricaoLimpa)) {
+      if (l.length >= 4 && !porLimpa.has(l)) porLimpa.set(l, alvo);
+    }
   }
-  return (it: ItemNota) => porCodigo.get(String(it.codigo_produto ?? "").trim().toLowerCase()) ?? porTexto.get(chaveTexto(it.descricao));
+  const ativo = (p: Produto | undefined) => (p?.unificado_em ? porId.get(p.unificado_em) ?? p : p);
+  return (it: ItemNota) => ativo(it.produto_id ? porId.get(it.produto_id) : undefined)
+    ?? porCodigo.get(String(it.codigo_produto ?? "").trim().toLowerCase())
+    ?? porTexto.get(chaveTexto(it.descricao))
+    ?? porLimpa.get(descricaoLimpa(it.descricao));
 }
 
 /** É venda que ainda não está em pedido nenhum do ERP (nota autorizada de produção, saída normal, com item de venda). */

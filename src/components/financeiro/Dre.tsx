@@ -177,7 +177,7 @@ export function Dre({ lancamentos, extrato = [], fora, carregando, notas, carreg
           {regime === "caixa" ? "No regime de caixa vale o dinheiro que entrou e saiu: a receita vem das contas recebidas. A receita pelas notas é por competência."
             : carregandoNotas ? "Carregando as notas…"
             : <>Receita, impostos destacados, devoluções e custo dos produtos vendidos saem de {notas.notasVenda} {pl(notas.notasVenda, "NF-e de venda", "NF-e de venda")} (sem transferências entre SC e SP); despesas, das contas{comExtrato === "sim" ? " e dos extratos" : ""}.
-              {notas.semCusto > 0 && <> {notas.semCusto} {pl(notas.semCusto, "item vendido está", "itens vendidos estão")} sem custo no cadastro: o CMV fica menor que o real.</>} Gerencial: a apuração oficial é do contador.</>}
+              {notas.semCusto > 0 && <> <b className="text-amber-700">Vendas sem custo: {brl(notas.semCustoValor)}</b> ({notas.semCusto} {pl(notas.semCusto, "item vendido", "itens vendidos")} sem custo no cadastro): o CMV fica menor e o lucro parece maior que o real.</>} Gerencial: a apuração oficial é do contador.</>}
         </p>
       )}
 

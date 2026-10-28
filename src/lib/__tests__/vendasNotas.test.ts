@@ -66,3 +66,34 @@ describe("vendas que só existem na nota fiscal", () => {
     expect(parcial.notas[0].payload.items[0].icms_valor).toBe(1750);
   });
 });
+
+import { descricaoLimpa, indiceProdutos } from "../vendasNotas";
+
+describe("produto do item da nota pela descrição antiga (28/10)", () => {
+  const prods = [
+    { id: "p1", descricao: "Pá Batedora", sku: "PC-PA-01", ativo: true },
+    { id: "p2", descricao: "Kit Pistões Prime", sku: "PC-KIT-02", ativo: true },
+    { id: "velho", descricao: "Ponteira Pá", sku: "X", ativo: false, unificado_em: "p3" },
+    { id: "p3", descricao: "Ponteira da Pá Batedora", sku: "PC-PONT", ativo: true },
+  ] as any;
+  const achar = indiceProdutos(prods);
+  it("tira My Frost, Compatível com Máquinas My Frost, acento e pontuação", () => {
+    expect(descricaoLimpa("Pa Batedora - Compatível com Máquinas My Frost")).toBe("pa batedora");
+    expect(descricaoLimpa("Kit Pistoes My Frost Prime")).toBe("kit pistoes prime");
+  });
+  it("acha pela descrição limpa mesmo com código lixo do Tiny", () => {
+    expect(achar({ codigo_produto: "CFOP6101", descricao: "Pa Batedora - Compatível com Máquinas My Frost" })?.id).toBe("p1");
+    expect(achar({ codigo_produto: "Logista", descricao: "Kit Pistoes My Frost Prime" })?.id).toBe("p2");
+  });
+  it("produto unificado aponta para o ativo; produto_id da nota vale primeiro", () => {
+    expect(achar({ descricao: "Ponteira Pa" })?.id).toBe("p3");
+    expect(achar({ produto_id: "p2", descricao: "qualquer" })?.id).toBe("p2");
+  });
+});
+
+describe("nome antigo do Tiny cadastrado como código alternativo", () => {
+  it("acha a máquina pelo nome antigo", () => {
+    const achar = indiceProdutos([{ id: "m1", descricao: "Máquina de Sorvete Prime 4.0", sku: "MQ-PRIME", codigos_alternativos: "PRIME40, My Frost Prime", ativo: true }] as any);
+    expect(achar({ codigo_produto: "Logista", descricao: "My Frost Prime" })?.id).toBe("m1");
+  });
+});

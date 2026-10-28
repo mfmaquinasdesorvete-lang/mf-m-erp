@@ -69,16 +69,17 @@ export function notasParaDre(notas: NotaDre[], recebidas: DevolucaoRecebida[], p
   const custo = custoNaData(mudancas);
   const out: LancDre[] = [];
   const vendas: VendaDre[] = [];
-  let semCusto = 0, notasVenda = 0, devolucoes = 0;
+  let semCusto = 0, semCustoValor = 0, notasVenda = 0, devolucoes = 0;
   const lanc = (tipo: LancDre["tipo"], grupo: GrupoDre, categoria: string, valor: number, dia: string, unidade_id?: string | null) => {
     if (Math.abs(valor) < 0.005) return;
     out.push({ tipo, grupo, categoria, valor: r2(valor), status: "aberto", vencimento: dia, competencia: dia, unidade_id: unidade_id ?? null, origem: "nota" });
   };
-  const cmvDe = (itens: { codigo_produto?: string | null; descricao?: string | null; quantidade?: number }[], iso: string, contarSemCusto: boolean) => {
+  const cmvDe = (itens: { produto_id?: string | null; codigo_produto?: string | null; descricao?: string | null; quantidade?: number; valor_bruto?: number | string | null }[], iso: string, contarSemCusto: boolean) => {
     let total = 0;
     for (const i of itens) {
       const c = custo(achar(i), iso);
-      if (!c) { if (contarSemCusto) semCusto++; continue; }
+      // sem custo o CMV fica zero e parece lucro: conta o item e quanto foi vendido dele (linha no DRE)
+      if (!c) { if (contarSemCusto) { semCusto++; semCustoValor += n(i.valor_bruto); } continue; }
       total += c * (i.quantidade || 1);
     }
     return total;
@@ -129,7 +130,7 @@ export function notasParaDre(notas: NotaDre[], recebidas: DevolucaoRecebida[], p
     nfse++;
     if (!s.iss_retido) lanc("pagar", "deducao", CAT_NOTAS.iss, n(s.valor_iss), s.data.slice(0, 10), s.unidade_id);
   }
-  return { lancamentos: out, vendas, semCusto, notasVenda, devolucoes, nfse };
+  return { lancamentos: out, vendas, semCusto, semCustoValor: r2(semCustoValor), notasVenda, devolucoes, nfse };
 }
 
 /** Compras de mercadoria e matéria-prima: no DRE pelas notas o CMV entra no lugar delas. */
