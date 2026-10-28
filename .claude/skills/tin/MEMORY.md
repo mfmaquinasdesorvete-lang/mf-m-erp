@@ -37,7 +37,8 @@ A base da My Frost (empresa anterior) passou para o MYF em 23/10.
 ## Esperando a usuária
 - Ver no Tiny a situação de 10 NF de saída sem XML (96, 101, 132, 203, 255, 278, 318, 360, 393, 426; a 255 é o pedido 415 do ERP (418 no Tiny),
   sem NF autorizada). Auditoria de 28/10: os 386 XML de saída de 2023 a 2026 estão todos no ERP. Avisei o FIS, que confere
-  também 16 números sem nota (inutilização).
+  também 16 números sem nota (ela acha que não foram inutilizados). Em 28/10 entrou a NF 15 de entrada (estorno da
+  NF 14); as outras 13 de entrada já estavam.
 - Exportar do Tiny, antes de cancelar: NFS-e emitidas (se houver), os anexos e a NF de entrada de 01/2025 que falta.
 - Backup final do Tiny da MF antes de cancelar a assinatura (o Tiny não é usado desde 28/09): antes, rodar os botões
   de recebimentos e cadastros (a API para quando a assinatura acaba); depois baixar contas a pagar e receber (todas as
