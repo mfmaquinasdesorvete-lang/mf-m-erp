@@ -48,6 +48,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- Ficha dos fabricados aqui (28/10): 5 com ficha copiada da composição (PC-CHV-004, 006, PC-MEC-001, PC-KIT-002, 013).
+  Falta ela exportar do Tiny a composição das outras chaves e das peças da tornearia (o Tiny no ERP só tem vendas).
 - Preço e foto do Kit Pá Agitadora + Sanfona (PC-KIT-018, hoje 187,60 = soma dos avulsos; sem foto e fora do catálogo;
   quando tiver os dois, marcar no catálogo e avisar o MKT para o anúncio) e 18 sugestões de preço que sobem.
 - Custo do Disjuntor WEG MDW 25 A 4 polos (CP-ELE-010): não achado nas NF da My Frost no e-mail (só MDW-C 20 e 40 A da
