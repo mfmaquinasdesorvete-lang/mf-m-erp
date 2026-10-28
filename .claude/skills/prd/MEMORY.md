@@ -28,7 +28,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 - Painéis Produtos e Máquinas leves e avisos do Painel de Produtos abrindo no problema: no ar em 27/10 (index-BKEMOzUS).
 
 - Revisão de custos (28/10): 14 kits com custo = soma das peças; 12 peças pela última compra (as 6 exatamente 13%
-  abaixo ficaram: crédito de ICMS); chaves extratoras como variações do pai PC-CHV-023, rodízios do pai CP-EST-035 e cubas GN do pai PC-ACE-001,
+  abaixo ficaram: crédito de ICMS); chaves extratoras como variações do pai PC-CHV-023, rodízios do pai CP-EST-035 e cubas GN do pai PC-ACE-001, conexões de ar do pai CP-ELE-036 (cotovelo
+  repetido CP-ELE-006 unificado no PC-MEC-021, confirmado),
   iguais ao Tiny (preço das cubas = o do pai, a confirmar com ela).
 
 ## Em andamento
@@ -40,6 +41,7 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- Preço de venda das cubas GN (hoje o do pai, 158,13) e da conexão reta fêmea (hoje 6,67, igual ao custo).
 - Custo das 16 peças feitas aqui que vendemos sem custo (planilha custo_pecas_feitas_aqui.xlsx, 28/10); inclui as chaves
   5 e 7 Sabores com custo acima do preço e a Italianinha.
 - Fichas técnicas × lista "Produto x Fornecedor" (27/10): grupos gravados em todas as linhas; 57 cadastros novos
