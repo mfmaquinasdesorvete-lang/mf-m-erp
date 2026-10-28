@@ -28,6 +28,9 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 
 - Nota fiscal: caixa da rejeição e da GNRE legíveis no escuro; tons rose e 950 seguem o tema (28/10, no ar).
 
+- Clean Code (28/10): avisos (`JanelaAviso`, `ItemHistorico`, `acaoDoHistorico`, `dicaDoSom`, `linhaRemetente`) e
+  `CampoMascara` (`atalhoDoCampo`, `tecladoDoCampo`) separados, com teste; mesma tela (montado).
+
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 

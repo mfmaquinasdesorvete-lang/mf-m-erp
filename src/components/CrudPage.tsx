@@ -695,6 +695,21 @@ const PLACEHOLDER: Partial<Record<Mascara, string>> = {
   whatsapp: "(00) 00000-0000", cep: "00000-000", email: "nome@empresa.com.br", uf: "SC", ie: "só números ou ISENTO",
 };
 
+/** Atalho ao lado de um campo preenchido e válido: WhatsApp (com saudação), ligar ou enviar e-mail. */
+export function atalhoDoCampo(m: Mascara, valor: string, row: Record<string, any>) {
+  if (m === "whatsapp") {
+    const primeiro = String(row.nome_fantasia || row.nome || "").split(" ")[0];
+    const saudacao = primeiro ? `Olá, ${primeiro}! Aqui é da MF Máquinas.` : "Olá! Aqui é da MF Máquinas.";
+    return { href: whatsappLink(valor, saudacao), icone: <MessageCircle size={16} />, titulo: "Chamar no WhatsApp", cor: "text-emerald-600 hover:bg-emerald-50" };
+  }
+  if (m === "telefone") return { href: `tel:+55${String(valor).replace(/^55(?=\d{10,11}$)/, "")}`, icone: <Phone size={16} />, titulo: "Ligar", cor: "text-sky-600 hover:bg-sky-50" };
+  if (m === "email") return { href: `mailto:${valor}`, icone: <Mail size={16} />, titulo: "Enviar e-mail", cor: "text-sky-600 hover:bg-sky-50" };
+  return null;
+}
+
+/** Teclado do celular para cada máscara: e-mail, letras (UF e IE, que aceita ISENTO) ou números. */
+export const tecladoDoCampo = (m: Mascara) => (m === "email" ? "email" : m === "uf" || m === "ie" ? "text" : "numeric");
+
 /** Campo com máscara, validação e atalhos (WhatsApp, ligar, e-mail, buscar CNPJ/CEP). */
 export function CampoMascara({ f, valor, row, buscando, mostrarErro, onBlur, onChange, onBuscar }: {
   f: CampoForm; valor: any; row: Record<string, any>; buscando: boolean; mostrarErro: boolean;
@@ -703,12 +718,7 @@ export function CampoMascara({ f, valor, row, buscando, mostrarErro, onBlur, onC
   const m = f.mask!;
   const erro = mostrarErro ? erroCampo(m, valor) : null;
   const ok = !!valor && !erroCampo(m, valor);
-  const primeiro = String(row.nome_fantasia || row.nome || "").split(" ")[0];
-  const atalho =
-    m === "whatsapp" && ok ? { href: whatsappLink(valor, primeiro ? `Olá, ${primeiro}! Aqui é da MF Máquinas.` : "Olá! Aqui é da MF Máquinas."), icone: <MessageCircle size={16} />, titulo: "Chamar no WhatsApp", cor: "text-emerald-600 hover:bg-emerald-50" }
-    : m === "telefone" && ok ? { href: `tel:+55${String(valor).replace(/^55(?=\d{10,11}$)/, "")}`, icone: <Phone size={16} />, titulo: "Ligar", cor: "text-sky-600 hover:bg-sky-50" }
-    : m === "email" && ok ? { href: `mailto:${valor}`, icone: <Mail size={16} />, titulo: "Enviar e-mail", cor: "text-sky-600 hover:bg-sky-50" }
-    : null;
+  const atalho = ok ? atalhoDoCampo(m, valor, row) : null;
   const botoes = (atalho ? 1 : 0) + (f.buscar ? 1 : 0);
   return (
     <div>
@@ -717,7 +727,7 @@ export function CampoMascara({ f, valor, row, buscando, mostrarErro, onBlur, onC
           className={`input ${erro ? "!border-red-400" : ""}`}
           style={botoes ? { paddingRight: `${botoes * 2.25 + 0.5}rem` } : undefined}
           type={m === "email" ? "email" : "text"}
-          inputMode={m === "email" ? "email" : m === "uf" || m === "ie" ? "text" : "numeric"}
+          inputMode={tecladoDoCampo(m)}
           autoComplete="off"
           value={mostrar(m, valor)}
           placeholder={f.placeholder ?? PLACEHOLDER[m]}

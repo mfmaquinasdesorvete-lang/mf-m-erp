@@ -152,6 +152,124 @@ function EscolherVoz() {
 
 const falarAviso = (n: Notificacao) => { void falar(`${n.titulo}. ${n.texto ?? ""}`); };
 const ehExterno = (link: string | null) => !!link && /^https?:\/\//.test(link);
+const dataHora = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+/** "De Fulano · 27/10 10:00", "Você enviou · …" ou só a data (aviso do sistema). */
+export function linhaRemetente(n: Pick<Notificacao, "remetente_nome" | "created_at">, souEu: boolean) {
+  const quem = souEu ? "Você enviou" : n.remetente_nome ? `De ${n.remetente_nome}` : "";
+  return `${quem}${quem ? " · " : ""}${dataHora(n.created_at)}`;
+}
+
+/** Tocar num aviso do sino: volta para o meio da tela se falta o meu ciente; sem link e com conversa, abre a
+ *  conversa; senão abre o link. */
+export function acaoDoHistorico(n: Pick<Notificacao, "conversa_id" | "link">, faltaMeuCiente: boolean): "meio_da_tela" | "conversa" | "abrir" {
+  if (faltaMeuCiente) return "meio_da_tela";
+  if (n.conversa_id && !n.link) return "conversa";
+  return "abrir";
+}
+
+/** Aviso embaixo da janela do meio da tela sobre o som que repete (só no urgente e nos chats do Claude). */
+export function dicaDoSom(urgente: boolean, claude: boolean, som: boolean) {
+  if (urgente) return "O som de urgente repete até você clicar em Ciente.";
+  if (!claude) return null;
+  return som ? "O som repete a cada 30 segundos até você clicar em Ciente." : "Som desligado.";
+}
+
+/** Janela do meio da tela (importante, urgente e chats do Claude), até a pessoa clicar em Ciente. */
+function JanelaAviso({ aviso, naFila, podeResponder, som, onAnterior, onProximo, onCiente, onResponder, onCienteEmTodos, onAlternarSom }: {
+  aviso: Notificacao; naFila: number; podeResponder: boolean; som: boolean;
+  onAnterior: () => void; onProximo: () => void; onCiente: (abrirLink?: boolean) => void; onResponder: () => void;
+  onCienteEmTodos: () => void; onAlternarSom: () => void;
+}) {
+  const claude = ehClaude(aviso);
+  const nv = claude
+    ? { rotulo: "Chat do Claude", icon: Bot, faixa: "from-fixo-violet-500 to-fixo-violet-700" }
+    : NIVEL[aviso.urgencia ?? "importante"];
+  const urgente = aviso.urgencia === "urgente";
+  const contorno = urgente ? "ring-2 ring-red-500" : claude ? "ring-2 ring-violet-400/70" : "ring-2 ring-amber-400/60";
+  const dica = dicaDoSom(urgente, claude, som);
+  return (
+    <div className="fixed inset-0 z-alerta grid place-items-center bg-ink/60 p-4 backdrop-blur-[3px]" role="alertdialog" aria-modal="true" aria-labelledby="aviso-titulo" aria-describedby="aviso-texto">
+      <div className="relative w-full max-w-md">
+      {/* no urgente pisca só a borda vermelha em volta; o cartão fica sempre nítido */}
+      {urgente && <span className="pointer-events-none absolute -inset-2 rounded-[30px] ring-4 ring-red-500/70 motion-safe:animate-pulse" aria-hidden />}
+      <div className={`relative w-full animate-[entrar_.3s_ease-out] overflow-hidden rounded-2xl bg-surface shadow-pop ${contorno}`}>
+        <div className={`bg-gradient-to-br ${nv.faixa} px-5 pb-4 pt-5 text-white`}>
+          <div className="flex items-center justify-between gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wider"><nv.icon size={15} /> {nv.rotulo}</span>
+            {naFila > 1 && (
+              <span className="flex items-center gap-0.5 text-xs font-semibold text-white/85">
+                <button type="button" onClick={onAnterior} aria-label="Aviso anterior" className="botao-claro h-7 w-7 rounded-full"><ChevronLeft size={16} /></button>
+                <span className="num px-1">1 de {naFila}</span>
+                <button type="button" onClick={onProximo} aria-label="Próximo aviso" className="botao-claro h-7 w-7 rounded-full"><ChevronRight size={16} /></button>
+              </span>
+            )}
+          </div>
+          <h2 id="aviso-titulo" className="mt-3 text-xl font-bold leading-tight [overflow-wrap:anywhere]">{aviso.titulo}</h2>
+          <p className="mt-1 text-sm text-white/85">{aviso.remetente_nome ? `De ${aviso.remetente_nome} · ` : ""}{dataHora(aviso.created_at)}</p>
+        </div>
+        <div className="space-y-4 p-5">
+          {aviso.texto && <p id="aviso-texto" className="whitespace-pre-wrap text-sm leading-relaxed text-fg [overflow-wrap:anywhere]">{aviso.texto}</p>}
+          <div className="flex flex-wrap justify-end gap-2">
+            {claude && <Button variant="secondary" onClick={() => falarAviso(aviso)}><Speaker size={16} /> Ouvir de novo</Button>}
+            {aviso.link && <Button variant="secondary" onClick={() => onCiente(true)}>{claude ? "Abrir o chat" : "Abrir"}</Button>}
+            {podeResponder && <Button variant="secondary" onClick={onResponder}><Reply size={16} /> Responder</Button>}
+            <Button onClick={() => onCiente()} autoFocus><Check size={16} /> Ciente</Button>
+          </div>
+          {naFila > 1 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+              <span className="text-xs text-slate-500">Mais {naFila - 1} {naFila === 2 ? "aviso" : "avisos"} esperando</span>
+              <Button variant="secondary" tamanho="mini" onClick={onCienteEmTodos}><CheckCheck size={14} /> Ciente em todos ({naFila})</Button>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-xs text-slate-500">
+            {dica && <span>{dica}</span>}
+            <button type="button" onClick={onAlternarSom} className="link-discreto inline-flex items-center gap-1">
+              {som ? <><VolumeX size={13} /> Desligar o som</> : <><Volume2 size={13} /> Ligar o som</>}
+            </button>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  );
+}
+
+/** Uma linha do histórico do sino: título, quem mandou, quem já deu ciente e o botão de responder. */
+function ItemHistorico({ n, souEu, nova, faltaMeuCiente, cientes, podeResponder, onAbrir, onResponder }: {
+  n: Notificacao; souEu: boolean; nova: boolean; faltaMeuCiente: boolean; cientes: number; podeResponder: boolean;
+  onAbrir: () => void; onResponder: () => void;
+}) {
+  const e = estiloDe(n);
+  const total = n.destinatarios?.length ?? 0;
+  const todosCientes = !!total && cientes >= total;
+  const verConversa = souEu && !!n.conversa_id;
+  return (
+    <li className="flex items-start gap-1">
+      <button type="button" onClick={onAbrir} className="linha-clicavel flex min-w-0 flex-1 items-start gap-3 p-2">
+        <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `color-mix(in srgb, ${e.cor} 18%, transparent)`, color: e.cor }}><e.icon size={17} /></span>
+        <span className="min-w-0 flex-1">
+          {n.urgencia && n.urgencia !== "normal" && (
+            <span className="mb-0.5 inline-block rounded-full px-2 py-0.5 text-2xs font-bold uppercase tracking-wider text-white" style={{ background: NIVEL[n.urgencia].cor }}>{NIVEL[n.urgencia].rotulo}</span>
+          )}
+          <span className={`block text-sm leading-tight ${nova ? "font-bold text-fg" : "font-semibold text-slate-700"}`}>{n.titulo}</span>
+          {n.texto && <span className="block truncate text-xs text-slate-500">{n.texto}</span>}
+          <span className="block text-2xs text-slate-400">{linhaRemetente(n, souEu)}</span>
+          {souEu && n.exige_ciencia && (
+            <span className={`mt-0.5 block text-2xs font-semibold ${todosCientes ? "text-emerald-600" : "text-amber-600"}`}>
+              ✓ {cientes}{total ? ` de ${total}` : ""} {cientes === 1 ? "ciente" : "cientes"}
+            </span>
+          )}
+          {faltaMeuCiente && <span className="mt-0.5 block text-2xs font-semibold text-red-600">Falta o seu ciente</span>}
+        </span>
+      </button>
+      {(podeResponder || verConversa) && (
+        <button type="button" onClick={onResponder} aria-label={`Responder: ${n.titulo}`} title={podeResponder ? "Responder" : "Ver a conversa"}
+          className="botao-icone mt-1.5 p-2 text-brand"><Reply size={16} /></button>
+      )}
+    </li>
+  );
+}
 
 export function NotificacoesProvider({ children }: { children: ReactNode }) {
   const perfil = usePerfil();
@@ -213,6 +331,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
   const vistasEm = dadosEu?.notificacoes_vistas_em ?? new Date().toISOString();
   const naoVistas = lista.filter((n) => n.created_at > vistasEm && !meu(n)).length;
   const jaCiente = (n: Notificacao) => ciencias.some((c) => c.notificacao_id === n.id && c.user_id === eu);
+  const faltaMeuCiente = (n: Notificacao) => !!n.exige_ciencia && paraMim(n) && !meu(n) && !jaCiente(n);
 
   // importante ou urgente que chegou enquanto a pessoa estava fora: aparece no meio da tela ao entrar (últimos 7 dias)
   useEffect(() => {
@@ -291,6 +410,12 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
   }
   const irPara = (link: string) => (ehExterno(link) ? window.open(link, "_blank", "noopener") : navigate(link));
   const abrir = (n: Notificacao) => { setPopups((p) => p.filter((x) => x.id !== n.id)); setPainel(false); if (n.link) irPara(n.link); };
+  function abrirDoHistorico(n: Notificacao) {
+    const acao = acaoDoHistorico(n, faltaMeuCiente(n));
+    if (acao === "meio_da_tela") setCentro((c) => [n, ...c.filter((x) => x.id !== n.id)]);
+    else if (acao === "conversa") setResponderA(n);
+    else abrir(n);
+  }
   async function ciente(n: Notificacao, abrirLink?: boolean) {
     setCentro((c) => c.filter((x) => x.id !== n.id));
     if (n.exige_ciencia) {
@@ -358,58 +483,11 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
       </div>
 
       {/* Importante e urgente: no meio da tela, até clicar em Ciente */}
-      {atual && (() => {
-        const claude = ehClaude(atual);
-        const nv = claude
-          ? { rotulo: "Chat do Claude", icon: Bot, faixa: "from-fixo-violet-500 to-fixo-violet-700" }
-          : NIVEL[atual.urgencia ?? "importante"];
-        const urgente = atual.urgencia === "urgente";
-        return (
-          <div className="fixed inset-0 z-alerta grid place-items-center bg-ink/60 p-4 backdrop-blur-[3px]" role="alertdialog" aria-modal="true" aria-labelledby="aviso-titulo" aria-describedby="aviso-texto">
-            <div className="relative w-full max-w-md">
-            {/* no urgente pisca só a borda vermelha em volta; o cartão fica sempre nítido */}
-            {urgente && <span className="pointer-events-none absolute -inset-2 rounded-[30px] ring-4 ring-red-500/70 motion-safe:animate-pulse" aria-hidden />}
-            <div className={`relative w-full animate-[entrar_.3s_ease-out] overflow-hidden rounded-2xl bg-surface shadow-pop ${urgente ? "ring-2 ring-red-500" : claude ? "ring-2 ring-violet-400/70" : "ring-2 ring-amber-400/60"}`}>
-              <div className={`bg-gradient-to-br ${nv.faixa} px-5 pb-4 pt-5 text-white`}>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wider"><nv.icon size={15} /> {nv.rotulo}</span>
-                  {centro.length > 1 && (
-                    <span className="flex items-center gap-0.5 text-xs font-semibold text-white/85">
-                      <button type="button" onClick={anterior} aria-label="Aviso anterior" className="botao-claro h-7 w-7 rounded-full"><ChevronLeft size={16} /></button>
-                      <span className="num px-1">1 de {centro.length}</span>
-                      <button type="button" onClick={proximo} aria-label="Próximo aviso" className="botao-claro h-7 w-7 rounded-full"><ChevronRight size={16} /></button>
-                    </span>
-                  )}
-                </div>
-                <h2 id="aviso-titulo" className="mt-3 text-xl font-bold leading-tight [overflow-wrap:anywhere]">{atual.titulo}</h2>
-                <p className="mt-1 text-sm text-white/85">{atual.remetente_nome ? `De ${atual.remetente_nome} · ` : ""}{new Date(atual.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p>
-              </div>
-              <div className="space-y-4 p-5">
-                {atual.texto && <p id="aviso-texto" className="whitespace-pre-wrap text-sm leading-relaxed text-fg [overflow-wrap:anywhere]">{atual.texto}</p>}
-                <div className="flex flex-wrap justify-end gap-2">
-                  {claude && <Button variant="secondary" onClick={() => falarAviso(atual)}><Speaker size={16} /> Ouvir de novo</Button>}
-                  {atual.link && <Button variant="secondary" onClick={() => ciente(atual, true)}>{claude ? "Abrir o chat" : "Abrir"}</Button>}
-                  {respondivel(atual) && <Button variant="secondary" onClick={() => { ciente(atual); setResponderA(atual); }}><Reply size={16} /> Responder</Button>}
-                  <Button onClick={() => ciente(atual)} autoFocus><Check size={16} /> Ciente</Button>
-                </div>
-                {centro.length > 1 && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-                    <span className="text-xs text-slate-500">Mais {centro.length - 1} {centro.length === 2 ? "aviso" : "avisos"} esperando</span>
-                    <Button variant="secondary" tamanho="mini" onClick={cienteEmTodos}><CheckCheck size={14} /> Ciente em todos ({centro.length})</Button>
-                  </div>
-                )}
-                <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-xs text-slate-500">
-                  {(urgente || claude) && <span>{urgente ? "O som de urgente repete até você clicar em Ciente." : !som ? "Som desligado." : "O som repete a cada 30 segundos até você clicar em Ciente."}</span>}
-                  <button type="button" onClick={alternarSom} className="link-discreto inline-flex items-center gap-1">
-                    {som ? <><VolumeX size={13} /> Desligar o som</> : <><Volume2 size={13} /> Ligar o som</>}
-                  </button>
-                </div>
-              </div>
-            </div>
-            </div>
-          </div>
-        );
-      })()}
+      {atual && (
+        <JanelaAviso aviso={atual} naFila={centro.length} podeResponder={respondivel(atual)} som={som}
+          onAnterior={anterior} onProximo={proximo} onCiente={(abrirLink) => ciente(atual, abrirLink)}
+          onResponder={() => { ciente(atual); setResponderA(atual); }} onCienteEmTodos={cienteEmTodos} onAlternarSom={alternarSom} />
+      )}
 
       {/* Histórico */}
       {painel && (
@@ -443,40 +521,11 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
             )}
             {lista.length ? (
               <ul className="space-y-1">
-                {lista.map((n) => {
-                  const e = estiloDe(n);
-                  const cientes = ciencias.filter((c) => c.notificacao_id === n.id);
-                  const total = n.destinatarios?.length ?? 0;
-                  return (
-                    <li key={n.id} className="flex items-start gap-1">
-                      <button type="button" onClick={() => (n.exige_ciencia && paraMim(n) && !meu(n) && !jaCiente(n) ? setCentro((c) => [n, ...c.filter((x) => x.id !== n.id)]) : n.conversa_id && !n.link ? setResponderA(n) : abrir(n))}
-                        className="linha-clicavel flex min-w-0 flex-1 items-start gap-3 p-2">
-                        <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `color-mix(in srgb, ${e.cor} 18%, transparent)`, color: e.cor }}><e.icon size={17} /></span>
-                        <span className="min-w-0 flex-1">
-                          {n.urgencia && n.urgencia !== "normal" && (
-                            <span className="mb-0.5 inline-block rounded-full px-2 py-0.5 text-2xs font-bold uppercase tracking-wider text-white" style={{ background: NIVEL[n.urgencia].cor }}>{NIVEL[n.urgencia].rotulo}</span>
-                          )}
-                          <span className={`block text-sm leading-tight ${n.created_at > vistasEm && !meu(n) ? "font-bold text-fg" : "font-semibold text-slate-700"}`}>{n.titulo}</span>
-                          {n.texto && <span className="block truncate text-xs text-slate-500">{n.texto}</span>}
-                          <span className="block text-2xs text-slate-400">
-                            {meu(n) ? "Você enviou" : n.remetente_nome ? `De ${n.remetente_nome}` : ""}{(meu(n) || n.remetente_nome) ? " · " : ""}
-                            {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
-                          </span>
-                          {meu(n) && n.exige_ciencia && (
-                            <span className={`mt-0.5 block text-2xs font-semibold ${total && cientes.length >= total ? "text-emerald-600" : "text-amber-600"}`}>
-                              ✓ {cientes.length}{total ? ` de ${total}` : ""} {cientes.length === 1 ? "ciente" : "cientes"}
-                            </span>
-                          )}
-                          {!meu(n) && n.exige_ciencia && paraMim(n) && !jaCiente(n) && <span className="mt-0.5 block text-2xs font-semibold text-red-600">Falta o seu ciente</span>}
-                        </span>
-                      </button>
-                      {(respondivel(n) || (meu(n) && n.conversa_id)) && (
-                        <button type="button" onClick={() => responder(n)} aria-label={`Responder: ${n.titulo}`} title={respondivel(n) ? "Responder" : "Ver a conversa"}
-                          className="botao-icone mt-1.5 p-2 text-brand"><Reply size={16} /></button>
-                      )}
-                    </li>
-                  );
-                })}
+                {lista.map((n) => (
+                  <ItemHistorico key={n.id} n={n} souEu={meu(n)} nova={n.created_at > vistasEm && !meu(n)} faltaMeuCiente={faltaMeuCiente(n)}
+                    cientes={ciencias.filter((c) => c.notificacao_id === n.id).length} podeResponder={respondivel(n)}
+                    onAbrir={() => abrirDoHistorico(n)} onResponder={() => responder(n)} />
+                ))}
               </ul>
             ) : <p className="p-6 text-center text-sm text-slate-500">Nada por aqui ainda.</p>}
           </div>
