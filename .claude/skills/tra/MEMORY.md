@@ -36,6 +36,10 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
   secrets e "Testar conexão". Ela precisa trocar a senha do site (apareceu num print).
 - Braspress: os secrets BRASPRESS_USUARIO e BRASPRESS_SENHA não existem (testado 28/10). O acesso de produção
   vem da filial de atendimento (vendedor); o de 2022 é de outro CNPJ. Pedir para o CNPJ da MF e cadastrar.
+- São Miguel (pedido de 28/10 via GER: compra entra no estoque quando a transportadora entrega): sem API pública e o
+  portal de rastreio pede captcha. Hoje: baixar no portal da São Miguel o CSV de CT-e (Ocorrência, Data) e importar
+  em Fretes → CT-e → Importar → Planilha; a entrega dispara a entrada no estoque. Automático só com EDI OCOREN ou API
+  dela: pedir à São Miguel.
 - Melhor Envio: cadastrar o token nos secrets, se for usar.
 - Depois de cada acesso cadastrado: clicar em "Testar conexão" no cadastro da transportadora; aí eu testo uma cotação real.
 
