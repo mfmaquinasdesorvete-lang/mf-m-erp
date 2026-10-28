@@ -69,3 +69,6 @@ Descubro de onde veio cada entrada nos bancos da MF e ligo ao pedido, à nota ou
 - Pix de cliente pode vir de outra empresa ou do dono; valor exato ao centavo e data batendo é forte, mas confirme com
   ela antes de ligar quando o nome não bate.
 - Gravação com anotação longa às vezes trava no Supabase (pede confirmação que não chega): use anotação curta.
+- Link de cartão com juros pagos pelo cliente (3x 7,01%, 5x 8,80%): o cliente paga mais, a InfinitePay tira a taxa
+  e a MF recebe o valor do link (o pedido). Não lançar taxa para a MF nesse caso; o depósito cai no dia útil seguinte.
+- Link do pedido inteiro (várias parcelas) não tem conta ligada: a baixa é em todas as parcelas abertas do pedido.
