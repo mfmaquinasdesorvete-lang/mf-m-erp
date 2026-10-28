@@ -6,6 +6,7 @@ Vendas, compras, financeiro, assistência e estoque funcionando no ar. O trabalh
 do código" (levar regras e mensagens para Configurações), parado esperando a tabela nova no banco.
 
 ## No ar
+- 28/10 (função email-caixa 6fdc8e0, migração 193): caixa de e-mail lê até 10 e-mails/6 MB por rodada e grava o último UID a cada e-mail; acima de 8 MB só o cabeçalho; agendamento chama uma conta por vez. Causa: conta nova do Gmail (Comercial - Fornecedores) estourava a CPU a cada 5 min desde 04h37 UTC e derrubava as outras.
 - 28/10 (site 954436f, funções nfe-recebidas-sync/nfe-processar/focus-webhook/email-caixa, migração 191): OC até o estoque sozinha. Item da nota casa com a OC ligada (MK #247 e Integral #248 casaram no ar, de-para gravado), entrada automática baixa a OC (teste desfeito na #244), nota ligada volta para a fila, "Chegou" dentro da OC, aviso dias úteis 16h43. Falta ela apertar Chegou nas OCs #244, #247 e #248 (treino) para fechar o teste. São Miguel sem rastreio automático (TRA: planilha do portal ou EDI OCOREN).
 - 28/10 (migração 190, banco): comissão de parcela que já teve comissão cancelada reabre a cancelada com os valores novos (antes o "on conflict do nothing" travava). #628 parcela 1/2: R$ 300 a pagar. Pedidos antigos do Tiny pagos sem comissão ficaram como estão (de antes do ERP).
 - 28/10 (site c791b58 + funções nfe-emitir/nfe-processar): clonar pedido sem erro; transportadora e frete na NF-e (também na tela Conferir a NF-e); extrato à prova de erro ("Vai entrar na conta", trava de número); DRE com "Vendas sem custo" e cruzamento pela descrição limpa. Falta testar no ar. Mais campos no rascunho da nota (valor, volumes/peso, natureza/CFOP, destinatário) passados ao FIS.
@@ -41,6 +42,10 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Fazer a contagem do estoque com o que existe (o estoque foi zerado).
 - Pedidos aprovados sem pagamento e sem NF (três): cancelar ou esperar.
 - Pagamentos de um prestador esperam a planilha do Tiny (TIN).
+- Compras: apertar "Chegou" nas OCs #244, #247 e #248 (treino; fecha o teste da OC até o estoque).
+- Compras sem OC paradas em "item sem produto" (MadeiraGreen, VTK, Frigelar, ND Distribuidora, 26-28/10): ligar o item ao produto ou marcar uso e consumo (Conferir itens das notas).
+- 3 paquímetros com calibração vencida: calibrar ou inativar (aviso "Tem coisa parada", 28/10).
+- São Miguel: pedir à transportadora o EDI OCOREN ou a API de rastreio (TRA), ou importar a planilha de CT-e do portal.
 
 ## Decisões da usuária
 - "Produção" fica na área Fábrica e estoque, depois de Produtos e estoque; o quadro antigo de contas a pagar (KanbanPagar) foi apagado (REV, 27/10).
