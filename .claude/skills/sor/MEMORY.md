@@ -1,5 +1,5 @@
 # MEMORY — SOR (ERP Line – My Frost Sorveterias e Yozzy)
-Atualizado em 27/10/2026.
+Atualizado em 28/10/2026.
 
 ## Estado agora
 A tela das sorveterias está no ar e as lojas estão cadastradas (My Frost e Yozzy).
@@ -27,6 +27,9 @@ Nada de código novo deste chat esperando publicação.
 - Endereço da Piracicaba 02; CEP de Americana e Campinas.
 - Freezers dos quiosques: 4 freezers verticais numa nota do fornecedor de refrigeração (abr/2026), sem marcador. Ela diz
   se entram no custo dos quiosques (lançar como custo da loja, sem pôr o marcador na nota).
+- Yozzy Natal: uma nota de compra do fornecedor de refrigeração (jan/2026, em nome da MF, peças e cobre para as
+  máquinas) foi paga pela loja, como total da montagem (avisado pelo FIS em 28/10). Falta o ok dela para lançar
+  como custo de montar a loja (categoria máquinas ou montagem). A parte fiscal fica com o FIS.
 - Plano fiscal das sorveterias (#332, veio do FIS): ainda não começou.
 
 ## Decisões da usuária
