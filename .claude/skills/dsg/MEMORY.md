@@ -24,9 +24,9 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Design System "ERP Line" no Claude (artifact) atualizado com o visual de 24/10 (antes do escuro liso).
 
 - Topo da Venda de Peças compacto no celular: Relatório, Exportar e quadro/lista no "Mais", "Novo" curto, Pagamento
-  numa fila só, "Marcar todos" só com algo marcado, "Limpar" some sem busca nem filtro (27/10, montado).
+  numa fila só, "Marcar todos" só com algo marcado, "Limpar" some sem busca nem filtro (27/10, no ar 28/10).
 
-- Nota fiscal: caixa da rejeição e da GNRE legíveis no escuro; tons rose e 950 seguem o tema (28/10, montado).
+- Nota fiscal: caixa da rejeição e da GNRE legíveis no escuro; tons rose e 950 seguem o tema (28/10, no ar).
 
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
