@@ -6,6 +6,7 @@ Vendas, compras, financeiro, assistência e estoque funcionando no ar. O trabalh
 do código" (levar regras e mensagens para Configurações), parado esperando a tabela nova no banco.
 
 ## No ar
+- 28/10 (site fadea68, migração 182): Conciliação aceita OFX sem lançamento e grava o período do arquivo (DTSTART–DTEND). Saldo inicial Unicred MF SC = 28,09 em 17/10/2026. OLIST encerrada; Pix 426,19 → "transferência para a sócia" (fora da DRE), Pix 195 → correios. Falta ela importar os 5 OFX da Unicred (teste no ar).
 - 27/10 (site 63df953): sino só com a equipe, Responder visível, avisos no Ver como, Fluxo sem o Tiny, extrato .ofx pelo iPhone; avisos do Claude e de Segurança só para a master (migração 177). Falta testar no ar.
 - Máquinas: o selo "N clientes" do modelo abre a lista de quem tem a máquina, e o cliente abre a ficha (25/10).
 - Acompanhamento de compras (Fábrica e estoque): peça pedida → OC → nota → transporte → chegou (973698c,
