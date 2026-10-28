@@ -18,7 +18,7 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
   (miniaturas, zoom, tela cheia) e para os anúncios (até o máximo da categoria); botão "Mandar fotos para os anúncios".
 - Simulador de canais (aba Simulador, simuladorCanais.ts, simular.ts, ação simular_canais): lucro por produto na loja
   (Pix, cartão, link) e no Mercado Livre (Clássico, Premium), preço mínimo, preço para o lucro desejado, verba de anúncio
-  (ACoS/ROAS) e "como foi calculado". Função no ar em 27/10; site montado, esperando a Hostinger voltar.
+  (ACoS/ROAS) e "como foi calculado"; imposto efetivo do FIS (25% loja, 27% ML) e crédito das compras (21,25%). No ar em 28/10.
 
 ## Em andamento
 - Rodada de fechamento (27/10): os 10 pedidos "feito" testados com dados reais e com o teste escrito no detalhe.
@@ -29,7 +29,8 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
 - Foto nova do CLP: a logo My Frost está impressa no aparelho (as fotos do Canva têm a logo).
 - Prints de outras fotos com a logo, se ela achar (o Cachorrinho já foi trocado em 25/10).
 - Pôr 3 ou 4 fotos na galeria de uma peça para o teste real das várias fotos (loja e "Mandar fotos para os anúncios").
-- Reconectar a Hostinger (conectores do claude.ai) para o simulador ir ao ar; depois abrir a aba Simulador com um produto.
+- Abrir a aba Simulador com um produto (teste real que falta para marcar feito).
+- Kit Pá Agitadora Inox + Sanfona (PC-KIT-018): foto, catálogo e preço confirmado antes do anúncio.
 - Imposto sobre a venda está 0% nas Configurações (perguntado ao FIS em 27/10).
 - Contar os anéis do pistão dos kits de vedação (kits 7, 11 e 15).
 - Notas fiscais das vendas antigas do Mercado Livre sem NF (ela importa os XML).
