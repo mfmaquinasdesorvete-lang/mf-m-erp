@@ -1,10 +1,10 @@
 # MEMORY — FIS (ERP Line – Fiscal e contábil)
-Atualizado em 27/10/2026 (NF-e do restante no ar; imposto das peças para o MKT).
+Atualizado em 28/10/2026 (caixa do contador ligada no ERP).
 
 ## Estado agora
 A emissão da NF-e, o DIFAL, as certidões e a previsão de imposto por máquina estão no ar. O que falta depende
 quase todo da usuária ou do contador: confirmar regras, tirar certidões, decidir as notas de valor menor e trazer as
-guias e os parcelamentos que estão no e-mail do contador.
+guias e os parcelamentos que chegam na caixa do contador.
 
 ## No ar
 - Analista fiscal → DIFAL por estado (30d1de1; migração difal_por_estado).
@@ -32,7 +32,7 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
 6. Contador: regras 5916/6916, cBenef 1915/2915, nota de conserto emitida como venda, notas antigas de conserto.
 7. Parcelamentos da prefeitura: confirmar quitação com a certidão municipal.
 8. XML do diesel em NF-e recebidas.
-- Conectar o Gmail do contador da MF (anotado na SKILL).
+- Guia do parcelamento do Simples (vence 30/10) chegou na caixa do contador: ela confere de qual empresa é e paga.
 
 ## Decisões da usuária
 - As listas de notas (emitidas e recebidas) abrem na semana atual.
@@ -40,6 +40,8 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
 - Marcadores só se somam; avisos nas notas usam o marcador "Rever com o contador" e a observação interna.
 - Imposto efetivo das peças para o simulador do MKT: 25% na loja e 27% no Mercado Livre (bruto, sem crédito);
   gravar nas Configurações → Formação de preço só com o ok dela.
+- Contador novo desde 10/2026; o e-mail que ele usa é só para guias e impostos de todas as empresas e está ligado
+  no ERP (Configurações → Caixa de e-mail → "Contador", só a Caixa de entrada). Não tem histórico antigo.
 - Funcionários (RH) é o chat FUN; a folha fiscal (eSocial, INSS, FGTS, DCTFWeb) fica no FIS.
 
 ## Onde está
@@ -52,6 +54,7 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
 
 ## Próximos passos
 1. Teste real da NF-e do restante (checklist) quando a usuária emitir.
-2. Com o Gmail do contador: cadastrar os parcelamentos federais e conferir as guias da época do Simples.
+2. Ler a caixa "Contador" do ERP (tabela emails) a cada pedido: guias da MF vão ao Painel do contador; das outras
+   empresas, ao CAR (MYF para a My Frost antiga, SOR para as lojas; Soft Premium não se mexe).
 3. Regra da entrada para conserto 1915/2915 quando o contador passar o cBenef.
 4. Ajudar o MYF na parte técnica da auditoria da My Frost (anexos do Simples, ST, DIFAL).

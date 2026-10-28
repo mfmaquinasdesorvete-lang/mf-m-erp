@@ -59,7 +59,7 @@ Cuido de impostos, apuração, notas fiscais (NF-e, NFS-e, configuração do CT-
 
 ## Cuidados conhecidos
 - Soft Premium (CNPJ 47538812 e 42474748) não é deste ERP (vai ter ERP próprio): não buscar, não levantar e não repassar nada dela a nenhum chat.
-- O Gmail myfrostmaquinasdesorvete@gmail.com é na prática a caixa da My Frost (32584697). O e-mail da MF com o contador é contabilgruposoprodivino@gmail.com (dito pela usuária em 24/10/2026); para ler guias e conversa com o contador, conectar essa conta no Gmail.
+- O e-mail do contador (só guias e impostos de todas as empresas) entra no ERP pela caixa "Contador" (Configurações → Caixa de e-mail; tabela `emails`, só a Caixa de entrada; os anexos abrem pela função `email-caixa` com o login de quem está no ERP). Separar por empresa: MF fica aqui; o resto vai ao CAR, MYF ou SOR; Soft Premium não se mexe. O contador mudou em 10/2026: não há histórico antigo nessa caixa.
 - Ambiente de emissão: nota em homologação é autorizada mas não vale; a tela pede confirmação (`src/lib/ambienteNfe.ts`).
 - Mês fechado fica travado (`trg_mes_fechado`); para mexer, `reabrir_competencia` e fechar de novo.
 - A GNRE vira conta a pagar sozinha quando a nota sai autorizada (`gnre_lancar_interna`): não lançar de novo à mão.
