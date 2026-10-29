@@ -64,6 +64,7 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
   const importada = n.origem === "importada";
   const teste = n.ambiente === "homologacao";
   const podeFiscal = !leitura && pode("emitir_nfe");
+  const etiquetas = useEtiquetas();
   const eventosNfe = useEventosNfe();
   const podeFin = !leitura && pode("nfe_recebidas");
 
@@ -205,7 +206,9 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
           {!leitura && (n.status === "processando" || duplicidadeSemOutraChave(n)) && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => acao({}, "Situação atualizada")}><RefreshCw size={15} /> Atualizar</Button>}
           {podeFiscal && n.status === "contingencia" && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => acao({ acao: "reenviar" }, "Nota reenviada")}><Send size={15} /> Reenviar</Button>}
           {podeFiscal && n.status === "erro" && !importada && <Button type="button" onClick={() => setJanela("corrigir")}><Wrench size={15} /> Corrigir e reenviar</Button>}
-          {podeFiscal && !importada && n.status === "autorizada" && <Button type="button" variant="secondary" onClick={() => setJanela("carta")}><FilePen size={15} /> Carta de correção</Button>}
+          {/* nota do pedido: etiquetas de transporte e volume pelo pedido (a nota direta tem o botão no quadro dela) */}
+          {!leitura && n.pedido_id && n.status === "autorizada" && !teste && <Button type="button" variant="secondary" onClick={() => etiquetas.abrir({ tipo: "pedido", pedido_id: n.pedido_id! })}><Printer size={15} /> Etiquetas</Button>}
+          {podeFiscal && !importada && n.status === "autorizada" && <Button type="button" variant="secondary" onClick={() => setJanela("carta")} title="Corrige transportadora, endereço de entrega, descrição ou informações (não valores)"><FilePen size={15} /> Carta de correção</Button>}
           {podeFiscal && podeDevolverEmitida(n) && <Button type="button" variant="secondary" onClick={() => setJanela("devolucao")}><Undo2 size={15} /> NF de devolução</Button>}
           {podeFiscal && !importada && n.status === "autorizada" && <Button type="button" variant="ghost" className="!text-red-600" onClick={() => setJanela("cancelar")}>Cancelar nota</Button>}
           {podeFin && podeExcluirEmitida(n) && <Button type="button" variant="ghost" className="!text-red-600" onClick={() => setJanela("excluir")}><Trash2 size={15} /> Excluir</Button>}
@@ -222,6 +225,7 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
         return ((await callFunction("nfe-consultar", { acao: "xml", nota_id: n.id })) as { xml?: string })?.xml ?? null;
       }} />}
       {janela === "carta" && <CartaCorrecaoModal nota={n} onClose={() => setJanela(null)} />}
+      {etiquetas.modal}
       {janela === "devolucao" && <DevolucaoModal origem={{ tipo: "emitida", id: n.id }} onClose={() => { setJanela(null); onClose(); }} />}
       {janela === "corrigir" && <CorrigirNota nota={n} onClose={(ok) => { setJanela(null); if (ok) onClose(); }} />}
       {janela === "cancelar" && (

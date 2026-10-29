@@ -94,6 +94,11 @@ function NotaDireta({ onClose, trocar, inicial }: { onClose: () => void; trocar:
   const [desconto, setDesconto] = useState("");
   const [frete, setFrete] = useState("");
   const [modalidade, setModalidade] = useState(9);
+  // transportadora da nota (29/10: não dava para pôr a transportadora na NF direta)
+  const [transportadora, setTransportadora] = useState("");
+  const { data: transportadoras = [] } = useRows<{ id: string; nome: string; nome_fantasia: string | null }>("transportadoras", {
+    select: "id, nome, nome_fantasia", order: "nome", ascending: true, filtro: (q) => q.eq("ativo", true).is("unificado_em", null),
+  });
   const [obs, setObs] = useState(inicial?.obs ?? "");
   const [chaveRef, setChaveRef] = useState(inicial?.chave ?? "");
   const [conferindo, setConferindo] = useState<Pendencia[] | null>(null);
@@ -161,7 +166,7 @@ function NotaDireta({ onClose, trocar, inicial }: { onClose: () => void; trocar:
       const r = await callFunction<{ nota?: { status: string; numero?: string | null } }>("nfe-emitir", { avulsa: {
         unidade_id: unidade.id, cliente_id: cliente.id, operacao, natureza: natureza.trim() || null,
         itens: itens.map((i) => ({ produto_id: i.produto_id, descricao: i.descricao, quantidade: Number(i.quantidade), valor_unitario: Number(i.valor_unitario) })),
-        desconto: Number(desconto.replace(",", ".") || 0), frete: Number(frete.replace(",", ".") || 0), modalidade_frete: modalidade, observacoes: obs.trim() || null,
+        desconto: Number(desconto.replace(",", ".") || 0), frete: Number(frete.replace(",", ".") || 0), modalidade_frete: modalidade, transportadora_id: modalidade !== 9 ? transportadora || null : null, observacoes: obs.trim() || null,
         chave_referenciada: chaveDigitos || null,
       } });
       notify(r.nota?.status === "autorizada"
@@ -231,6 +236,12 @@ function NotaDireta({ onClose, trocar, inicial }: { onClose: () => void; trocar:
         <Field label="Frete por conta" className="col-span-2">
           <select className="input" value={modalidade} onChange={(e) => setModalidade(Number(e.target.value))}>
             <option value={9}>Sem frete</option><option value={0}>Emitente (MF Máquinas)</option><option value={1}>Destinatário (cliente)</option><option value={2}>Terceiros</option>
+          </select>
+        </Field>
+        <Field label="Transportadora (sai na nota)" className="col-span-2" dica={modalidade === 9 ? "Escolha antes quem paga o frete" : undefined}>
+          <select className="input" value={transportadora} onChange={(e) => setTransportadora(e.target.value)} disabled={modalidade === 9}>
+            <option value="">— sem transportadora —</option>
+            {transportadoras.map((t) => <option key={t.id} value={t.id}>{t.nome_fantasia || t.nome}</option>)}
           </select>
         </Field>
         <Field label="Informações complementares (saem na nota)" className="col-span-2 sm:col-span-4"><textarea className="input" rows={2} value={obs} onChange={(e) => setObs(e.target.value)} /></Field>

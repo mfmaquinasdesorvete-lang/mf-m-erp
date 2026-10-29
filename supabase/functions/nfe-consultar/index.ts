@@ -141,7 +141,8 @@ Deno.serve(async (req) => {
     }
 
     if (acao === "carta_correcao") {
-      const correcao = String(corpo.correcao ?? "").trim();
+      // a SEFAZ não aceita quebra de linha nem espaço repetido no texto da correção
+      const correcao = String(corpo.correcao ?? "").replace(/\s+/g, " ").trim();
       if (nota.status !== "autorizada") throw new HttpError(400, "só notas autorizadas recebem carta de correção");
       if (correcao.length < 15 || correcao.length > 1000) throw new HttpError(400, "a correção deve ter entre 15 e 1.000 caracteres");
       const res = await focus(`/v2/nfe/${ref}/carta_correcao`, { method: "POST", body: JSON.stringify({ correcao }) }, codigo);

@@ -8,11 +8,14 @@ import { configIbsCbs, emitir, exigirCbenef, exigirEmitente, itemBase, observaco
 import { chaveValida, operacaoNota } from "./nfe-operacoes.ts";
 import { problemaIeDestinatario } from "./nfe-ajustes.ts";
 import { itensEntrada, pendenciasEntrada } from "./nfe-entrada.ts";
+import { transportadorNfe } from "./nfe-transportador.ts";
 
 export type NotaAvulsa = {
   unidade_id: string; cliente_id: string; operacao: string; natureza?: string | null;
   itens: { produto_id: string; descricao?: string | null; quantidade: number; valor_unitario: number }[];
   desconto?: number | null; frete?: number | null; modalidade_frete?: number | null; observacoes?: string | null;
+  /** Transportadora do cadastro que sai na nota (só com frete: modalidade diferente de 9). */
+  transportadora_id?: string | null;
   /** Chave (44 dígitos) da NF-e referenciada, opcional: ex. a nota de venda da máquina que volta para conserto. */
   chave_referenciada?: string | null;
 };
@@ -54,6 +57,12 @@ export async function emitirAvulsa(db: any, n: NotaAvulsa) {
   if (!u) throw new HttpError(404, "empresa não encontrada");
   if (!c) throw new HttpError(404, "cliente não encontrado");
   exigirEmitente(u);
+  let transp: any = null;
+  if (n.transportadora_id && Number(n.modalidade_frete ?? 9) !== 9) {
+    const { data: t } = await db.from("transportadoras").select("nome, cnpj, inscricao_estadual, logradouro, numero, bairro, municipio, uf").eq("id", n.transportadora_id).maybeSingle();
+    if (!t) throw new HttpError(400, "transportadora não encontrada");
+    transp = t;
+  }
 
   const doc = onlyDigits(c.cpf_cnpj);
   const faltando = [
@@ -134,6 +143,7 @@ export async function emitirAvulsa(db: any, n: NotaAvulsa) {
     telefone_destinatario: onlyDigits(c.telefone || c.whatsapp) || undefined,
     email_destinatario: c.email || undefined,
     modalidade_frete: Number(n.modalidade_frete ?? 9),
+    ...transportadorNfe(n.modalidade_frete, transp),
     informacoes_adicionais_contribuinte: [n.observacoes, chaveRef ? `NF-e referenciada: ${chaveRef}` : "", observacoes(usadas), u.informacoes_complementares].filter(Boolean).join(" - "),
     items,
   };

@@ -1,7 +1,7 @@
 // Etiquetas de transporte e de volume: busca no ERP o que já se sabe (pedido, envio, expedição, nota),
 // aplica o que foi editado à mão e guarda a versão editada. A tela fica em components/etiquetas.
 import { supabase } from "./supabase";
-import { aplicarEditados, montarEtiqueta, num, type EtiquetaDados, type FonteEtiqueta, type ModeloEtiqueta } from "./etiquetaDados";
+import { aplicarEditados, montarEtiqueta, num, transportadoraDasCartas, type EtiquetaDados, type FonteEtiqueta, type ModeloEtiqueta } from "./etiquetaDados";
 import type { Envio } from "./fretes";
 
 export type OrigemEtiqueta =
@@ -35,7 +35,7 @@ async function um<T>(p: PromiseLike<{ data: unknown; error: { message: string } 
 
 async function buscarPedido(id: string) {
   return um<any>(supabase.from("pedidos")
-    .select("*, cliente:clientes(*), itens:pedido_itens(descricao, quantidade), notas:notas_fiscais(status, numero, serie, chave, ambiente)")
+    .select("*, cliente:clientes(*), itens:pedido_itens(descricao, quantidade), notas:notas_fiscais(id, status, numero, serie, chave, ambiente, nome_transportador:payload->>nome_transportador)")
     .eq("id", id).maybeSingle());
 }
 async function envioAtivoDoPedido(pedidoId: string) {
@@ -76,14 +76,23 @@ export async function carregarEtiqueta(o: OrigemEtiqueta, cfg: FonteEtiqueta["cf
   const s = o.tipo === "pedido" ? o.sobrepor : undefined;
   // na tela da expedição a transportadora escolhida (inclusive "nenhuma") vale mais que a gravada
   const naTela = !!s && s.transportadora_id !== undefined;
-  const transpId = naTela ? s!.transportadora_id || null : expedicao?.transportadora_id ?? envio?.transportadora_id ?? pedido?.transportadora_id;
+  // depois da expedição e do envio vale a transportadora que saiu na NF-e (pode ter sido trocada na tela Conferir a NF-e)
+  // e só então a do pedido
+  // (a trocada por carta de correção vale mais que a original da nota)
+  const nfId = valida(nota) ? nota!.id : null;
+  const cartas = nfId ? (await um<{ correcao: string }[]>(supabase.from("nfe_cartas_correcao").select("correcao")
+    .eq("nota_id", nfId).eq("status", "autorizada").order("created_at", { ascending: true }))) ?? [] : [];
+  const nfTransp: string | null = transportadoraDasCartas(cartas.map((c) => c.correcao))
+    ?? (nota as any)?.nome_transportador ?? notaDireta?.payload?.nome_transportador ?? null;
+  const transpId = naTela ? s!.transportadora_id || null
+    : expedicao?.transportadora_id ?? envio?.transportadora_id ?? (nfTransp ? null : pedido?.transportadora_id);
   const transp = transpId ? await um<{ nome: string }>(supabase.from("transportadoras").select("nome").eq("id", transpId).maybeSingle()) : null;
 
   const base = montarEtiqueta({
     pedido, cliente, remetente, cfg, expedicao, envio,
     notaDireta: notaDireta ? { itens: notaDireta.itens } : null,
     nota: valida(nota) ? nota : null,
-    transportadora: transp?.nome ?? (naTela ? null : envio?.transportadora_nome) ?? null,
+    transportadora: transp?.nome ?? (naTela ? null : envio?.transportadora_nome ?? nfTransp) ?? null,
     sobrepor: s ? { volumes: s.volumes ?? null, peso_kg: num(s.peso_kg), transportadora: naTela ? (transp?.nome ?? "") : undefined, rastreio: s.rastreio ?? null } : null,
   }, modelo);
 

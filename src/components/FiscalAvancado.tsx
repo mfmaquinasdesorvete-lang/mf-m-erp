@@ -11,6 +11,8 @@ import { CST_IBS_CBS, CST_ICMS, CST_IPI, CST_PIS_COFINS, type Codigo } from "@/l
 import { SelectCodigo } from "./ConfigNfe";
 import type { RegraTributaria } from "../../supabase/functions/_shared/nfe-impostos";
 import { confirmar } from "@/components/Dialogos";
+import { textoTrocaTransportadora } from "@/lib/cartaCorrecao";
+import { transportadoraDasCartas } from "@/lib/etiquetaDados";
 import { lerReducoes, textoReducoes, type ModeloRegra } from "@/lib/regrasTributacao";
 import { CartaoRegra, ComoFuncionaRegras, GlossarioFiscal, ModelosRegra, TesteVenda } from "@/components/fiscal/RegrasPainel";
 
@@ -18,12 +20,32 @@ type Carta = { id: string; nota_id: string; sequencia: number | null; correcao: 
 
 /* ------------------------------ Carta de correção ------------------------------ */
 
-export function CartaCorrecaoModal({ nota, onClose }: { nota: { id: string; numero: string | null; serie: string | null }; onClose: () => void }) {
+type Transp = { id: string; nome: string; nome_fantasia: string | null; cnpj: string | null; inscricao_estadual: string | null; logradouro: string | null; numero: string | null; bairro: string | null; municipio: string | null; uf: string | null };
+
+export function CartaCorrecaoModal({ nota, onClose }: { nota: { id: string; numero: string | null; serie: string | null; payload?: any; pedido_id?: string | null }; onClose: () => void }) {
   const { data: todas = [] } = useRows<Carta>("nfe_cartas_correcao", { order: "created_at", ascending: true });
   const cartas = todas.filter((c) => c.nota_id === nota.id);
   const [texto, setTexto] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const invalidar = useInvalidate();
+  // trocar a transportadora da nota já autorizada (29/10: não dava para ajustar pela NF): a carta sai com o texto pronto
+  const { data: transportadoras = [] } = useRows<Transp>("transportadoras", {
+    select: "id, nome, nome_fantasia, cnpj, inscricao_estadual, logradouro, numero, bairro, municipio, uf", order: "nome", ascending: true,
+    filtro: (q) => q.eq("ativo", true).is("unificado_em", null),
+  });
+  const [novaTransp, setNovaTransp] = useState("");
+  // a que vale hoje: a da última carta que trocou a transportadora, senão a que saiu na nota
+  const corrigida = transportadoraDasCartas(cartas.filter((c) => c.status === "autorizada").map((c) => c.correcao));
+  const naNota = corrigida ? { nome_transportador: corrigida } : nota.payload;
+
+  function trocarTransportadora(id: string) {
+    setNovaTransp(id);
+    const t = transportadoras.find((x) => x.id === id);
+    // a nova carta substitui a anterior: o texto da transportadora entra junto com o que já estava escrito
+    // (a SEFAZ não aceita quebra de linha na correção: as correções vão na mesma linha); "não trocar" tira o texto
+    const sem = (atual: string) => atual.replace(/Transportadora: onde se lê "[^"]*", leia-se "[^"]*"\.\s*/g, "").trim();
+    setTexto((atual) => [sem(atual), t ? textoTrocaTransportadora(naNota, t) : ""].filter(Boolean).join(" ").slice(0, 1000));
+  }
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
@@ -31,7 +53,13 @@ export function CartaCorrecaoModal({ nota, onClose }: { nota: { id: string; nume
     try {
       await callFunction("nfe-consultar", { nota_id: nota.id, acao: "carta_correcao", correcao: texto });
       notify("Carta de correção registrada na SEFAZ");
-      setTexto("");
+      // a transportadora nova passa a valer no pedido (etiquetas e expedição); o pedido travado fica como estava
+      if (novaTransp && nota.pedido_id && /Transportadora: onde se lê/.test(texto)) {
+        const { error } = await supabase.from("pedidos").update({ transportadora_id: novaTransp }).eq("id", nota.pedido_id);
+        if (error) notify("Carta registrada. Troque também a transportadora no pedido (ele não deixou mudar daqui).", "erro");
+        else invalidar("pedidos");
+      }
+      setTexto(""); setNovaTransp("");
     } catch (err) { notifyError(err); } finally { setOcupado(false); invalidar("nfe_cartas_correcao"); }
   }
 
@@ -58,6 +86,12 @@ export function CartaCorrecaoModal({ nota, onClose }: { nota: { id: string; nume
         </ul>
       )}
       <form onSubmit={enviar} className="space-y-3">
+        <Field label="Trocar a transportadora" dica={`Hoje: ${naNota?.nome_transportador || "sem transportadora"}${corrigida ? " (por carta de correção)" : ""}. Escolha a nova e o texto da correção sai pronto abaixo.`}>
+          <select className="input" value={novaTransp} onChange={(e) => trocarTransportadora(e.target.value)}>
+            <option value="">— não trocar —</option>
+            {transportadoras.map((t) => <option key={t.id} value={t.id}>{t.nome_fantasia || t.nome}</option>)}
+          </select>
+        </Field>
         <Field label={`Correção (${texto.trim().length}/1000, mínimo 15)`}>
           <textarea className="input" rows={4} maxLength={1000} value={texto} onChange={(e) => setTexto(e.target.value)} required
             placeholder="Ex.: Onde se lê 'Rua das Flores, 10', leia-se 'Rua das Flores, 100'." />
