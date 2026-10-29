@@ -92,6 +92,9 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
   (o DAS de 22/12 é das empresas do Simples, não da MF). Em dezembro, cobrar as guias da MF até 18/12.
 
 ## Decisões da usuária
+- Origem das mercadorias (29/10): tudo vai como nacional (origem 0), também o que o fornecedor fatura como importado
+  (1, 2 ou 6). O PRD passou os produtos ativos para 0 e o Mercado Livre usa só a regra "Produtos nacionais". Ela foi
+  avisada do risco (venda interestadual de importado é 4% de ICMS); não reabrir sem ela pedir.
 - REGIME: a MF é do LUCRO REAL (dito pela usuária desde o começo e reafirmado em 28/10). Toda conta de imposto,
   previsão, simulador e orientação parte do Lucro Real. Guia com código do Presumido é erro do contador.
 - As listas de notas (emitidas e recebidas) abrem na semana atual.
