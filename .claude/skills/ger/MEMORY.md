@@ -6,9 +6,9 @@ Vendas, compras, financeiro, assistência e estoque funcionando no ar. O trabalh
 do código" (levar regras e mensagens para Configurações), parado esperando a tabela nova no banco.
 
 ## No ar
-- 28/10 (site 3505f34, migração 194): nota de compra com "Como chegou: Retirada no local (sem frete)" (marca chegada, `retirada_local`), "À vista no Pix (já pago)" (`nfe_pago_no_pix`: baixa as contas a pagar da nota no Pix na data da nota, sem conta bancária) e nome do produto editável ao cadastrar pela nota + botão Nome. Teste no banco (desfeito) na nota da MadeiraGreen.
+- 28/10 (site 3505f34, migração 194): nota de compra com "Como chegou: Retirada no local (sem frete)" (marca chegada, `retirada_local`), "À vista no Pix (já pago)" (`nfe_pago_no_pix`: baixa as contas a pagar da nota no Pix na data da nota, sem conta bancária) e nome do produto editável ao cadastrar pela nota + botão Nome. Teste no banco (desfeito) numa nota de compra de 26/10.
 - 28/10 (função email-caixa 6fdc8e0, migração 193): caixa de e-mail lê até 10 e-mails/6 MB por rodada e grava o último UID a cada e-mail; acima de 8 MB só o cabeçalho; agendamento chama uma conta por vez. Causa: conta nova do Gmail (Comercial - Fornecedores) estourava a CPU a cada 5 min desde 04h37 UTC e derrubava as outras.
-- 28/10 (site 954436f, funções nfe-recebidas-sync/nfe-processar/focus-webhook/email-caixa, migração 191): OC até o estoque sozinha. Item da nota casa com a OC ligada (MK #247 e Integral #248 casaram no ar, de-para gravado), entrada automática baixa a OC (teste desfeito na #244), nota ligada volta para a fila, "Chegou" dentro da OC, aviso dias úteis 16h43. Falta ela apertar Chegou nas OCs #244, #247 e #248 (treino) para fechar o teste. São Miguel sem rastreio automático (TRA: planilha do portal ou EDI OCOREN).
+- 28/10 (site 954436f, funções nfe-recebidas-sync/nfe-processar/focus-webhook/email-caixa, migração 191): OC até o estoque sozinha. Item da nota casa com a OC ligada (OCs #247 e #248 casaram no ar, de-para gravado), entrada automática baixa a OC (teste desfeito na #244), nota ligada volta para a fila, "Chegou" dentro da OC, aviso dias úteis 16h43. Falta ela apertar Chegou nas OCs #244, #247 e #248 (treino) para fechar o teste. A transportadora principal das compras não tem rastreio automático (TRA: planilha do portal ou EDI OCOREN).
 - 28/10 (migração 190, banco): comissão de parcela que já teve comissão cancelada reabre a cancelada com os valores novos (antes o "on conflict do nothing" travava). #628 parcela 1/2: R$ 300 a pagar. Pedidos antigos do Tiny pagos sem comissão ficaram como estão (de antes do ERP).
 - 28/10 (site c791b58 + funções nfe-emitir/nfe-processar): clonar pedido sem erro; transportadora e frete na NF-e (também na tela Conferir a NF-e); extrato à prova de erro ("Vai entrar na conta", trava de número); DRE com "Vendas sem custo" e cruzamento pela descrição limpa. Falta testar no ar. Mais campos no rascunho da nota (valor, volumes/peso, natureza/CFOP, destinatário) passados ao FIS.
 - 28/10 (site 62e7017): importação do extrato reconhece a conta pelo número do OFX ou nome do arquivo; sem certeza, conta em branco com aviso. Extratos do cartão de SP que caíram no Inter SC foram movidos (19 lançamentos, 2 importações, 10 contas a pagar).
@@ -35,7 +35,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
   entram depois).
 
 ## Esperando a usuária
-- Máquinas repetidas (ela disse "São as mesmas" ao FIS em 29/10): migração 195 (unificar_equipamentos + equipamentos_unificados + gatilho que não recria) escrita, NÃO aplicada (o MCP pediu confirmação e expirou 2 vezes). Está na parte 7 do arquivo do FAZ (.claude/skills/faz/sql/rodar-no-sql-editor.sql), que já junta os 16 pares simples e grava os 4 itens do checklist. Depois de rodar: conferir (fica a da nota nfe-mf, sai a da My Frost). N.v.b da Silva (NF 155 com 2 unidades e NF 62 contra 1 máquina My Frost de 2024): perguntar a ela qual é a mesma. NF 27 (transferência SC→SP) num cliente que é a própria MF: decidir com ela se sai da ficha.
+- Máquinas repetidas (ela disse "São as mesmas" ao FIS em 29/10): migração 195 (unificar_equipamentos + equipamentos_unificados + gatilho que não recria) escrita, NÃO aplicada (o MCP pediu confirmação e expirou 2 vezes). Está na parte 7 do arquivo do FAZ (.claude/skills/faz/sql/rodar-no-sql-editor.sql), que já junta os 16 pares simples e grava os 4 itens do checklist. Depois de rodar: conferir (fica a da nota nfe-mf, sai a da My Frost). Um cliente com 3 máquinas da MF (NF 155 com 2 unidades e NF 62 contra 1 máquina My Frost de 2024): perguntar a ela qual é a mesma. NF 27 (transferência SC→SP) num cliente que é a própria MF: decidir com ela se sai da ficha.
 - Página de comunicações na Retaguarda (pedido 1af4af3c, 24/10: tudo do sino, avisos dos chats, anotações, avisos para a equipe): ainda quer? Pela rodada de fechamento só entra se ela confirmar.
 - Gravar no checklist a situação de 4 itens (46e702cc "precisa de você"; 3a664b6d para "fila" depois da rodada; c4640591 e 9f62820c com a nota "depois da rodada"): a gravação de 28/10 pediu confirmação no Supabase e expirou.
 - Nota de peças sem OC (4 de 26/10): quer OC automática para as novas?
@@ -47,9 +47,9 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Pedidos aprovados sem pagamento e sem NF (três): cancelar ou esperar.
 - Pagamentos de um prestador esperam a planilha do Tiny (TIN).
 - Compras: apertar "Chegou" nas OCs #244, #247 e #248 (treino; fecha o teste da OC até o estoque).
-- Nota da MadeiraGreen (Fabiano retirou): marcar Retirada no local e À vista no Pix, renomear os 2 produtos (botão Nome) e Confirmar entrada (fecha o teste).
-- Compras sem OC paradas em "item sem produto" (MadeiraGreen, VTK, Frigelar, ND Distribuidora, 26-28/10): ligar o item ao produto ou marcar uso e consumo (Conferir itens das notas).
-- São Miguel: pedir à transportadora o EDI OCOREN ou a API de rastreio (TRA), ou importar a planilha de CT-e do portal.
+- Nota de compra retirada no local (NF de 26/10, R$ 479,68): marcar Retirada no local e À vista no Pix, renomear os 2 produtos (botão Nome) e Confirmar entrada (fecha o teste).
+- Compras sem OC paradas em "item sem produto" (4 notas de 26 a 28/10): ligar o item ao produto ou marcar uso e consumo (Conferir itens das notas).
+- Transportadora principal das compras (sem SSW): pedir a ela o EDI OCOREN ou a API de rastreio (TRA), ou importar a planilha de CT-e do portal.
 
 ## Decisões da usuária
 - 28/10: os 3 paquímetros digitais com calibração vencida ficam inativos até segunda ordem (inativados, com o motivo na observação).

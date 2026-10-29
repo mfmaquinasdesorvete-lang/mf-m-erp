@@ -56,7 +56,7 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 ## Cuidados conhecidos
 - Importar extrato: a conta vem de contaDoArquivo (número do OFX ou nome do arquivo); nunca usar a primeira conta da lista como padrão (28/10: OFX do cartão de SP caiu no Inter SC).
 - Importar extrato (Conciliacao.tsx, ImportarModal): nunca escolher conta por padrão (bancos[0]). Em 28/10 dois OFX do
-  cartão do Fabiano ("Infinit…") caíram no Banco Inter SC. Conta não reconhecida = escolha obrigatória; número do OFX
+  cartão de um funcionário ("Infinit…") caíram no Banco Inter SC. Conta não reconhecida = escolha obrigatória; número do OFX
   diferente do da conta = bloquear.
 - Datas sempre no horário de Brasília: no front `hoje()` (`src/lib/format.ts`) e `diaLocal` (`src/lib/filtroLista.ts`),
   nunca `new Date().toISOString().slice(0, 10)`. O banco roda em UTC: função que usa `current_date` leva
@@ -117,10 +117,12 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 - OC até o estoque sozinha (28/10, migração 191): item da nota sem produto casa com o item da OC ligada
   (`_shared/nfe-itens-oc.ts`: código do fornecedor guardado na OC, senão quantidade única; na dúvida não casa) e vira
   de-para em `produto_fornecedor`; `entrada_automatica_nota` dá a baixa na OC (OC recebida sem nota não entra sozinha);
-  nota ligada a OC parada em `aguardando_vinculo` volta para `pendente` (gatilho em `nfe_oc_vinculos`). A Expresso São
-  Miguel não está no SSW: a entrega dela não chega sozinha; "Chegou" fica na própria OC (Notas fiscais do fornecedor) e
+  nota ligada a OC parada em `aguardando_vinculo` volta para `pendente` (gatilho em `nfe_oc_vinculos`). A transportadora
+  principal das compras não está no SSW: a entrega dela não chega sozinha; "Chegou" fica na própria OC (Notas fiscais do fornecedor) e
   o aviso `avisar_compras_para_chegar` (dias úteis, 16h43) lembra o que já devia ter chegado.
 - Publicar funções (Actions deploy-supabase.yml): o campo `funcoes` é separado por ESPAÇO; com vírgula nada é publicado
   e a execução ainda sai "success" em ~10 s (aconteceu em 28/10). Conferir a duração ou o log antes de dizer "no ar".
+- Repositório público: nada de nome de cliente, pessoa ou fornecedor em .md, .sql, comentário ou commit (29/10 um nome
+  de cliente foi parar no arquivo do FAZ). Use "um cliente com 3 máquinas", "a nota de 26/10", o número da OC.
 - Caixa de e-mail (email-caixa): a função tem pouca CPU por chamada. Ler em pedaços (POR_RODADA, BYTES_RODADA), gravar
   o progresso a cada e-mail e manter uma conta por chamada no agendamento; uma conta presa derrubava todas (28/10).
