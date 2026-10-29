@@ -38,7 +38,6 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 
 ## Esperando a usuária
 - Pedido #628, parcela 2/2: fica em aberto (não é cobrada pela regra 197) até ela registrar onde o cliente pagou (Pedido → "Onde o cliente pagou"), decisão de 29/10.
-- Máquinas repetidas: falta ela dizer, no cliente com 3 máquinas da MF (NF 155 com 2 unidades e NF 62) e 1 da My Frost de 2024, qual é a mesma; e se a máquina da NF 27 (transferência SC→SP) sai da ficha da própria MF.
 - Página de comunicações na Retaguarda (pedido 1af4af3c, 24/10: tudo do sino, avisos dos chats, anotações, avisos para a equipe): ainda quer? Pela rodada de fechamento só entra se ela confirmar.
 - Gravar no checklist a situação de 4 itens (46e702cc "precisa de você"; 3a664b6d para "fila" depois da rodada; c4640591 e 9f62820c com a nota "depois da rodada"): a gravação de 28/10 pediu confirmação no Supabase e expirou.
 - Nota de peças sem OC (4 de 26/10): quer OC automática para as novas?
@@ -55,6 +54,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Transportadora principal das compras (sem SSW): pedir a ela o EDI OCOREN ou a API de rastreio (TRA), ou importar a planilha de CT-e do portal.
 
 ## Decisões da usuária
+- 29/10: o cliente com 3 máquinas da MF e 1 da My Frost tem 4 máquinas diferentes (anotado "não unificar"); máquina de NF de transferência entre unidades não fica na ficha da própria MF (a da NF 27 saiu e está em equipamentos_unificados).
 - 28/10: os 3 paquímetros digitais com calibração vencida ficam inativos até segunda ordem (inativados, com o motivo na observação).
 - "Produção" fica na área Fábrica e estoque, depois de Produtos e estoque; o quadro antigo de contas a pagar (KanbanPagar) foi apagado (REV, 27/10).
 - Tela com período abre em "Esta semana" (27/10, pelo ELO): Gastos separados e Início também. Ficam como estão: Cartão (abre no cartão tocado), Conferir itens das notas (fila do ano), Garantias e Propostas do Tiny (sem período).
