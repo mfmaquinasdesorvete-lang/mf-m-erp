@@ -163,7 +163,7 @@ select (to_regclass('public.config_ajustes') is not null)::text as config_ajuste
 -- =====================================================================
 -- 1) Cria a unificação de máquinas (o que fica recebe o que falta; a que sai fica guardada e não volta pela importação).
 -- 2) Junta os 16 pares simples (máquina da nota da MF + a do mesmo modelo, sem série, vinda da My Frost, no mesmo cliente).
---    O caso N.v.b da Silva (3 máquinas da MF para 1 da My Frost) fica de fora, esperando a sua escolha.
+--    O caso de um cliente com 3 máquinas da MF para 1 da My Frost fica de fora, esperando a sua escolha.
 -- 3) Grava no Sobre → Pedidos a situação de 4 itens parados.
 create table if not exists public.equipamentos_unificados (
   id uuid primary key default gen_random_uuid(),
@@ -269,7 +269,7 @@ update public.pedidos_checklist set situacao = 'fila', detalhe = concat(detalhe,
 update public.pedidos_checklist set detalhe = concat(detalhe, ' · 28/10 (GER): depois da rodada de fechamento; depende da Base comum (3a664b6d).')
  where id in ('c4640591-3c7d-4cdb-8cc6-3534d5828c1c', '9f62820c-f6e0-4438-8d36-3a46f1b57e03') and detalhe not like '%depois da rodada%';
 
--- conferência: deve mostrar 16 unificadas e as 3 da N.v.b da Silva ainda separadas
+-- conferência: deve mostrar 16 unificadas e as 3 do cliente que espera a escolha dela ainda separadas
 select (select count(*) from public.equipamentos_unificados) as unificadas,
        (select count(*) from public.equipamentos e where e.origem_ref like 'nfe-mf:%'
           and exists (select 1 from public.equipamentos m where m.cliente_id = e.cliente_id and m.produto_id = e.produto_id

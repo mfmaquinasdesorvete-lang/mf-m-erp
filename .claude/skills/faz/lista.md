@@ -19,7 +19,7 @@ PRD, eu) estão parando. Não foi mudança no ERP nem no banco.
    pause_project, reset_branch, merge_branch, create_project, deploy_edge_function) continuam pedindo. Vale para todos
    os chats; a proteção continua pelas regras do CLAUDE.md e pelas regras de acesso do banco.
 
-## 1. Rodar um arquivo no SQL Editor do Supabase (6 coisas de uma vez) — ~3 minutos
+## 1. Rodar um arquivo no SQL Editor do Supabase (7 coisas de uma vez) — ~3 minutos
 **O que é:** 5 partes do banco que os chats escreveram e não conseguem criar sozinhos (a ferramenta deles trava ao
 criar tabela ou apagar índice).
 **Por que importa:**
@@ -32,6 +32,8 @@ criar tabela ou apagar índice).
 - REV: 3 índices repetidos deixam a gravação de notas mais lenta.
 - IAD (29/10): 17 IAs voltam para "fazendo" até o teste com tarefa real (o MCP passou a pedir a sua confirmação
   para toda gravação e o cartão não chega até você).
+- GER (29/10): junta as 16 máquinas repetidas que você disse que "São as mesmas" (nota da MF + My Frost) e cria a
+  unificação de máquinas; atualiza 4 itens do GER no Sobre → Pedidos.
 
 **Onde:** Supabase → seu projeto → **SQL Editor** (menu da esquerda).
 **Passo a passo:**
