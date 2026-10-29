@@ -22,4 +22,9 @@ describe("troca de contribuinte na correção", () => {
     expect(trocaDeContribuinte(contrib, 9)).toEqual({ tirarDifal: false, reemitir: true });
     expect(trocaDeContribuinte({ ...contrib, local_destino: 1, consumidor_final: 1 }, 9)).toEqual({ tirarDifal: false, reemitir: false });
   });
+
+  it("sem o DIFAL, a base do IBS/CBS volta a ter esse valor", () => {
+    const [it0] = semDifalNosItens([{ icms_valor_uf_destino: 226.2, fcp_valor_uf_destino: 0, ibs_cbs_base_calculo: 1242.32, cbs_aliquota: 0.9, ibs_uf_aliquota: 0.1, ibs_mun_aliquota: 0 }]);
+    expect(it0).toMatchObject({ ibs_cbs_base_calculo: 1468.52, cbs_valor: 13.22, ibs_uf_valor: 1.47, ibs_mun_valor: 0, ibs_valor: 1.47 });
+  });
 });

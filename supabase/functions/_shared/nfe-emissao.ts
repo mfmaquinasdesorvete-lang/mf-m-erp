@@ -7,6 +7,7 @@ import { json } from "./cors.ts";
 import { preencherTextoNfe, type CamposNfe } from "./textoNfe.ts";
 import { HttpError, onlyDigits } from "./supabase.ts";
 import { transportadorNfe } from "./nfe-transportador.ts";
+import { semDifalNosItens } from "./nfe-contribuinte.ts";
 import { type AliquotasUf, type ConfigIbsCbs, type ItemBase, itemDoCadastro, itensTransferencia, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
 import { codigoUnidade, focusProducao } from "./focusnfe.ts";
@@ -160,6 +161,8 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
   try { itemsNota = aplicarCfops(items, cfops, interestadual); } catch (e) { throw new HttpError(400, (e as Error).message); }
   exigirCbenef(u.uf, itemsNota, "Ponha o código na regra de tributação que dá esse CST (Notas fiscais → Regras de tributação), conforme o contador.");
 
+  // DIFAL na nota só para não contribuinte (indicador 9): isento (2) com o grupo é recusado (rejeição 695)
+  if ((c.tipo_pessoa === "PJ" ? Number(c.contribuinte_icms) : 9) !== 9) semDifalNosItens(itemsNota as any[]);
   const payload = {
     natureza_operacao: naturezaAjustada || u.natureza_operacao,
     data_emissao: new Date().toISOString(),

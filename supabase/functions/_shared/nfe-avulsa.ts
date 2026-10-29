@@ -9,6 +9,7 @@ import { chaveValida, operacaoNota } from "./nfe-operacoes.ts";
 import { problemaIeDestinatario } from "./nfe-ajustes.ts";
 import { itensEntrada, pendenciasEntrada } from "./nfe-entrada.ts";
 import { transportadorNfe } from "./nfe-transportador.ts";
+import { semDifalNosItens } from "./nfe-contribuinte.ts";
 
 export type NotaAvulsa = {
   unidade_id: string; cliente_id: string; operacao: string; natureza?: string | null;
@@ -117,6 +118,8 @@ export async function emitirAvulsa(db: any, n: NotaAvulsa) {
   const abatido = r2((items as any[]).reduce((s, i) => s + (Number(i.icms_deducao_desoneracao) === 1 ? Number(i.icms_valor_desonerado ?? 0) : 0), 0));
   const valorTotal = r2(totalProdutos - Number(n.desconto ?? 0) + Number(n.frete ?? 0) + ipi - abatido);
 
+  // DIFAL na nota só para não contribuinte (indicador 9): isento (2) com o grupo é recusado (rejeição 695)
+  if ((c.tipo_pessoa === "PJ" ? Number(c.contribuinte_icms) : 9) !== 9) semDifalNosItens(items as any[]);
   const payload = {
     natureza_operacao: (n.natureza ?? "").trim() || op.natureza || u.natureza_operacao,
     data_emissao: new Date().toISOString(),

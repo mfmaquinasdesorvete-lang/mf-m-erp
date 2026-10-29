@@ -30,6 +30,7 @@ export function corrigirPayload(payload: any, alt: any) {
     }
     p[k] = v === "" ? undefined : v;
   }
+  if (p.indicador_inscricao_estadual_destinatario === 1 && !p.inscricao_estadual_destinatario) throw new HttpError(400, "contribuinte (indicador 1) precisa da inscrição estadual: use Buscar IE ou escolha outro indicador");
   if (p.indicador_inscricao_estadual_destinatario !== 1) delete p.inscricao_estadual_destinatario;
   // trocar quem é contribuinte mexe no DIFAL da nota: para contribuinte ou isento o grupo sai (senão a SEFAZ recusa com
   // a 695); para não contribuinte, se a nota não estava pronta, os impostos são refeitos emitindo de novo pelo pedido

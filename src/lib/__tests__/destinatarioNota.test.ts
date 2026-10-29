@@ -1,6 +1,6 @@
 // Correção do destinatário pela própria nota recusada e a volta para o cadastro do cliente. Dados inventados.
 import { describe, expect, it } from "vitest";
-import { clienteComoDestinatario, destinatarioParaCliente, indicadorDaIe, receitaParaDestinatario } from "../destinatarioNota";
+import { clienteComoDestinatario, editadosNaTela, destinatarioParaCliente, indicadorDaIe, receitaParaDestinatario } from "../destinatarioNota";
 
 describe("destinatário da nota recusada", () => {
   const original = { nome_destinatario: "Loja Exemplo", cnpj_destinatario: "11222333000181", indicador_inscricao_estadual_destinatario: 9, inscricao_estadual_destinatario: null, cep_destinatario: "57520000", uf_destinatario: "AL" };
@@ -43,5 +43,13 @@ describe("destinatário da nota recusada", () => {
   it("mesma rua e CEP: o complemento fica", () => {
     const r = receitaParaDestinatario({ logradouro: "Rua A", cep: "57520000", complemento: "" }, { logradouro_destinatario: "RUA A", cep_destinatario: "57520-000", complemento_destinatario: "Galpão 3" });
     expect(r.complemento_destinatario).toBeUndefined();
+  });
+
+  it("só o que foi mexido na tela vai para o cadastro (o resto da nota pode ser mais velho)", () => {
+    const nota = { logradouro_destinatario: "Rua Velha", indicador_inscricao_estadual_destinatario: 2, inscricao_estadual_destinatario: null, cnpj_destinatario: "11222333000181" };
+    const tela = { logradouro_destinatario: "Rua Velha", indicador_inscricao_estadual_destinatario: "2", inscricao_estadual_destinatario: "" };
+    expect(editadosNaTela(tela, nota)).toEqual({});
+    const cad = clienteComoDestinatario({ tipo_pessoa: "PJ", contribuinte_icms: 2, cpf_cnpj: "11222333000181", logradouro: "Rua Nova", inscricao_estadual: "ISENTO" });
+    expect(destinatarioParaCliente(editadosNaTela(tela, nota), cad)).toEqual({});
   });
 });

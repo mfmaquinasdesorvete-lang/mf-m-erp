@@ -49,11 +49,26 @@ export function destinatarioParaCliente(dest: Record<string, string>, original: 
   const ind = dest.indicador_inscricao_estadual_destinatario;
   if (mexeuIe && ["1", "2", "9"].includes(ind)) {
     patch.contribuinte_icms = Number(ind);
-    if (ind !== "1" && patch.inscricao_estadual === undefined && original.inscricao_estadual_destinatario) patch.inscricao_estadual = null;
+    // não contribuinte: a IE sai do cadastro; isento mantém o ISENTO do cadastro
+    if (ind === "9" && patch.inscricao_estadual === undefined && original.inscricao_estadual_destinatario) patch.inscricao_estadual = null;
+    if (ind === "2" && patch.inscricao_estadual === null) delete patch.inscricao_estadual;
     if (digitos(original.cnpj_destinatario).length === 14) patch.tipo_pessoa = "PJ";
   }
   return patch;
 }
+
+/** Só os campos que a pessoa mexeu nesta tela (comparando com a nota de antes): o resto da nota pode estar mais velho
+ *  que o cadastro (ela pode ter corrigido em Clientes depois) e não pode voltar para lá. */
+export function editadosNaTela(dest: Record<string, string>, antes: Record<string, unknown>): Record<string, string> {
+  return Object.fromEntries(Object.entries(dest).filter(([k, v]) => comparavel(k, v) !== comparavel(k, antes[k])));
+}
+
+/** Nomes dos campos do cadastro, para a pessoa ver o que vai mudar. */
+export const ROTULO_CADASTRO: Record<string, string> = {
+  nome: "nome", inscricao_estadual: "inscrição estadual", contribuinte_icms: "contribuinte", tipo_pessoa: "pessoa jurídica",
+  logradouro: "rua", numero: "número", complemento: "complemento", bairro: "bairro", municipio: "cidade", uf: "UF", cep: "CEP",
+  telefone: "telefone", email: "e-mail",
+};
 
 /** Indicador que combina com a IE digitada: número → 1 (contribuinte), ISENTO → 2; vazia não muda o indicador. */
 export const indicadorDaIe = (ie: string, atual: string) => (/^\s*isento\s*$/i.test(ie) ? "2" : /\d/.test(ie) ? "1" : atual);

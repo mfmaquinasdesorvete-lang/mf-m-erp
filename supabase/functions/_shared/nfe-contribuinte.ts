@@ -28,8 +28,22 @@ export function trocaDeContribuinte(payload: any, novoIndicador: number) {
   return { tirarDifal, reemitir };
 }
 
-/** Tira o grupo do DIFAL dos itens (não muda valores nem o total da nota). */
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Tira o grupo do DIFAL dos itens (o total da nota não muda). A base do IBS/CBS, que descontava o DIFAL
+ *  (NT 2025.002), volta a ter esse valor e os valores do IBS/CBS são refeitos com as alíquotas do item. */
 export function semDifalNosItens(items: any[]) {
-  for (const it of items ?? []) for (const k of CAMPOS_DIFAL_ITEM) delete it[k];
+  for (const it of items ?? []) {
+    const difal = Number(it.icms_valor_uf_destino ?? 0) + Number(it.fcp_valor_uf_destino ?? 0);
+    for (const k of CAMPOS_DIFAL_ITEM) delete it[k];
+    if (difal > 0 && it.ibs_cbs_base_calculo != null) {
+      const b = r2(Number(it.ibs_cbs_base_calculo) + difal);
+      it.ibs_cbs_base_calculo = b;
+      if (it.ibs_uf_aliquota != null) it.ibs_uf_valor = r2(b * Number(it.ibs_uf_aliquota) / 100);
+      if (it.ibs_mun_aliquota != null) it.ibs_mun_valor = r2(b * Number(it.ibs_mun_aliquota) / 100);
+      if (it.ibs_uf_valor != null || it.ibs_mun_valor != null) it.ibs_valor = r2(Number(it.ibs_uf_valor ?? 0) + Number(it.ibs_mun_valor ?? 0));
+      if (it.cbs_aliquota != null) it.cbs_valor = r2(b * Number(it.cbs_aliquota) / 100);
+    }
+  }
   return items;
 }

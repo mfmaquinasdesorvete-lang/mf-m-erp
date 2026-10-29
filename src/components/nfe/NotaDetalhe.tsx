@@ -26,7 +26,7 @@ import { ValidarNfe } from "./ValidarNfe";
 import { EventosNota, useEventosNfe } from "./PostosFiscais";
 import { GuiaRejeicaoNota } from "./GuiaRejeicao";
 import { buscarIe, completarPorCnpj } from "@/lib/cadastro";
-import { clienteComoDestinatario, destinatarioParaCliente, indicadorDaIe, receitaParaDestinatario } from "@/lib/destinatarioNota";
+import { clienteComoDestinatario, destinatarioParaCliente, editadosNaTela, indicadorDaIe, receitaParaDestinatario, ROTULO_CADASTRO } from "@/lib/destinatarioNota";
 import { trocaDeContribuinte } from "../../../supabase/functions/_shared/nfe-contribuinte";
 
 export type NotaEmitida = {
@@ -298,11 +298,12 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
       return data && String(data.cpf_cnpj ?? "").replace(/\D/g, "") === docNota ? data : null;
     },
   });
-  // compara com o cadastro (não com a tentativa anterior): a correção feita numa tentativa recusada também chega lá
-  const patchCadastro = cliente ? destinatarioParaCliente(dest, clienteComoDestinatario(cliente)) : {};
+  // só o que a pessoa mexeu aqui e que está diferente do cadastro (o resto da nota pode ser mais velho que o cadastro)
+  const patchCadastro = cliente ? destinatarioParaCliente(editadosNaTela(dest, p), clienteComoDestinatario(cliente)) : {};
   const mudouCadastro = Object.keys(patchCadastro).length > 0;
   // trocar quem é contribuinte: o DIFAL sai sozinho; passar a não contribuinte, às vezes, pede emitir de novo pelo pedido
   const troca = trocaDeContribuinte(p, Number(dest.indicador_inscricao_estadual_destinatario || 9));
+  const faltaIe = dest.indicador_inscricao_estadual_destinatario === "1" && !String(dest.inscricao_estadual_destinatario ?? "").replace(/\D/g, "");
 
   async function buscar(tipo: "ie" | "receita") {
     setBuscando(tipo);
@@ -427,12 +428,13 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
           {mudouCadastro && !troca.reemitir && (
             <label className="flex items-start gap-2 text-sm text-slate-700">
               <input type="checkbox" className="mt-0.5" checked={atualizarCadastro} onChange={(e) => setAtualizarCadastro(e.target.checked)} />
-              <span>Quando a SEFAZ autorizar, atualizar também o cadastro do cliente com o que foi corrigido aqui (a próxima nota já sai certa)</span>
+              <span>Quando a SEFAZ autorizar, atualizar também o cadastro do cliente ({Object.keys(patchCadastro).map((k) => ROTULO_CADASTRO[k] ?? k).join(", ")}): a próxima nota já sai certa</span>
             </label>
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => onClose(false)}>Voltar</Button>
-            <Button disabled={ocupado || !!buscando || troca.reemitir} title={buscando ? "Espere a busca terminar" : troca.reemitir ? "Emita de novo pelo pedido" : undefined}><Send size={16} /> {ocupado ? "Enviando…" : "Salvar e reenviar"}</Button>
+            {faltaIe && <span className="self-center text-sm text-red-700">Contribuinte (1) precisa da inscrição estadual: use Buscar IE.</span>}
+            <Button disabled={ocupado || !!buscando || troca.reemitir || faltaIe} title={buscando ? "Espere a busca terminar" : troca.reemitir ? "Emita de novo pelo pedido" : undefined}><Send size={16} /> {ocupado ? "Enviando…" : "Salvar e reenviar"}</Button>
           </div>
         </form>
       )}
