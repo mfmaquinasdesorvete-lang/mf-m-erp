@@ -32,7 +32,7 @@ describe("guiaRejeicao", () => {
     expect(guiaRejeicao("Rejeição: Duplicidade de NF-e")?.titulo).toMatch(/duplicidade/);
     expect(guiaRejeicao("Rejeição: Duplicidade de NF-e com diferença na Chave de Acesso [chNFe:3526...]")?.titulo).toMatch(/já usado por outra nota/);
     expect(guiaRejeicao("Rejeicao: A SEFAZ do destinatario nao permite Contribuinte Isento de Inscricao Estadual")?.titulo).toMatch(/não aceita "Isento"/);
-    expect(guiaRejeicao("Rejeicao: IE do destinatario nao informada")?.fazer.join(" ")).toMatch(/não aceitar Isento/);
+    expect(guiaRejeicao("Rejeicao: IE do destinatario nao informada")?.fazer.join(" ")).toMatch(/Buscar IE/);
     expect(guiaRejeicao("algo inédito")).toBeNull();
     expect(guiaRejeicao(null)).toBeNull();
   });
