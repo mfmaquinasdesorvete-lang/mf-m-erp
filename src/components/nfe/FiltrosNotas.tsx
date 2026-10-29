@@ -42,18 +42,19 @@ export const camposEmUso = (f: FiltroNota) => [f.numDe || f.numAte, f.valorMin |
  *  Nas emitidas, `venda` é a parte que é venda: o cartão soma só as vendas e mostra à parte as transferências entre as
  *  unidades e o resto (remessas, comodato, demonstração, conserto, garantia e devoluções a fornecedor não são faturamento). */
 export function CartoesNotas({ notas, ativo, periodo, tipo }: {
-  notas: { valor: number; situacao: string; venda?: number; transferencia?: number }[]; ativo: boolean; periodo: { de?: string; ate?: string }; tipo: "emitidas" | "recebidas";
+  notas: { valor: number; situacao: string; venda?: number; transferencia?: number; teste?: boolean }[]; ativo: boolean; periodo: { de?: string; ate?: string }; tipo: "emitidas" | "recebidas";
 }) {
   if (!ativo) return null;
-  // nas emitidas só a autorizada vale (cancelada, denegada e rejeitada não são venda, como na apuração)
-  const validas = notas.filter((x) => (tipo === "emitidas" ? x.situacao === "autorizada" : x.situacao !== "cancelada"));
+  // nas emitidas só a autorizada de produção vale (cancelada, denegada, rejeitada e a de teste não são venda, como na
+  // apuração); a que ainda está indo (processando, na fila) fica em "Pedem atenção"
+  const validas = notas.filter((x) => (tipo === "emitidas" ? x.situacao === "autorizada" && !x.teste : x.situacao !== "cancelada"));
   const soVendas = tipo === "emitidas" && validas.some((x) => x.venda !== undefined);
   const deVenda = soVendas ? validas.filter((x) => (x.venda ?? 0) > 0) : validas;
   const total = deVenda.reduce((t, x) => t + (soVendas ? x.venda ?? 0 : x.valor), 0);
   const transf = soVendas ? validas.reduce((t, x) => t + (x.transferencia ?? 0), 0) : 0;
   const outras = soVendas ? validas.reduce((t, x) => t + x.valor, 0) - total - transf : 0;
   const foraVendas = [transf > 0.005 && `${brl(transf)} em transferências SC↔SP`, outras > 0.005 && `${brl(outras)} em remessas, devoluções, entradas e estornos`].filter(Boolean).join(" · ");
-  const canceladas = notas.length - validas.length;
+  const canceladas = tipo === "emitidas" ? notas.filter((x) => ["cancelada", "denegada", "erro"].includes(x.situacao)).length : notas.length - validas.length;
   const semCanceladas = !canceladas ? "sem canceladas" : tipo === "emitidas"
     ? `sem ${canceladas} ${pl(canceladas, "cancelada ou recusada", "canceladas ou recusadas")}` : `sem ${canceladas} ${pl(canceladas, "cancelada", "canceladas")}`;
   const atencao = notas.filter((x) => ["erro", "denegada", "processando", "contingencia", "pendente", "aguardando_vinculo", "revisao"].includes(x.situacao)).length;

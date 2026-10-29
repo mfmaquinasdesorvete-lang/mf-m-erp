@@ -1,5 +1,5 @@
 # MEMORY — FIS (ERP Line – Fiscal e contábil)
-Atualizado em 29/10/2026 (Onde o cliente pagou e Validador no ar).
+Atualizado em 29/10/2026 (teste dos itens fiscais e consertos).
 
 ## Estado agora
 A emissão da NF-e, o DIFAL, as certidões e a previsão de imposto por máquina estão no ar. O que falta depende
@@ -18,6 +18,11 @@ guias e os parcelamentos que chegam na caixa do contador.
   emitida como venda e nas notas de pedidos do Tiny com valor menor que a venda.
 
 ## Em andamento
+- Teste dos itens fiscais (29/10, rodada de fechamento): 6 testados no ar, 5 esperando o teste dela (obrigações,
+  Analista em fichas, Validador, abas das notas, certidões) e 9 com defeito consertados (dossiê com XML da Focus,
+  DIFAL só com a base do ICMS e com as notas do ERP pelo payload, máquinas da nota com todos os itens, sem transferência
+  e com a unidade, cartão Vendas só autorizadas, Retrabalho sem as cartas do Tiny, guia das rejeições, IPI 53 nas
+  regras 5916/6916). O DAS do MEI foi para o CAR.
 - Conferir a NF-e (28/10, pedido vindo do GER): volumes e peso, natureza, CFOP por item, outro cliente como
   destinatário e entrega diferente (nas informações complementares; os campos de local de entrega da Focus não foram
   conferidos na documentação, por isso foi para o texto). No ar (cf791eb); falta o teste com uma nota real.
@@ -40,6 +45,8 @@ guias e os parcelamentos que chegam na caixa do contador.
   No ar em 29/10 (site e função); falta o teste: Validar uma nota emitida no ar.
 
 ## Esperando a usuária
+- 19 máquinas da nota da MF ao lado de uma do mesmo modelo vinda da My Frost (proposta ou lista), no mesmo cliente:
+  ela diz se são a mesma máquina (o GER unifica). A máquina da NF 27 (transferência SC→SP) está no cadastro da própria MF.
 - Pedido #628: link antigo descartado e registrados a NF do fornecedor paga pelo cliente e as entradas na conta da
   sócia (28/10). Falta ela dizer onde foi pago o restante.
 - NF de compra paga por uma loja Yozzy (material da montagem da loja toda, não de máquina): observação interna na NF,

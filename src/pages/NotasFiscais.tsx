@@ -293,7 +293,7 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
         </AcoesNoTopo>
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
-      <CartoesNotas tipo="emitidas" ativo={aba !== "excluidas"} periodo={filtros.f} notas={filtrada.map((n) => { const p = partesDaSaida(n, { paraOutraUnidade: n.destinatario_doc ? raizesUnidades.has(digitos(n.destinatario_doc).slice(0, 8)) : null, estornada: !!n.chave && estornadas.has(n.chave) }); return { valor: Number(n.valor_total ?? 0), situacao: situacaoEmitida(n).chave, venda: p.venda, transferencia: p.transferencia }; })} />
+      <CartoesNotas tipo="emitidas" ativo={aba !== "excluidas"} periodo={filtros.f} notas={filtrada.map((n) => { const p = partesDaSaida(n, { paraOutraUnidade: n.destinatario_doc ? raizesUnidades.has(digitos(n.destinatario_doc).slice(0, 8)) : null, estornada: !!n.chave && estornadas.has(n.chave) }); return { valor: Number(n.valor_total ?? 0), situacao: situacaoEmitida(n).chave, venda: p.venda, transferencia: p.transferencia, teste: n.ambiente === "homologacao" }; })} />
       <div className="mb-2"><LegendaEvolucao tipo="emitidas" /></div>
       {data.some((n) => n.status === "contingencia") && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">

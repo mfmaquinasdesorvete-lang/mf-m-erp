@@ -212,3 +212,5 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
 189. `20261029023413_dossie_xml_da_focus.sql` (dossiê e pacote do contador: a NF-e emitida pelo ERP conta como completa pelo XML na Focus (`xml_url`) e, sem XML guardado, o mês sai da chave de acesso; achado no teste de 29/10)
 190. `20261029023529_difal_base_do_icms.sql` (DIFAL por estado: base e ICMS do item só do grupo `<ICMS>` e sem DIFAL estimado em item do Simples (ICMSSN); achado no teste de 29/10)
 191. `20261029024315_maquinas_da_nota_todos_os_itens.sql` (`registrar_maquinas_da_nota` lê todos os itens do XML: a expressão gulosa só pegava o 1º item de cada nota; achado no teste de 29/10)
+192. `20261029030209_difal_notas_do_erp.sql` (DIFAL por estado também com as NF-e emitidas pelo ERP, lidas do payload quando o XML só está na Focus; revisão de 29/10)
+193. `20261029030319_maquinas_da_nota_unidade_transferencia.sql` (`registrar_maquinas_da_nota`: transferência entre unidades da MF não cria máquina e a chave nfe-mf vale junto com a unidade; revisão de 29/10)

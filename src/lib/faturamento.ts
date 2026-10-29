@@ -62,15 +62,16 @@ const GUIAS: [RegExp, GuiaRejeicao][] = [
   [/nao permite contribuinte isento/, {
     titulo: "O estado do cliente não aceita \"Isento\"",
     porque: "A SEFAZ do estado do cliente não aceita destinatário marcado como Contribuinte isento de inscrição estadual.",
-    fazer: ["No cadastro do cliente, apague a IE (ISENTO) e marque Não contribuinte.",
-      "Volte na nota e toque em Corrigir e reenviar (ela sai para não contribuinte, com DIFAL se for o caso)."],
+    fazer: ["No cadastro do cliente, toque na lupa ao lado de Inscrição estadual (SINTEGRA) e veja se ele tem IE neste estado.",
+      "Tem IE: preencha a IE e marque Contribuinte. Não tem: apague o ISENTO e marque Não contribuinte.",
+      "Em Corrigir e reenviar, troque também o Indicador da IE (1 = contribuinte, 9 = não contribuinte) e a Inscrição estadual: a correção usa os dados da nota, não os do cadastro."],
   }],
   [/ie do destinatario (invalida|nao vinculada|nao cadastrada)|inscricao estadual do destinatario|ie do destinatario nao informada|indicador de ie/, {
     titulo: "Inscrição estadual do cliente errada",
     porque: "A IE não confere com o CNPJ ou com o dígito do estado, ou o cliente está como contribuinte sem IE.",
     fazer: ["No cadastro do cliente, toque na lupa ao lado de Inscrição estadual (busca no SINTEGRA).",
       "Sem IE: marque Não contribuinte. Isento: escreva ISENTO e marque Contribuinte isento (se o estado do cliente não aceitar Isento, marque Não contribuinte).",
-      "Volte na nota e toque em Emitir de novo."],
+      "Na nota recusada, em Corrigir e reenviar, ajuste o Indicador da IE e a Inscrição estadual do mesmo jeito (a correção usa os dados da nota) e envie."],
   }],
   [/beneficio fiscal|cbenef/, {
     titulo: "Falta o código de benefício fiscal (cBenef)",
