@@ -12,7 +12,8 @@ export function transportadorNfe(modalidade: number | null | undefined, t: any):
   return {
     nome_transportador: String(t.nome).slice(0, 60),
     ...(doc.length === 14 ? { cnpj_transportador: doc } : doc.length === 11 ? { cpf_transportador: doc } : {}),
-    ...(ie ? { inscricao_estadual_transportador: ie } : {}),
+    // a SEFAZ exige a UF junto com a IE do transportador (rejeição 559): sem UF no cadastro, a IE fica de fora
+    ...(ie && t.uf ? { inscricao_estadual_transportador: ie } : {}),
     ...(endereco ? { endereco_transportador: endereco.slice(0, 60) } : {}),
     ...(t.municipio ? { municipio_transportador: String(t.municipio).slice(0, 60) } : {}),
     ...(t.uf ? { uf_transportador: String(t.uf).toUpperCase() } : {}),

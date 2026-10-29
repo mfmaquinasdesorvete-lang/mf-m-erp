@@ -154,7 +154,20 @@ Deno.serve(async (req) => {
         pdf_url: focusUrl(body.caminho_pdf_carta_correcao), xml_url: focusUrl(body.caminho_xml_carta_correcao), resposta: body,
       }).select().single();
       if (!ok) throw new HttpError(422, data?.mensagem ?? "carta de correção não aceita");
-      return json({ ok: true, carta: data });
+      // carta que troca a transportadora (tela Carta de correção → Trocar a transportadora): o pedido e a expedição
+      // ainda não despachada passam a usar a nova (pelo servidor: quem é só do financeiro não muda o pedido pela tela)
+      let trocada = false;
+      if (corpo.transportadora_id && nota.pedido_id && /Transportadora: onde se lê/.test(correcao)) {
+        const { data: t } = await db.from("transportadoras").select("id").eq("id", corpo.transportadora_id).maybeSingle();
+        if (t) {
+          const mod = Number(corpo.modalidade_frete);
+          const { error: e1 } = await db.from("pedidos").update({ transportadora_id: t.id, ...([0, 1, 2, 3, 4].includes(mod) ? { modalidade_frete: mod } : {}) }).eq("id", nota.pedido_id);
+          const { error: e2 } = await db.from("expedicoes").update({ transportadora_id: t.id }).eq("pedido_id", nota.pedido_id)
+            .not("status", "in", "(despachado,entregue,cancelada)");
+          trocada = !e1 && !e2;
+        }
+      }
+      return json({ ok: true, carta: data, transportadora_trocada: trocada });
     }
 
     if (acao === "reenviar_corrigida") {

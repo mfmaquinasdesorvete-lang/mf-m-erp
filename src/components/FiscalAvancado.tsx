@@ -1,7 +1,7 @@
 // Notas fiscais: carta de correção, inutilização de numeração e regras de tributação.
 import { useState, type FormEvent } from "react";
 import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
-import { Badge, Button, Field, Modal } from "./ui";
+import { Badge, Button, Carregando, Field, Modal } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { callFunction, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -11,8 +11,7 @@ import { CST_IBS_CBS, CST_ICMS, CST_IPI, CST_PIS_COFINS, type Codigo } from "@/l
 import { SelectCodigo } from "./ConfigNfe";
 import type { RegraTributaria } from "../../supabase/functions/_shared/nfe-impostos";
 import { confirmar } from "@/components/Dialogos";
-import { textoTrocaTransportadora } from "@/lib/cartaCorrecao";
-import { transportadoraDasCartas } from "@/lib/etiquetaDados";
+import { juntarCorrecao, semFreteNaNota, textoTrocaTransportadora, transportadoraDaUltimaCarta } from "@/lib/cartaCorrecao";
 import { lerReducoes, textoReducoes, type ModeloRegra } from "@/lib/regrasTributacao";
 import { CartaoRegra, ComoFuncionaRegras, GlossarioFiscal, ModelosRegra, TesteVenda } from "@/components/fiscal/RegrasPainel";
 
@@ -23,43 +22,48 @@ type Carta = { id: string; nota_id: string; sequencia: number | null; correcao: 
 type Transp = { id: string; nome: string; nome_fantasia: string | null; cnpj: string | null; inscricao_estadual: string | null; logradouro: string | null; numero: string | null; bairro: string | null; municipio: string | null; uf: string | null };
 
 export function CartaCorrecaoModal({ nota, onClose }: { nota: { id: string; numero: string | null; serie: string | null; payload?: any; pedido_id?: string | null }; onClose: () => void }) {
-  const { data: todas = [] } = useRows<Carta>("nfe_cartas_correcao", { order: "created_at", ascending: true });
+  const { data: todas = [], isLoading } = useRows<Carta>("nfe_cartas_correcao", { order: "created_at", ascending: true });
   const cartas = todas.filter((c) => c.nota_id === nota.id);
-  const [texto, setTexto] = useState("");
+  // a última carta autorizada vale sozinha (substitui as anteriores): a nova começa com o texto dela
+  const autorizadas = cartas.filter((c) => c.status === "autorizada")
+    .sort((a, b) => (a.sequencia ?? 0) - (b.sequencia ?? 0) || a.created_at.localeCompare(b.created_at));
+  const ultima = autorizadas[autorizadas.length - 1] ?? null;
+  const [texto, setTexto] = useState<string | null>(null);
+  const atual = texto ?? (ultima?.correcao ?? "");
   const [ocupado, setOcupado] = useState(false);
   const invalidar = useInvalidate();
-  // trocar a transportadora da nota já autorizada (29/10: não dava para ajustar pela NF): a carta sai com o texto pronto
+  // trocar a transportadora da nota já autorizada (29/10: não dava para ajustar pela NF): o texto sai pronto
   const { data: transportadoras = [] } = useRows<Transp>("transportadoras", {
     select: "id, nome, nome_fantasia, cnpj, inscricao_estadual, logradouro, numero, bairro, municipio, uf", order: "nome", ascending: true,
     filtro: (q) => q.eq("ativo", true).is("unificado_em", null),
   });
   const [novaTransp, setNovaTransp] = useState("");
-  // a que vale hoje: a da última carta que trocou a transportadora, senão a que saiu na nota
-  const corrigida = transportadoraDasCartas(cartas.filter((c) => c.status === "autorizada").map((c) => c.correcao));
-  const naNota = corrigida ? { nome_transportador: corrigida } : nota.payload;
+  const semFrete = semFreteNaNota(nota.payload);
+  const [modalidade, setModalidade] = useState(0);
+  const hoje = transportadoraDaUltimaCarta(ultima ? [ultima.correcao] : []);
 
-  function trocarTransportadora(id: string) {
-    setNovaTransp(id);
+  function montar(id: string, mod: number) {
     const t = transportadoras.find((x) => x.id === id);
-    // a nova carta substitui a anterior: o texto da transportadora entra junto com o que já estava escrito
-    // (a SEFAZ não aceita quebra de linha na correção: as correções vão na mesma linha); "não trocar" tira o texto
-    const sem = (atual: string) => atual.replace(/Transportadora: onde se lê "[^"]*", leia-se "[^"]*"\.\s*/g, "").trim();
-    setTexto((atual) => [sem(atual), t ? textoTrocaTransportadora(naNota, t) : ""].filter(Boolean).join(" ").slice(0, 1000));
+    // "não trocar" tira a troca do texto; as outras correções ficam
+    setTexto(juntarCorrecao(atual, t ? textoTrocaTransportadora(nota.payload, t, semFrete ? mod : null) : ""));
   }
 
+  const tamanho = atual.trim().length;
   async function enviar(e: FormEvent) {
     e.preventDefault();
+    const t = transportadoras.find((x) => x.id === novaTransp);
+    const trocando = !!t && /Transportadora: onde se lê/.test(atual);
+    const aviso = [ultima ? `Esta carta substitui a ${ultima.sequencia ? `CC-e nº ${ultima.sequencia}` : "carta anterior"}: o que não estiver no texto deixa de valer.` : "",
+      trocando && nota.pedido_id ? `O pedido e a expedição passam a usar a transportadora ${t!.nome_fantasia || t!.nome}.` : ""].filter(Boolean).join(" ");
+    if (!(await confirmar(`Enviar a carta de correção para a SEFAZ? Não dá para desfazer.${aviso ? ` ${aviso}` : ""}`, { titulo: "Carta de correção", ok: "Enviar" }))) return;
     setOcupado(true);
     try {
-      await callFunction("nfe-consultar", { nota_id: nota.id, acao: "carta_correcao", correcao: texto });
-      notify("Carta de correção registrada na SEFAZ");
-      // a transportadora nova passa a valer no pedido (etiquetas e expedição); o pedido travado fica como estava
-      if (novaTransp && nota.pedido_id && /Transportadora: onde se lê/.test(texto)) {
-        const { error } = await supabase.from("pedidos").update({ transportadora_id: novaTransp }).eq("id", nota.pedido_id);
-        if (error) notify("Carta registrada. Troque também a transportadora no pedido (ele não deixou mudar daqui).", "erro");
-        else invalidar("pedidos");
-      }
-      setTexto(""); setNovaTransp("");
+      // a troca no pedido e na expedição é feita no servidor, depois que a SEFAZ aceita a carta
+      const r = await callFunction<{ transportadora_trocada?: boolean }>("nfe-consultar", { nota_id: nota.id, acao: "carta_correcao", correcao: atual,
+        ...(trocando ? { transportadora_id: t!.id, ...(semFrete ? { modalidade_frete: modalidade } : {}) } : {}) });
+      notify(r?.transportadora_trocada ? "Carta de correção registrada e transportadora trocada no pedido" : "Carta de correção registrada na SEFAZ");
+      setTexto(null); setNovaTransp("");
+      invalidar("pedidos", "expedicoes");
     } catch (err) { notifyError(err); } finally { setOcupado(false); invalidar("nfe_cartas_correcao"); }
   }
 
@@ -68,9 +72,9 @@ export function CartaCorrecaoModal({ nota, onClose }: { nota: { id: string; nume
       <div className="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
         Serve para corrigir dados como descrição, endereço de entrega, transportadora ou informações complementares.
         <b> Não corrige</b> valores, impostos, quantidade, dados que mudem quem é o destinatário, nem a data de emissão.
-        Cada nova carta substitui a anterior: escreva todas as correções juntas.
+        Cada nova carta substitui a anterior: por isso o texto já começa com o da última carta. Escreva todas as correções juntas.
       </div>
-      {cartas.length > 0 && (
+      {isLoading ? <Carregando linhas={2} /> : cartas.length > 0 && (
         <ul className="mb-3 space-y-2">
           {cartas.map((c) => (
             <li key={c.id} className="rounded-lg border border-slate-200 p-2.5 text-sm">
@@ -86,19 +90,29 @@ export function CartaCorrecaoModal({ nota, onClose }: { nota: { id: string; nume
         </ul>
       )}
       <form onSubmit={enviar} className="space-y-3">
-        <Field label="Trocar a transportadora" dica={`Hoje: ${naNota?.nome_transportador || "sem transportadora"}${corrigida ? " (por carta de correção)" : ""}. Escolha a nova e o texto da correção sai pronto abaixo.`}>
-          <select className="input" value={novaTransp} onChange={(e) => trocarTransportadora(e.target.value)}>
-            <option value="">— não trocar —</option>
-            {transportadoras.map((t) => <option key={t.id} value={t.id}>{t.nome_fantasia || t.nome}</option>)}
-          </select>
-        </Field>
-        <Field label={`Correção (${texto.trim().length}/1000, mínimo 15)`}>
-          <textarea className="input" rows={4} maxLength={1000} value={texto} onChange={(e) => setTexto(e.target.value)} required
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Trocar a transportadora" className={semFrete ? "" : "sm:col-span-2"}
+            dica={`Na nota: ${nota.payload?.nome_transportador || "sem transportadora"}${hoje ? `; pela última carta: ${hoje}` : ""}. Escolha a nova e o texto sai pronto.`}>
+            <select className="input" value={novaTransp} onChange={(e) => { setNovaTransp(e.target.value); montar(e.target.value, modalidade); }}>
+              <option value="">— não trocar —</option>
+              {transportadoras.map((t) => <option key={t.id} value={t.id}>{t.nome_fantasia || t.nome}</option>)}
+            </select>
+          </Field>
+          {semFrete && (
+            <Field label="Frete por conta" dica="A nota saiu sem frete: a carta corrige também quem paga">
+              <select className="input" value={modalidade} disabled={!novaTransp} onChange={(e) => { setModalidade(Number(e.target.value)); montar(novaTransp, Number(e.target.value)); }}>
+                <option value={0}>Emitente (MF Máquinas)</option><option value={1}>Destinatário (cliente)</option><option value={2}>Terceiros</option>
+              </select>
+            </Field>
+          )}
+        </div>
+        <Field label={`Correção (${tamanho}/1000, mínimo 15)`} erro={tamanho > 1000 ? "Passou de 1.000 caracteres: encurte as outras correções" : undefined}>
+          <textarea className="input" rows={5} value={atual} onChange={(e) => setTexto(e.target.value)} required
             placeholder="Ex.: Onde se lê 'Rua das Flores, 10', leia-se 'Rua das Flores, 100'." />
         </Field>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Fechar</Button>
-          <Button disabled={ocupado || texto.trim().length < 15}>{ocupado ? "Enviando…" : "Enviar carta de correção"}</Button>
+          <Button disabled={ocupado || tamanho < 15 || tamanho > 1000}>{ocupado ? "Enviando…" : "Enviar carta de correção"}</Button>
         </div>
       </form>
     </Modal>

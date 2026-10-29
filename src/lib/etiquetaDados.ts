@@ -315,14 +315,3 @@ export function alertasEtiqueta(d: EtiquetaDados): string[] {
   }
   return a;
 }
-
-/** Transportadora trocada por carta de correção (texto montado em textoTrocaTransportadora): o nome da última
- *  "leia-se" das cartas autorizadas, em ordem; null quando nenhuma carta trocou a transportadora. */
-export function transportadoraDasCartas(correcoes: string[]): string | null {
-  let nome: string | null = null;
-  for (const c of correcoes) {
-    const m = /Transportadora: onde se lê "[^"]*", leia-se "([^"]*)"/.exec(c ?? "");
-    if (m) nome = m[1].split(/, (?:CNPJ|IE) /)[0].trim() || null;
-  }
-  return nome;
-}

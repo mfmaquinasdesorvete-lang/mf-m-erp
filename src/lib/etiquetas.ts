@@ -1,11 +1,14 @@
 // Etiquetas de transporte e de volume: busca no ERP o que já se sabe (pedido, envio, expedição, nota),
 // aplica o que foi editado à mão e guarda a versão editada. A tela fica em components/etiquetas.
 import { supabase } from "./supabase";
-import { aplicarEditados, montarEtiqueta, num, transportadoraDasCartas, type EtiquetaDados, type FonteEtiqueta, type ModeloEtiqueta } from "./etiquetaDados";
+import { aplicarEditados, montarEtiqueta, num, type EtiquetaDados, type FonteEtiqueta, type ModeloEtiqueta } from "./etiquetaDados";
+import { transportadoraDaUltimaCarta } from "./cartaCorrecao";
 import type { Envio } from "./fretes";
 
 export type OrigemEtiqueta =
-  | { tipo: "pedido"; pedido_id: string; sobrepor?: { volumes?: number | null; peso_kg?: string | number | null; transportadora_id?: string | null; rastreio?: string | null } }
+  | { tipo: "pedido"; pedido_id: string; sobrepor?: { volumes?: number | null; peso_kg?: string | number | null; transportadora_id?: string | null; rastreio?: string | null };
+      /** a NF-e aberta (entrega parcial: o pedido pode ter mais de uma) */
+      nota_id?: string }
   | { tipo: "envio"; envio_id: string; envio?: Partial<Envio> }
   | { tipo: "nota"; nota_id: string };
 
@@ -63,7 +66,8 @@ export async function carregarEtiqueta(o: OrigemEtiqueta, cfg: FonteEtiqueta["cf
   }
   if (pedido) {
     cliente = pedido.cliente;
-    nota = (pedido.notas ?? []).find(valida) ?? null;
+    const notaPedida = o.tipo === "pedido" && o.nota_id ? (pedido.notas ?? []).find((x: Nota) => x.id === o.nota_id && valida(x)) : null;
+    nota = notaPedida ?? (pedido.notas ?? []).find(valida) ?? null;
     expedicao = await um<any>(supabase.from("expedicoes").select("*").eq("pedido_id", pedido.id).maybeSingle());
   }
   const clienteId = cliente?.id ?? envio?.cliente_id ?? notaDireta?.cliente_id;
@@ -76,13 +80,13 @@ export async function carregarEtiqueta(o: OrigemEtiqueta, cfg: FonteEtiqueta["cf
   const s = o.tipo === "pedido" ? o.sobrepor : undefined;
   // na tela da expedição a transportadora escolhida (inclusive "nenhuma") vale mais que a gravada
   const naTela = !!s && s.transportadora_id !== undefined;
-  // depois da expedição e do envio vale a transportadora que saiu na NF-e (pode ter sido trocada na tela Conferir a NF-e)
-  // e só então a do pedido
-  // (a trocada por carta de correção vale mais que a original da nota)
+  // depois da expedição e do envio vale a transportadora da NF-e (pode ter sido trocada na tela Conferir a NF-e) e só
+  // então a do pedido. Na NF-e, a última carta de correção autorizada que troca a transportadora vale mais que o XML
+  // (a última carta substitui as anteriores; a troca pela carta também grava no pedido e na expedição, no servidor).
   const nfId = valida(nota) ? nota!.id : null;
   const cartas = nfId ? (await um<{ correcao: string }[]>(supabase.from("nfe_cartas_correcao").select("correcao")
-    .eq("nota_id", nfId).eq("status", "autorizada").order("created_at", { ascending: true }))) ?? [] : [];
-  const nfTransp: string | null = transportadoraDasCartas(cartas.map((c) => c.correcao))
+    .eq("nota_id", nfId).eq("status", "autorizada").order("sequencia", { ascending: true, nullsFirst: true }).order("created_at", { ascending: true }))) ?? [] : [];
+  const nfTransp: string | null = transportadoraDaUltimaCarta(cartas.map((c) => c.correcao))
     ?? (nota as any)?.nome_transportador ?? notaDireta?.payload?.nome_transportador ?? null;
   const transpId = naTela ? s!.transportadora_id || null
     : expedicao?.transportadora_id ?? envio?.transportadora_id ?? (nfTransp ? null : pedido?.transportadora_id);

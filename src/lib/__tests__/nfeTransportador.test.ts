@@ -13,4 +13,7 @@ describe("transportadora do pedido na NF-e (28/10)", () => {
     expect(transportadorNfe(9, t)).toEqual({});
     expect(transportadorNfe(0, null)).toEqual({});
   });
+  it("IE só vai com a UF (rejeição 559)", () => {
+    expect(transportadorNfe(0, { nome: "Sem UF", inscricao_estadual: "123" }).inscricao_estadual_transportador).toBeUndefined();
+  });
 });
