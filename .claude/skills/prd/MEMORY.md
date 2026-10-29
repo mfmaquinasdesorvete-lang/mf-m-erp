@@ -40,6 +40,9 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   das fichas (CP-ELE-003, 004, 010, 014), confirmado.
 
 ## Em andamento
+- 29/10 Origem corrigida pelas notas de compra (achado do Fiscal via MKT, ok dela): 1 → 2 em PC-MEC-011, 012, 013,
+  PC-KIT-014, 015, PC-ELE-012, PC-ELE-008; 1 → 7 em PC-REF-008. Regra: o que compramos de quem importou leva 2
+  (ou 7 se a nota veio com 6).
 - 29/10 Kit: aba "Peças do kit" no cadastro (como a aba "kits" do Tiny: preço e custo por peça, totais, preço do kit e
   economia) e o custo do kit sozinho: gatilhos zz_custo_kit_peca (produtos.preco_custo) e zz_custo_kit_composicao
   (kit_componentes) chamam recalcular_custo_kit (migração 20261101000196; funções fechadas para a API). Kit dentro de
