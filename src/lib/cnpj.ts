@@ -94,10 +94,12 @@ export async function buscarCnpj(cnpj: string | null | undefined): Promise<Dados
   return res;
 }
 
-/** Inscrição estadual ativa no estado do endereço (ou a primeira ativa). */
-export function inscricaoDoEstado(d: DadosCnpj, uf?: string | null) {
+/** Inscrição estadual ativa no estado do endereço (ou a primeira ativa). Com `soDoEstado`, só a daquele estado
+ *  (na NF-e a IE de outro estado é recusada). */
+export function inscricaoDoEstado(d: DadosCnpj, uf?: string | null, soDoEstado = false) {
   const ativas = (d.inscricoes ?? []).filter((i) => i.ativa && i.numero);
-  return (ativas.find((i) => i.uf === (uf ?? d.uf)) ?? ativas[0])?.numero ?? null;
+  const doEstado = ativas.find((i) => i.uf === (uf ?? d.uf));
+  return (soDoEstado ? doEstado : doEstado ?? ativas[0])?.numero ?? null;
 }
 
 /** CNAEs secundários como texto, um por linha ("3314-7/12 Manutenção de máquinas"), para editar na tela. */

@@ -26,7 +26,7 @@ import { ValidarNfe } from "./ValidarNfe";
 import { EventosNota, useEventosNfe } from "./PostosFiscais";
 import { GuiaRejeicaoNota } from "./GuiaRejeicao";
 import { buscarIe, completarPorCnpj } from "@/lib/cadastro";
-import { destinatarioParaCliente, receitaParaDestinatario } from "@/lib/destinatarioNota";
+import { destinatarioParaCliente, indicadorDaIe, receitaParaDestinatario } from "@/lib/destinatarioNota";
 
 export type NotaEmitida = {
   id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null; valor_total: number;
@@ -285,30 +285,39 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
   const [buscando, setBuscando] = useState<"ie" | "receita" | null>(null);
   const [atualizarCadastro, setAtualizarCadastro] = useState(true);
   const mudouCadastro = Object.keys(destinatarioParaCliente(dest, p)).length > 0;
+  // nota de transferência ou de devolução a fornecedor não tem cliente para atualizar
+  const podeAtualizarCadastro = !!(nota.cliente_id || nota.pedido_id);
 
   async function buscar(tipo: "ie" | "receita") {
     setBuscando(tipo);
     try {
       if (tipo === "ie") {
-        const r = await buscarIe(cnpjDest, dest.uf_destinatario);
-        if (r?.inscricao_estadual) setDest({ ...dest, inscricao_estadual_destinatario: String(r.inscricao_estadual), indicador_inscricao_estadual_destinatario: "1" });
+        // só a IE do estado da nota (a de outro estado a SEFAZ recusa)
+        const r = await buscarIe(cnpjDest, dest.uf_destinatario, { soDoEstado: true, aviso: "o Indicador da IE ficou 1 (contribuinte). Toque em Salvar e reenviar." });
+        if (r?.inscricao_estadual) setDest((d) => ({ ...d, inscricao_estadual_destinatario: String(r.inscricao_estadual), indicador_inscricao_estadual_destinatario: "1" }));
       } else {
-        const campos = ["nome", "inscricao_estadual", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "cep", "telefone", "email"];
-        const r = await completarPorCnpj({}, cnpjDest, campos, true);
-        if (r) setDest({ ...dest, ...receitaParaDestinatario(r) });
+        // telefone e e-mail do cadastro ficam (os da Receita muitas vezes são do contador)
+        const campos = ["nome", "inscricao_estadual", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "cep"];
+        const r = await completarPorCnpj({}, cnpjDest, campos, true, { ieSoDoEstado: true });
+        if (r) setDest((d) => ({ ...d, ...receitaParaDestinatario(r) }));
       }
     } catch (e) { notifyError(e); } finally { setBuscando(null); }
   }
 
-  /** O que foi corrigido no destinatário vai também para o cadastro do cliente (para a próxima nota já sair certa). */
+  /** O que foi corrigido no destinatário vai também para o cadastro do cliente (para a próxima nota já sair certa),
+   *  só quando o cliente da nota (ou do pedido) é mesmo o destinatário: a nota pode ter saído em nome de outro. */
   async function gravarNoCadastro() {
     const patch = destinatarioParaCliente(dest, p);
     if (!Object.keys(patch).length) return;
     let clienteId = nota.cliente_id ?? null;
     if (!clienteId && nota.pedido_id) clienteId = ((await supabase.from("pedidos").select("cliente_id").eq("id", nota.pedido_id).maybeSingle()).data?.cliente_id as string | null) ?? null;
-    if (!clienteId) return notify("A nota foi reenviada, mas não achei o cliente para atualizar o cadastro: corrija em Clientes.", "erro");
-    const { data, error } = await supabase.from("clientes").update(patch).eq("id", clienteId).select("id");
-    if (error || !data?.length) notify(`A nota foi reenviada, mas o cadastro do cliente não foi atualizado${error ? `: ${error.message}` : " (sem permissão)"}. Corrija em Clientes.`, "erro");
+    const docNota = String(p.cnpj_destinatario ?? p.cpf_destinatario ?? "").replace(/\D/g, "");
+    const cli = clienteId ? (await supabase.from("clientes").select("id, cpf_cnpj").eq("id", clienteId).maybeSingle()).data : null;
+    if (!cli || String(cli.cpf_cnpj ?? "").replace(/\D/g, "") !== docNota) {
+      return notify("O cadastro do cliente não foi mudado: o destinatário desta nota não é o cliente do pedido. Corrija em Clientes, se precisar.", "erro");
+    }
+    const { data, error } = await supabase.from("clientes").update(patch).eq("id", cli.id).select("id");
+    if (error || !data?.length) notify(`O cadastro do cliente não foi atualizado${error ? `: ${error.message}` : " (sem permissão)"}. Corrija em Clientes.`, "erro");
     else invalidate("clientes");
   }
 
@@ -329,7 +338,8 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
     setOcupado(true);
     try {
       const r = await callFunction("nfe-consultar", { nota_id: nota.id, acao: "reenviar_corrigida", alteracoes });
-      if (atualizarCadastro && mudouCadastro) await gravarNoCadastro();
+      // o cadastro só muda quando a SEFAZ não recusou de novo (senão ficaria com o dado que ela recusou)
+      if (podeAtualizarCadastro && atualizarCadastro && mudouCadastro && r.nota?.status !== "erro") await gravarNoCadastro();
       notify(r.nota?.status === "erro" ? `Rejeitada de novo: ${r.nota.mensagem}` : r.nota?.status === "autorizada" ? `NF-e ${r.nota.numero} autorizada` : "Nota reenviada para a SEFAZ", r.nota?.status === "erro" ? "erro" : "ok");
       invalidate("notas_fiscais", "pedidos");
       onClose(r.nota?.status !== "erro");
@@ -350,9 +360,9 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
           <p className="text-sm text-slate-600">Valores, quantidades e impostos não mudam aqui (vêm do pedido). Os dados do cliente dá para buscar e corrigir aqui mesmo.</p>
           {cnpjDest.length === 14 && (
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="secondary" carregando={buscando === "receita"} disabled={!!buscando} onClick={() => buscar("receita")}
+              <Button type="button" variant="secondary" carregando={buscando === "receita"} disabled={!!buscando || ocupado} onClick={() => buscar("receita")}
                 title="Nome, endereço e inscrição estadual pelo CNPJ (Receita e SINTEGRA)"><Search size={15} /> Buscar dados pela Receita</Button>
-              <Button type="button" variant="secondary" carregando={buscando === "ie"} disabled={!!buscando} onClick={() => buscar("ie")}
+              <Button type="button" variant="secondary" carregando={buscando === "ie"} disabled={!!buscando || ocupado} onClick={() => buscar("ie")}
                 title="Inscrição estadual ativa no estado do cliente (SINTEGRA)"><Search size={15} /> Buscar IE</Button>
             </div>
           )}
@@ -364,7 +374,11 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
                   <select className="input" value={dest[k]} onChange={(e) => setDest({ ...dest, [k]: e.target.value })}>
                     <option value="1">1 · contribuinte (tem IE)</option><option value="2">2 · isento</option><option value="9">9 · não contribuinte</option>
                   </select>
-                ) : <input className="input" value={dest[k]} onChange={(e) => setDest({ ...dest, [k]: e.target.value })} />}
+                ) : <input className="input" value={dest[k]} onChange={(e) => {
+                  const v = e.target.value;
+                  // IE digitada: o indicador acompanha (número → contribuinte, ISENTO → isento), como o servidor exige
+                  setDest((d) => ({ ...d, [k]: v, ...(k === "inscricao_estadual_destinatario" ? { indicador_inscricao_estadual_destinatario: indicadorDaIe(v, d.indicador_inscricao_estadual_destinatario) } : {}) }));
+                }} />}
               </Field>
             ))}
           </div>
@@ -384,15 +398,15 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
             </table>
           </div>
           <Field label="Informações complementares"><textarea className="input min-h-16" value={info} onChange={(e) => setInfo(e.target.value)} /></Field>
-          {mudouCadastro && (
+          {mudouCadastro && podeAtualizarCadastro && (
             <label className="flex items-start gap-2 text-sm text-slate-700">
               <input type="checkbox" className="mt-0.5" checked={atualizarCadastro} onChange={(e) => setAtualizarCadastro(e.target.checked)} />
-              <span>Atualizar também o cadastro do cliente com o que foi corrigido aqui (a próxima nota já sai certa)</span>
+              <span>Se a SEFAZ aceitar, atualizar também o cadastro do cliente com o que foi corrigido aqui (a próxima nota já sai certa)</span>
             </label>
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => onClose(false)}>Voltar</Button>
-            <Button disabled={ocupado}><Send size={16} /> {ocupado ? "Enviando…" : "Salvar e reenviar"}</Button>
+            <Button disabled={ocupado || !!buscando} title={buscando ? "Espere a busca terminar" : undefined}><Send size={16} /> {ocupado ? "Enviando…" : "Salvar e reenviar"}</Button>
           </div>
         </form>
       )}

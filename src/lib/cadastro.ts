@@ -15,7 +15,7 @@ export const MAPA_CNPJ = {
  * Busca o CNPJ e devolve o que preencher. Automático: só os campos vazios.
  * Pelo botão de busca (forcar): substitui tudo pelo que está na Receita.
  */
-export async function completarPorCnpj(row: Record<string, any>, cnpj: string, campos: string[], forcar = false) {
+export async function completarPorCnpj(row: Record<string, any>, cnpj: string, campos: string[], forcar = false, opc: { ieSoDoEstado?: boolean } = {}) {
   if (!cnpjValido(cnpj)) {
     if (forcar) notify("CNPJ inválido: confira os números", "erro");
     return null;
@@ -28,7 +28,7 @@ export async function completarPorCnpj(row: Record<string, any>, cnpj: string, c
     if (forcar) notify("CNPJ não encontrado na Receita (ou a consulta está fora do ar)", "erro");
     return null;
   }
-  const ie = inscricaoDoEstado(d, d.uf);
+  const ie = inscricaoDoEstado(d, d.uf, !!opc.ieSoDoEstado);
   // MEI: "52.431.268 BRUNO JOSE SALM" vira "Bruno Jose Salm" (o original vai para as observações ao salvar)
   const mei = separarNomeMei(d.nome);
   const fonte = { ...d, nome: nomeProprio(mei.nome), nome_fantasia: d.nome_fantasia ? nomeProprio(d.nome_fantasia) : d.nome_fantasia, inscricao_estadual: ie } as Record<string, unknown>;
@@ -57,12 +57,12 @@ export const ieDoCnpj = (ie: unknown, cnpj: unknown) => {
  * Botão "Buscar IE": consulta o CNPJ (CNPJá e CNPJ.ws, que trazem o SINTEGRA) e devolve a inscrição estadual ativa
  * no estado do cliente, já marcando o cliente como contribuinte. Sem IE na consulta, explica onde conferir.
  */
-export async function buscarIe(cnpj: string | null | undefined, uf: string | null | undefined): Promise<Record<string, unknown> | null> {
+export async function buscarIe(cnpj: string | null | undefined, uf: string | null | undefined, opc: { soDoEstado?: boolean; aviso?: string } = {}): Promise<Record<string, unknown> | null> {
   if (!cnpjValido(cnpj ?? "")) { notify("Para buscar a IE, preencha antes o CNPJ do cliente", "erro"); return null; }
   const d = await buscarCnpj(cnpj);
   if (!d) { notify("A consulta do CNPJ está fora do ar agora: tente de novo em 1 minuto", "erro"); return null; }
   const estado = uf || d.uf;
-  const ie = inscricaoDoEstado(d, estado);
+  const ie = inscricaoDoEstado(d, estado, !!opc.soDoEstado);
   if (!ie) {
     const outras = (d.inscricoes ?? []).filter((i) => i.numero);
     notify(outras.length
@@ -70,7 +70,7 @@ export async function buscarIe(cnpj: string | null | undefined, uf: string | nul
       : `A consulta não trouxe inscrição estadual. Se a SEFAZ diz que o cliente é contribuinte, peça a IE a ele ou consulte o SINTEGRA de ${estado ?? "seu estado"}.`, "erro");
     return null;
   }
-  notify(`IE ${ie} (${estado}) encontrada: cliente marcado como contribuinte. Toque em Salvar.`);
+  notify(opc.aviso ? `IE ${ie} (${estado}) encontrada: ${opc.aviso}` : `IE ${ie} (${estado}) encontrada: cliente marcado como contribuinte. Toque em Salvar.`);
   return { inscricao_estadual: ie, contribuinte_icms: 1 };
 }
 
