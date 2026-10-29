@@ -3,7 +3,7 @@
 // cancelado com motivo ou excluído pelo financeiro (o número não volta e a exclusão fica na auditoria). O histórico do
 // recibo junta a conta (datas, mudanças, comprovantes anexados), os outros recibos dela e a renegociação, se houver.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Ban, FileText, History, Plus, ReceiptText, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, Ban, FileText, History, Plus, ReceiptText, Search, Trash2, UserRound } from "lucide-react";
 import { BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Modal, Table } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -18,6 +18,7 @@ import { MEIOS } from "@/lib/formasPagamento";
 import { valorPorExtenso } from "@/lib/extenso";
 import { pdfRecibo } from "@/lib/pdf";
 import { referenteCurto } from "@/lib/reciboTexto";
+import { chavePessoa, pessoaDoRecibo, recibosPorPessoa } from "@/lib/recibosPorPessoa";
 import { formatarTelefone } from "@/lib/mascaras";
 import type { Config } from "@/lib/types";
 import { confirmar, pedirTexto } from "@/components/Dialogos";
@@ -258,12 +259,20 @@ export function Recibos({ escopo = "financeiro" }: { escopo?: "financeiro" | "fu
   const [tipo, setTipo] = useState<"" | "recebimento" | "pagamento">("");
   const [busca, setBusca] = useState("");
   const [mes, setMes] = useState("");
+  // Funcionários → Recibos: primeiro um cartão por pessoa; abrir o cartão mostra só os recibos dela (pedido de 29/10)
+  const [pessoa, setPessoa] = useState<string | null>(null);
   const termo = busca.trim().toLowerCase();
+  const porPessoa = escopo === "funcionarios";
   const lista = useMemo(() => filtrar(todos).filter((r) =>
     !!r.de_funcionario === (escopo === "funcionarios")
+    && (!pessoa || chavePessoa(pessoaDoRecibo(r)) === pessoa)
     && (!tipo || r.tipo === tipo) && (!mes || r.data_pagamento.startsWith(mes))
     && (!termo || [r.numero, r.pagador_nome, r.recebedor_nome, r.referente, contaDe(r)?.descricao, contaDe(r) && nomeTerceiro(contaDe(r)!), contaDe(r)?.documento]
-      .join(" ").toLowerCase().includes(termo))), [todos, tipo, mes, termo, filtrar, contaDe, escopo]);
+      .join(" ").toLowerCase().includes(termo))), [todos, tipo, mes, termo, filtrar, contaDe, escopo, pessoa]);
+  const grupos = useMemo(() => (porPessoa ? recibosPorPessoa(lista) : []), [porPessoa, lista]);
+  // buscar ou filtrar mostra os recibos direto, como antes
+  const verCartoes = porPessoa && !pessoa && !termo && !tipo && !mes;
+  const reciboDaPessoa = pessoa ? todos.find((r) => chavePessoa(pessoaDoRecibo(r)) === pessoa) : undefined;
   const total = lista.filter((r) => !r.cancelado_em).reduce((s, r) => s + Number(r.valor), 0);
   const [lote, setLote] = useState<{ blob: Blob; n: number } | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -326,6 +335,29 @@ export function Recibos({ escopo = "financeiro" }: { escopo?: "financeiro" | "fu
           {podeEmitir && <Button onClick={novo}><Plus size={16} /> Novo recibo</Button>}
         </>} />
       {lote && <PdfViewer blob={lote.blob} nome={`recibos-${lote.n}.pdf`} titulo={`${lote.n} recibos em um PDF`} onClose={() => setLote(null)} />}
+      {pessoa && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Button variant="secondary" onClick={() => setPessoa(null)}><ArrowLeft size={16} /> Todas as pessoas</Button>
+          <h3 className="text-base font-bold text-fg">{reciboDaPessoa ? pessoaDoRecibo(reciboDaPessoa) : ""}</h3>
+        </div>
+      )}
+      {verCartoes ? (
+        grupos.length ? (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {grupos.map((g) => (
+              <button key={g.chave} type="button" onClick={() => setPessoa(g.chave)} aria-label={`Abrir os recibos de ${g.nome}`}
+                className="flex items-start gap-3 rounded-cartao border border-slate-200 bg-surface p-3 text-left transition hover:brightness-110 focus-visible:ring-2 focus-visible:ring-modulo">
+                <UserRound size={20} className="mt-0.5 shrink-0 text-modulo" aria-hidden />
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold text-fg">{g.nome}</span>
+                  <span className="block text-xs text-slate-500">{g.qtd} {pl(g.qtd, "recibo", "recibos")} · último em {dataBR(g.ultimo)}</span>
+                  <span className="mt-1 block text-lg font-bold text-fg">{brl(g.total)}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : <p className="rounded-cartao border border-slate-200 px-3 py-6 text-center text-sm text-slate-500">Nenhum recibo da equipe ainda.</p>
+      ) : (
       <Table empty={!lista.length}
         head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Tipo</th><th className="th">Quem recebeu / pagou</th><th className="th">Referente a</th><th className="th text-right">Valor</th><th className="th" /></>}>
         {lista.map((r) => (
@@ -358,6 +390,7 @@ export function Recibos({ escopo = "financeiro" }: { escopo?: "financeiro" | "fu
           </tr>
         ))}
       </Table>
+      )}
     </div>
   );
 }

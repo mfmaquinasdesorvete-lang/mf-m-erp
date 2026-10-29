@@ -785,6 +785,13 @@ function fretesDemo(db: Db) {
     valor: Number(paga.valor_pago ?? paga.valor), referente: paga.descricao, forma_pagamento: "Boleto", data_pagamento: paga.data_pagamento ?? dias(-3), cidade: "São José/SC",
     observacoes: null, cancelado_em: null, cancelado_motivo: null, created_at: quando(-3),
   }] : [];
+  // recibos da equipe (Funcionários → Recibos): pagamentos a quem está no cadastro de funcionários
+  (db.funcionarios ?? []).slice(0, 2).forEach((f, i) => [1, 2, 3].slice(0, 3 - i).forEach((k) => db.recibos.push({
+    id: `rcf${i}${k}`, numero: db.recibos.length + 1, tipo: "pagamento", unidade_id: U_SC, conta_receber_id: null, conta_pagar_id: null,
+    pagador_nome: "MF MAQUINAS LTDA", pagador_doc: "11222333000181", recebedor_nome: f.nome, recebedor_doc: null, valor: 300 * k, referente: "Adiantamento",
+    forma_pagamento: "Pix", data_pagamento: dias(-10 * k - i), cidade: "São José/SC", observacoes: null, cancelado_em: null, cancelado_motivo: null,
+    de_funcionario: true, created_at: quando(-10 * k - i),
+  })));
   db.envio_ocorrencias = [
     { id: "eo1", envio_id: "ev7", tipo: "atraso", descricao: "Carga parada no centro de distribuição de Goiânia", responsavel: null, andamento: null, status: "aberta", resolvida_em: null, created_at: quando(-4), atualizado_em: quando(-4) },
     { id: "eo2", envio_id: "ev1", tipo: "cobranca", descricao: "CT-e veio R$ 90 acima da cotação (taxa de descarga)", responsavel: "Rafael", andamento: "Pedimos o abatimento à Rodonaves", status: "aberta", resolvida_em: null, created_at: quando(-20), atualizado_em: quando(-1) },
