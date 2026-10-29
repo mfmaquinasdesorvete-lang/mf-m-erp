@@ -40,9 +40,9 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   das fichas (CP-ELE-003, 004, 010, 014), confirmado.
 
 ## Em andamento
-- 29/10 Origem corrigida pelas notas de compra (achado do Fiscal via MKT, ok dela): 1 → 2 em PC-MEC-011, 012, 013,
-  PC-KIT-014, 015, PC-ELE-012, PC-ELE-008; 1 → 7 em PC-REF-008. Regra: o que compramos de quem importou leva 2
-  (ou 7 se a nota veio com 6).
+- 29/10 Origem: TUDO NACIONAL (0). Decisão dela ("não temos nada importado"), mesmo avisada de que algumas notas de
+  compra vieram como estrangeiras e do ICMS interestadual de 4% do importado. Os 40 ativos com 1/2/5/7 foram para 0
+  (antes, no mesmo dia, 8 tinham ido para 2/7 pelo achado do Fiscal). Produto novo: origem 0.
 - 29/10 Kit: aba "Peças do kit" no cadastro (como a aba "kits" do Tiny: preço e custo por peça, totais, preço do kit e
   economia) e o custo do kit sozinho: gatilhos zz_custo_kit_peca (produtos.preco_custo) e zz_custo_kit_composicao
   (kit_componentes) chamam recalcular_custo_kit (migração 20261101000196; funções fechadas para a API). Kit dentro de
@@ -113,6 +113,7 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 - Teste com 3 fotos no padrão (fundo branco, quadrada); as fotos sem logo do Canva ficam com o MKT.
 
 ## Decisões da usuária
+- Origem dos produtos: tudo nacional, origem 0 (29/10).
 - Kits com várias unidades para o Mercado Livre (28/10): sanfona com 3 (PC-VED-004, kit), pá + sanfona (PC-KIT-018).
   Cada kit novo: kit_componentes com as unidades; custo = soma; anúncio com o MKT.
 - Preços para revisar após troca de custo: recusar as sugestões que baixam o preço; as que sobem ela aprova (28/10).
