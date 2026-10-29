@@ -31,6 +31,15 @@ repositório para publicar o site.
    **NÃO** marcar "Allow write access" → Add key.
 3. Me avise (ou o SEG): ele confere, troca o site para o endereço SSH e só então o repositório vira privado.
 
+## 0c. Segurança, fase 1: duas etapas nas contas dos serviços (SEG, 29/10) — ~15 minutos
+Use um app autenticador ou a chave de acesso do celular. Guarde os códigos de recuperação num lugar seguro, **fora do
+Drive**. Só você consegue ver se ficou ligado: me diga "feito" em cada um.
+1. **GitHub:** github.com/settings/security → Two-factor authentication → Enable.
+2. **Supabase:** supabase.com/dashboard/account/security → Multi-factor authentication → adicionar app autenticador.
+3. **Hostinger:** hPanel → seu perfil (canto de cima) → Segurança → Autenticação em dois fatores → ativar.
+4. **Google, nas duas contas** (a da MF e a das sorveterias): myaccount.google.com/signinoptions/twosv → ativar.
+(Depois vem o 0b, a chave da Hostinger no GitHub, e o 8, o login com o rosto.)
+
 ## 1. Rodar um arquivo no SQL Editor do Supabase (7 coisas de uma vez) — ~3 minutos
 **O que é:** 5 partes do banco que os chats escreveram e não conseguem criar sozinhos (a ferramenta deles trava ao
 criar tabela ou apagar índice).
@@ -91,9 +100,11 @@ Cobrança automática → **WhatsApp oficial**, e em Configurações → Avisos 
 **Onde:** no Telegram, abrir **@BotFather** → `/newbot` → ele dá um token. Supabase → Edge Functions → Secrets:
 `TELEGRAM_BOT_TOKEN` (o token) e `TELEGRAM_WEBHOOK_SECRET` (uma senha qualquer). No ERP: Avisos → **Ligar o robô**.
 
-## 8. Login com o rosto (SEG)
-**Onde:** no ERP, pelo celular: menu → **Meu rosto** → cadastrar. Depois o SEG marca a data em que passa a ser
-obrigatório (7 dias depois) e avisa a equipe.
+## 8. Login com o rosto (SEG, fase 1 da segurança)
+1. Supabase → projeto do ERP → **Authentication → MFA** (supabase.com/dashboard/project/antfofmwrmkadiavjycg/auth/mfa)
+   → ligar **WebAuthn (passkey)**, nome do site `erp.myfrost.ai` e endereço `https://erp.myfrost.ai`.
+2. No ERP, pelo celular do dia a dia: menu do usuário → **Meu rosto** → Cadastrar.
+3. Avise o SEG: ele confere e marca a data em que passa a valer (7 dias depois) e avisa a equipe.
 
 ## 9. Conectar o Gmail do contador (FIS)
 **Onde:** claude.ai → Configurações → Conectores → Gmail → **Conectar** com o e-mail do contador da MF (está na
