@@ -171,3 +171,27 @@ export function fotosParaML(principal: string | null | undefined, galeria: strin
   const urls = [principal, ...galeria].filter((u): u is string => !!u && /^https?:\/\//.test(u));
   return [...new Set(urls)].slice(0, limite).map((source) => ({ source }));
 }
+
+const NOMES_ATRIBUTO: Record<string, string> = {
+  GTIN: "código de barras (EAN): preencha no cadastro do produto",
+  BRAND: "marca", MODEL: "modelo", POWER_SUPPLY_TYPE: "tipo de alimentação", CONTACTOR_AND_RELAY_TYPE: "tipo de relé",
+  VOLTAGE: "voltagem", VEHICLE_TYPE: "tipo de veículo",
+};
+/** Categoria de carro, moto ou caminhão (domain_discovery às vezes manda peça de máquina para lá, ex.: condensadora). */
+export const ehCategoriaVeiculo = (caminho: string) => /ve[ií]culo|carro|moto|caminh|autope[cç]a|acess[oó]rios para ve/i.test(caminho);
+
+/**
+ * Pendência ou aviso do Mercado Livre em português simples; null para o que não muda nada para a usuária
+ * (modos de envio que a conta não usa). Serve para o que chega da API e para o que já está gravado nas propostas.
+ */
+export function explicarML(texto: string): string | null {
+  const t = String(texto ?? "").trim();
+  const s = t.replace(/^Mercado Livre( avisa)?:\s*/i, "");
+  if (/has not mode me1|has not mode me2|shipping_preferences\.modes/i.test(s)) return null;
+  if (/mandatory free shipping/i.test(s)) return "Frete grátis obrigatório a partir de R$ 79 (já está na conta do preço)";
+  const m = /attributes?\s*\[([A-Z0-9_,\s]+)\]\s*(are|is)\s*required/i.exec(s);
+  if (m) return `Falta: ${m[1].split(/\s*,\s*/).map((a) => NOMES_ATRIBUTO[a.trim()] ?? a.trim()).join(", ")}`;
+  if (/^tipo de ve[ií]culo$/i.test(s)) return "Categoria errada (de veículo): prepare de novo para o Mercado Livre sugerir outra";
+  if (/sem peso ou medidas/i.test(s)) return "Sem peso ou medidas no cadastro: frete calculado com uma caixa média";
+  return t;
+}

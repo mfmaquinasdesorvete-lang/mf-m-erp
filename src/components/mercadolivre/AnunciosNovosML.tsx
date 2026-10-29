@@ -12,7 +12,8 @@ import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { linkAnuncio } from "@/lib/mlAnuncios";
 import { lerValor } from "@/lib/auditoriaBusca";
-import { liquido } from "../../../supabase/functions/_shared/ml-novos";
+import { explicarML, liquido } from "../../../supabase/functions/_shared/ml-novos";
+import { Link } from "react-router-dom";
 
 type Proposta = {
   id: string; produto_id: string; categoria_nome: string | null; titulo: string | null; preco_loja: number | null; custo: number | null;
@@ -40,6 +41,15 @@ export function AnunciosNovosML({ podeMudar, semAnuncio }: { podeMudar: boolean;
   const lista = q.data ?? [];
   const abertas = useMemo(() => lista.filter((p) => p.situacao !== "publicada"), [lista]);
   const publicadas = lista.filter((p) => p.situacao === "publicada");
+  // o título de hoje no Mercado Livre (o da proposta pode ser o antigo, antes de tirar "My Frost")
+  const titulos = useQuery({
+    queryKey: ["ml_anuncios", "titulos_publicados", publicadas.length],
+    enabled: publicadas.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("ml_anuncios").select("ml_item_id, titulo").in("ml_item_id", publicadas.map((p) => p.ml_item_id!).filter(Boolean));
+      return new Map(((data ?? []) as { ml_item_id: string; titulo: string | null }[]).map((a) => [a.ml_item_id, a.titulo]));
+    },
+  });
   const prontas = abertas.filter(pronta);
   const escolhidas = prontas.filter((p) => marcadas.has(p.id));
 
@@ -144,9 +154,12 @@ export function AnunciosNovosML({ podeMudar, semAnuncio }: { podeMudar: boolean;
                   {p.situacao === "publicando" ? <span className="inline-flex items-center gap-1 text-slate-600"><Loader2 size={12} className="animate-spin" /> publicando</span>
                     : ok ? <span className="inline-flex items-center gap-1 font-semibold text-emerald-700"><CheckCircle2 size={13} /> pronto</span>
                       : <span className="inline-flex items-center gap-1 font-semibold text-amber-800"><AlertTriangle size={13} /> falta</span>}
-                  {p.faltando.map((f) => <span key={f} className="block max-w-[18rem] text-amber-800">{f}</span>)}
-                  {p.erro && <span className="block max-w-[18rem] text-red-700">{p.erro}</span>}
-                  {p.avisos.map((a) => <span key={a} className="block max-w-[18rem] text-slate-500">{a}</span>)}
+                  {p.faltando.map(explicarML).filter(Boolean).map((f) => <span key={f} className="block max-w-[18rem] text-amber-800">{f}</span>)}
+                  {p.erro && <span className="block max-w-[18rem] text-red-700">{explicarML(p.erro) ?? p.erro}</span>}
+                  {p.avisos.map(explicarML).filter(Boolean).map((a) => <span key={a} className="block max-w-[18rem] text-slate-500">{a}</span>)}
+                  {!ok && p.situacao !== "publicando" && (
+                    <Link to={`/estoque?editar=${p.produto_id}`} className="link-modulo mt-1 inline-block">Abrir o cadastro</Link>
+                  )}
                 </td>
               </tr>
             );
@@ -154,11 +167,18 @@ export function AnunciosNovosML({ podeMudar, semAnuncio }: { podeMudar: boolean;
         </Table>
       )}
       {publicadas.length > 0 && (
-        <p className="mt-3 text-sm text-slate-600">
-          Publicados por aqui: {publicadas.map((p, i) => (
-            <span key={p.id}>{i ? ", " : ""}<a className="link-modulo" href={linkAnuncio(p.ml_item_id!)} target="_blank" rel="noreferrer">{p.titulo} <ExternalLink size={11} className="inline" /></a></span>
-          ))}
-        </p>
+        <details className="mt-3 text-sm text-slate-600">
+          <summary className="cursor-pointer font-semibold text-fg">{publicadas.length} {pl(publicadas.length, "anúncio publicado", "anúncios publicados")} por aqui</summary>
+          <ul className="mt-2 grid gap-1 sm:grid-cols-2">
+            {publicadas.map((p) => (
+              <li key={p.id}>
+                <a className="link-modulo" href={linkAnuncio(p.ml_item_id!)} target="_blank" rel="noreferrer">
+                  {titulos.data?.get(p.ml_item_id!) ?? p.titulo} <ExternalLink size={11} className="inline" aria-label="abre no Mercado Livre" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
     </Section>
   );

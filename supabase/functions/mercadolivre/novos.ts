@@ -8,7 +8,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { chamarML, ErroML } from "../_shared/mercadolivre.ts";
 import { anunciosDoItem, estoqueDisponivel } from "../_shared/ml-anuncios.ts";
 import { fotosDoAnuncio, galerias } from "./fotos.ts";
-import { atributosDoProduto, FRETE_GRATIS_DESDE, medidasFrete, precoParaReceber, semMyFrost, tituloML, type AtributoCategoria, type ProdutoNovo } from "../_shared/ml-novos.ts";
+import { atributosDoProduto, ehCategoriaVeiculo, FRETE_GRATIS_DESDE, medidasFrete, precoParaReceber, semMyFrost, tituloML, type AtributoCategoria, type ProdutoNovo } from "../_shared/ml-novos.ts";
 
 type Conta = { id: string; ml_user_id: number; estoque_seguranca?: unknown; estoque_maximo?: unknown; estoque_minimo?: unknown };
 type Produto = ProdutoNovo & {
@@ -37,11 +37,19 @@ export async function ml<T = any>(caminho: string, token: string, init: Paramete
 export async function categoria(token: string, p: Pick<Produto, "descricao">, titulo: string) {
   const nome = String(p.descricao ?? "").split(/\s+[-–]\s+|\(|,/)[0].trim();
   const tentativas = [...new Set([/sorvete/i.test(nome) ? nome : `${nome} máquina de sorvete`, titulo, nome].filter((q) => q.length >= 3))];
+  // a primeira sugestão que não é de veículo (peça de máquina às vezes cai em "Acessórios para Veículos")
+  let reserva: any = null;
   for (const q of tentativas) {
-    const r = await ml<any[]>(`/sites/MLB/domain_discovery/search?limit=1&q=${encodeURIComponent(q)}`, token).catch(() => []);
-    if (Array.isArray(r) && r[0]?.category_id) return r[0];
+    const r = await ml<any[]>(`/sites/MLB/domain_discovery/search?limit=5&q=${encodeURIComponent(q)}`, token).catch(() => []);
+    for (const c of Array.isArray(r) ? r : []) {
+      if (!c?.category_id) continue;
+      const cat = await ml<any>(`/categories/${c.category_id}`, token).catch(() => null);
+      const caminho = (cat?.path_from_root ?? []).map((x: any) => x?.name).join(" > ");
+      if (!ehCategoriaVeiculo(caminho)) return c;
+      reserva ??= c;
+    }
   }
-  return null;
+  return reserva;
 }
 
 

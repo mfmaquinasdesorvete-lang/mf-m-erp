@@ -101,3 +101,17 @@ describe("fotos do anúncio", () => {
     expect(fotosParaML(null, ["caminho-sem-url.jpg", "https://x/a.jpg"]).map((f) => f.source)).toEqual(["https://x/a.jpg"]);
   });
 });
+
+describe("explicarML", () => {
+  it("traduz o que o Mercado Livre manda e esconde o que não importa", async () => {
+    const { explicarML, ehCategoriaVeiculo } = await import("../../../supabase/functions/_shared/ml-novos");
+    expect(explicarML("Mercado Livre: The attributes [GTIN] are required for category [MLB270498]. Check the attribute is present [item.attributes]"))
+      .toBe("Falta: código de barras (EAN): preencha no cadastro do produto");
+    expect(explicarML("Mercado Livre avisa: User has not mode me1 [user.shipping_preferences.modes]")).toBeNull();
+    expect(explicarML("Mercado Livre avisa: Mandatory free shipping added")).toMatch(/Frete grátis obrigatório/);
+    expect(explicarML("Tipo de veículo")).toMatch(/Categoria errada/);
+    expect(explicarML("Estoque disponível")).toBe("Estoque disponível");
+    expect(ehCategoriaVeiculo("Acessórios para Veículos > Peças de Carros > Ar Condicionado > Condensadores")).toBe(true);
+    expect(ehCategoriaVeiculo("Indústria e Comércio > Equipamento para Comércios > Máquinas de Sorvete")).toBe(false);
+  });
+});
