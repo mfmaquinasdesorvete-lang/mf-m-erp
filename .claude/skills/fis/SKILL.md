@@ -58,6 +58,12 @@ Cuido de impostos, apuração, notas fiscais (NF-e, NFS-e, configuração do CT-
 - `supabase/migrations/20261021000000_contador.sql` (fechamento do mês e mês travado).
 
 ## Cuidados conhecidos
+- CC-e: o texto (xCorrecao) não aceita quebra de linha nem caracteres fora de espaço–ÿ, e a última carta substitui
+  todas as anteriores (Ajuste SINIEF 07/05, cl. 14ª-A § 4º): a carta nova precisa repetir o que ainda vale.
+- XML da NF-e emitida pelo ERP fica na Focus (notas_fiscais.xml_url), não em notas_fiscais_xml (só as importadas): conta
+  de dossiê, DIFAL ou máquinas que leia só notas_fiscais_xml deixa as notas do ERP de fora (usar o payload).
+- Regex no Postgres: o primeiro quantificador define se a expressão toda é gulosa ('<det [^>]*>(.*?)</det>' pega da
+  primeira à última </det>); começar com quantificador preguiçoso ('[0-9]+?').
 - A MF é do Lucro Real (decisão da usuária). Não tratar o regime como dúvida: guia ou cálculo com código do Presumido
   (IRPJ 2089, CSLL 2372, PIS 8109, COFINS 2172) é erro a corrigir com o contador.
 - Soft Premium (CNPJ 47538812 e 42474748) não é deste ERP (vai ter ERP próprio): não buscar, não levantar e não repassar nada dela a nenhum chat.
