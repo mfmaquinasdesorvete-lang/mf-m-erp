@@ -1,11 +1,14 @@
 # O que só você faz — lista do FAZ
-Atualizada em 28/10/2026. Em ordem: o que trava mais coisa vem primeiro.
+Atualizada em 29/10/2026. Em ordem: o que trava mais coisa vem primeiro.
 Nunca mande senha, chave ou token no chat: cole direto no lugar indicado. Eu confiro sozinho quando ficar feito.
 
 Conferido no banco e no GitHub em 27/10: as funções do Supabase estão todas no ar e iguais ao código, as Actions
 (CI, Publicar Supabase e Backup diário) estão verdes e não há site que ficou só montado. O que falta é isto:
 
 ---
+
+**Feito (conferido no banco em 29/10):** o arquivo do SQL Editor com as 8 partes (GER, FUN, ELO, PRD, REV, IAD,
+16 máquinas juntadas, tabela temporária apagada).
 
 ## 0. Escolher como os chats gravam no banco (SEG, 29/10) — 1 minuto
 **O que é:** no conector do Supabase no claude.ai, a gravação (`execute_sql` e `apply_migration`) está como "pedir
@@ -40,31 +43,6 @@ Drive**. Só você consegue ver se ficou ligado: me diga "feito" em cada um.
 4. **Google, nas duas contas** (a da MF e a das sorveterias): myaccount.google.com/signinoptions/twosv → ativar.
 (Depois vem o 0b, a chave da Hostinger no GitHub, e o 8, o login com o rosto.)
 
-## 1. Rodar um arquivo no SQL Editor do Supabase (8 coisas de uma vez) — ~3 minutos
-**O que é:** 5 partes do banco que os chats escreveram e não conseguem criar sozinhos (a ferramenta deles trava ao
-criar tabela ou apagar índice).
-**Por que importa:**
-- GER: sem a tabela `config_ajustes`, os prazos, taxas e textos para o cliente não saem do código para
-  Configurações (a base que todos os chats vão usar).
-- FUN: sem a marca `de_funcionario`, os recibos de funcionário aparecem no Financeiro e a aba Funcionários → Recibos
-  fica vazia (achado do FAZ: o FUN achava que já estava no banco).
-- ELO: sem a tabela `paginas_claude`, a aba Sobre → Páginas (já no ar) fica vazia.
-- PRD: sem a regra das variações, dá para gravar variação de variação no cadastro de produtos.
-- REV: 3 índices repetidos deixam a gravação de notas mais lenta.
-- IAD (29/10): 17 IAs voltam para "fazendo" até o teste com tarefa real (o MCP passou a pedir a sua confirmação
-  para toda gravação e o cartão não chega até você).
-- GER (29/10): junta as 16 máquinas repetidas que você disse que "São as mesmas" (nota da MF + My Frost) e cria a
-  unificação de máquinas; atualiza 4 itens do GER no Sobre → Pedidos.
-- GER e REV (29/10): apaga a tabela temporária `tmp_oc_plano_2310` (você autorizou em 27/10).
-
-**Onde:** https://supabase.com/dashboard/project/antfofmwrmkadiavjycg/sql/new
-**Arquivo:** https://github.com/mfmaquinasdesorvete-lang/mf-m-erp/blob/paineis-no-ar/.claude/skills/faz/sql/rodar-no-sql-editor.sql
-**Passo a passo:**
-1. Abra o arquivo `.claude/skills/faz/sql/rodar-no-sql-editor.sql` no GitHub (branch `paineis-no-ar`) e clique
-   em **Copy raw file** (ícone de copiar).
-2. No Supabase: **SQL Editor → New query**, cole tudo e clique em **Run**.
-3. Se aparecer o aviso de "operação destrutiva", clique para confirmar: ele só apaga os 3 índices repetidos.
-4. No fim aparecem 4 colunas: todas devem dar `true`. Pronto, eu confiro e aviso os chats.
 
 ## 2. Senhas das transportadoras nos secrets do Supabase (TRA) — depende de você pedir os acessos
 **Por que importa:** sem elas a cotação e o rastreio automáticos ficam desligados (Rodonaves, Braspress e Melhor

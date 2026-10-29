@@ -21,11 +21,7 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
    dos commits). Conferir com o SEG.
 0d. Segurança fase 1 (SEG, 29/10): duas etapas no GitHub, Supabase, Hostinger e nas 2 contas Google (só ela vê;
    vale o "feito" dela). Item 8 agora com o passo do WebAuthn no Supabase Auth → MFA (o SEG confere).
-1. SQL Editor: `sql/rodar-no-sql-editor.sql` — `config_ajustes` (GER), `recibos.de_funcionario` + gatilho e regra
-   (FUN; achado do FAZ), `paginas_claude` (ELO; o ELO grava as 16 páginas depois), gatilho `produto_variacao` (PRD),
-   3 índices repetidos (REV); parte 6 (29/10): 17 IAs do IAD voltam para "fazendo" (conferir a situação deles); parte 7 (GER, 29/10): unificação de
-   máquinas (conferir: equipamentos_unificados = 16 e 3 ainda com par); parte 8 (29/10): drop tmp_oc_plano_2310
-   (GER e REV; conferir to_regclass nulo). Conferir: `to_regclass`, `pg_trigger`, coluna em `information_schema.columns`, `pg_indexes`.
+1. (feito 29/10) SQL Editor, 8 partes: conferido no banco; chats avisados (GER, FUN, ELO, PRD, REV, IAD).
 2. Secrets das transportadoras (TRA, 23/10): `MELHORENVIO_TOKEN`, `RODONAVES_USUARIO/SENHA`, `BRASPRESS_USUARIO/SENHA`.
 3. Secrets do Meu Pluggy (CAR, 22/10): `PLUGGY_PESSOAL_CLIENT_ID/SECRET`.
 4. Olist: envio diário do OFX para o e-mail do ERP (ENT, 23/10). Conferir: extrato Olist novo depois de 08/10.
@@ -36,6 +32,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 9. Conectar o Gmail do contador (FIS).
 
 ## Já resolvido
+- 29/10: arquivo do SQL Editor rodado (1ª vez deu erro 23505 em giga_retestes na parte 7 e desfez tudo; corrigido em
+  769d2cd). Conferido: 8 partes, unificadas = 16, ainda_com_par = 3. Avisados GER, FUN, ELO, PRD, REV e IAD.
 - 28/10: FIS publicou o site (44e8ea8, com e529b35 e c289b2c), index.html conferido por ele.
 - 28/10: Hostinger reconectada (conferido pela lista de sites); FIS avisado para publicar.
 
