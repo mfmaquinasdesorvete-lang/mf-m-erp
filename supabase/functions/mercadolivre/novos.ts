@@ -46,7 +46,10 @@ export async function categoria(token: string, p: Pick<Produto, "descricao">, ti
       if (!c?.category_id) continue;
       const cat = await ml<any>(`/categories/${c.category_id}`, token).catch(() => null);
       const caminho = (cat?.path_from_root ?? []).map((x: any) => x?.name).join(" > ");
-      if (!ehCategoriaVeiculo(caminho)) return c;
+      // categoria de peça de carro também pode ficar fora de "Veículos": a que pede "Tipo de veículo" fica de reserva
+      const attrs = ehCategoriaVeiculo(caminho) ? [] : await ml<any[]>(`/categories/${c.category_id}/attributes`, token).catch(() => []);
+      const pedeVeiculo = (Array.isArray(attrs) ? attrs : []).some((x: any) => /VEHICLE/i.test(String(x?.id ?? "")) && (x?.tags?.required || x?.tags?.catalog_required));
+      if (!ehCategoriaVeiculo(caminho) && !pedeVeiculo) return c;
       reserva ??= c;
     }
   }
