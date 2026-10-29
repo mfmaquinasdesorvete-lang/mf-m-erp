@@ -32,6 +32,7 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
 - Abrir a aba Simulador com um produto (teste real que falta para marcar feito).
 - Kit Pá Agitadora Inox + Sanfona (PC-KIT-018): foto, catálogo e preço confirmado antes do anúncio.
 - Imposto sobre a venda está 0% nas Configurações (perguntado ao FIS em 27/10).
+- Planilha "Dados fiscais" do ML (29/10): preenchida (46/47); ela cria no ML a regra tributária "Importados" (ICMS interestadual 4%), põe nos 10 importados, completa o Kit Reparo e envia.
 - Contar os anéis do pistão dos kits de vedação (kits 7, 11 e 15).
 - Notas fiscais das vendas antigas do Mercado Livre sem NF (ela importa os XML).
 
