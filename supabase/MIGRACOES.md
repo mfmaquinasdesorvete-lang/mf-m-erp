@@ -214,3 +214,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
 191. `20261029024315_maquinas_da_nota_todos_os_itens.sql` (`registrar_maquinas_da_nota` lê todos os itens do XML: a expressão gulosa só pegava o 1º item de cada nota; achado no teste de 29/10)
 192. `20261029030209_difal_notas_do_erp.sql` (DIFAL por estado também com as NF-e emitidas pelo ERP, lidas do payload quando o XML só está na Focus; revisão de 29/10)
 193. `20261029030319_maquinas_da_nota_unidade_transferencia.sql` (`registrar_maquinas_da_nota`: transferência entre unidades da MF não cria máquina e a chave nfe-mf vale junto com a unidade; revisão de 29/10)
+194. `20261029050941_dossie_recebidas_com_xml.sql` (dossiê: NF-e recebida completa só com o XML no ERP ou vinda completa da SEFAZ; as 90 notas de 2023 do backup ficam "em parte" até o XML ser importado)
