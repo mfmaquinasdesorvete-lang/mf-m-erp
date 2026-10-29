@@ -21,8 +21,12 @@ export function documentoTransportador(d: string | null | undefined) {
   return "";
 }
 
+/** Só o que o xCorrecao aceita (caracteres de espaço a ÿ): travessão vira hífen, aspas curvas saem. */
+export const textoSefaz = (s: unknown) => String(s ?? "").replace(/[\u2013\u2014]/g, "-").replace(/[\u2018\u2019]/g, "'")
+  .replace(/[^\x20-\xFF\s]/g, "");
+
 // a SEFAZ não aceita quebra de linha; aspas e parênteses do cadastro atrapalhariam ler o texto de volta
-const limpo = (s: unknown) => String(s ?? "").replace(/["()\s]+/g, " ").trim();
+const limpo = (s: unknown) => textoSefaz(s).replace(/["()\s]+/g, " ").trim();
 
 /** A nota saiu sem transporte (modalidade 9): a troca precisa dizer também quem paga o frete. */
 export const semFreteNaNota = (payload: any) => Number(payload?.modalidade_frete ?? 9) === 9;
@@ -43,11 +47,26 @@ export function textoTrocaTransportadora(payload: any, t: TranspCarta, modalidad
 const RE_TRANSP = /Transportadora: onde se lê "[^"]*"(?: \([^)]*\))?, leia-se "([^"]*)"(?: \([^)]*\))?\.\s*/g;
 const RE_MOD = /Modalidade do frete: onde se lê "[^"]*", leia-se "[^"]*"\.\s*/g;
 
-/** Tira do texto a troca de transportadora (e de modalidade) montada antes, mantendo as outras correções. */
-export const semTrocaTransportadora = (texto: string) => texto.replace(RE_MOD, "").replace(RE_TRANSP, "").replace(/\s+/g, " ").trim();
+/** Tira do texto a troca de transportadora (e de modalidade) montada antes, mantendo as outras correções. As linhas
+ *  escritas à mão numa carta antiga que falam da transportadora ou de quem paga o frete também saem (senão a carta
+ *  nova citaria duas transportadoras). */
+export const semTrocaTransportadora = (texto: string) => texto
+  .split(/\n/).filter((l) => !/^\s*(transportador|transportadora|frete\b|modalidade do frete)/i.test(l)).join("\n")
+  .replace(RE_MOD, "").replace(RE_TRANSP, "").replace(/\s+/g, " ").trim();
 
 /** Junta as outras correções com a troca nova numa linha só (a SEFAZ não aceita quebra de linha). */
 export const juntarCorrecao = (outras: string, troca: string) => [semTrocaTransportadora(outras), troca].filter(Boolean).join(" ");
+
+/** Com uma troca montada, o resto do texto ainda cita transportadora (trecho escrito à mão na mesma linha)? */
+export const citaOutraTransportadora = (texto: string) =>
+  new RegExp(RE_TRANSP.source).test(texto) && /transportad/i.test(texto.replace(RE_MOD, "").replace(RE_TRANSP, ""));
+
+/** Quem paga o frete pela última carta montada pelo ERP (nota que saiu sem frete); null quando ela não diz. */
+export function modalidadeDaUltimaCarta(correcoes: string[]): number | null {
+  const ultima = correcoes.length ? correcoes[correcoes.length - 1] ?? "" : "";
+  const m = /Modalidade do frete: onde se lê "[^"]*", leia-se "(\d)/.exec(ultima);
+  return m ? Number(m[1]) : null;
+}
 
 /** Transportadora que vale pela carta de correção: só a última carta autorizada conta (ela substitui as anteriores).
  *  Recebe os textos em ordem; null quando a última não troca a transportadora. */

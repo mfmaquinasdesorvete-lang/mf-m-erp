@@ -1,6 +1,6 @@
 // Troca da transportadora pela carta de correção e a leitura de volta (etiquetas e tela). Dados inventados.
 import { describe, expect, it } from "vitest";
-import { documentoTransportador, juntarCorrecao, semTrocaTransportadora, textoTrocaTransportadora, transportadoraDaUltimaCarta } from "../cartaCorrecao";
+import { citaOutraTransportadora, documentoTransportador, juntarCorrecao, modalidadeDaUltimaCarta, semTrocaTransportadora, textoSefaz, textoTrocaTransportadora, transportadoraDaUltimaCarta } from "../cartaCorrecao";
 
 describe("carta de correção da transportadora", () => {
   const nova = { nome: "Transportes Exemplo Ltda", cnpj: "11222333000181", inscricao_estadual: "123456", logradouro: "Rua A", numero: "10", bairro: "Centro", municipio: "Joinville", uf: "sc" };
@@ -40,5 +40,22 @@ describe("carta de correção da transportadora", () => {
     expect(transportadoraDaUltimaCarta([c1, so2])).toBeNull();
     expect(transportadoraDaUltimaCarta([so2, textoTrocaTransportadora(naNota, { nome: "Sem Doc", logradouro: "Rua B", municipio: "Itajaí", uf: "SC" })])).toBe("Sem Doc");
     expect(transportadoraDaUltimaCarta([])).toBeNull();
+  });
+
+  it("carta antiga escrita à mão: as linhas da transportadora e do frete saem", () => {
+    const antiga = "Transportadora: Braspress CNPJ 00 IE 1\nVolume: 1 caixa\nFrete pro conta do remetente";
+    const nova2 = juntarCorrecao(antiga, textoTrocaTransportadora({ modalidade_frete: 9 }, { nome: "Nova Log" }, 1));
+    expect(nova2.startsWith("Volume: 1 caixa Modalidade do frete:")).toBe(true);
+    expect(nova2.match(/Transportadora:/g)).toHaveLength(1);
+    expect(nova2).not.toMatch(/Braspress/);
+    // numa linha só não dá para separar: a tela avisa e não deixa enviar
+    expect(citaOutraTransportadora(`Transportadora: Braspress Volume 1 ${textoTrocaTransportadora({}, { nome: "Nova" })}`)).toBe(true);
+    expect(citaOutraTransportadora(nova2)).toBe(false);
+  });
+
+  it("quem paga o frete pela última carta e texto aceito pela SEFAZ", () => {
+    expect(modalidadeDaUltimaCarta([textoTrocaTransportadora({ modalidade_frete: 9 }, { nome: "Y" }, 1)])).toBe(1);
+    expect(modalidadeDaUltimaCarta(["Volume: 2"])).toBeNull();
+    expect(textoSefaz("Transportes – Sul “X” ’")).toBe("Transportes - Sul X '");
   });
 });

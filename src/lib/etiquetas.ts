@@ -101,9 +101,12 @@ export async function carregarEtiqueta(o: OrigemEtiqueta, cfg: FonteEtiqueta["cf
   }, modelo);
 
   // Chave: o envio (despacho) quando existe; senão o pedido; nota direta pela nota
+  // entrega parcial (o pedido tem mais de uma NF-e válida): a etiqueta aberta pela nota fica guardada pela nota
+  const porNota = o.tipo === "pedido" && !!o.nota_id && (pedido?.notas ?? []).filter(valida).length > 1;
   const chaves = o.tipo === "nota" ? [`nota:${o.nota_id}`]
-    : envio?.id ? [`envio:${envio.id}`, ...(pedido ? [`pedido:${pedido.id}`] : [])]
-      : [`pedido:${pedido.id}`];
+    : porNota ? [`nota:${(o as { nota_id: string }).nota_id}`]
+      : envio?.id ? [`envio:${envio.id}`, ...(pedido ? [`pedido:${pedido.id}`] : [])]
+        : [`pedido:${pedido.id}`];
   const salvas = (await um<any[]>(supabase.from("etiquetas_envio").select("chave, dados, editados, impressoes, impressa_em, atualizado_em").in("chave", chaves))) ?? [];
   const salva = chaves.map((c) => salvas.find((x) => x.chave === c)).find(Boolean) ?? null;
   const editados: string[] = salva?.editados ?? [];
@@ -116,7 +119,7 @@ export async function carregarEtiqueta(o: OrigemEtiqueta, cfg: FonteEtiqueta["cf
   return {
     base, dados: aplicarEditados(base, salva?.dados, editados), editados,
     chave: chaves[0],
-    vinculo: { pedido_id: pedido?.id ?? null, envio_id: envio?.id ?? null, nota_fiscal_id: notaDireta?.id ?? null },
+    vinculo: { pedido_id: pedido?.id ?? null, envio_id: envio?.id ?? null, nota_fiscal_id: notaDireta?.id ?? (porNota ? nota?.id ?? null : null) },
     salva: salva ? { impressoes: salva.impressoes ?? 0, impressa_em: salva.impressa_em ?? null, atualizado_em: salva.atualizado_em } : null,
     titulo,
   };

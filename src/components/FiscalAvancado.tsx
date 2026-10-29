@@ -11,7 +11,7 @@ import { CST_IBS_CBS, CST_ICMS, CST_IPI, CST_PIS_COFINS, type Codigo } from "@/l
 import { SelectCodigo } from "./ConfigNfe";
 import type { RegraTributaria } from "../../supabase/functions/_shared/nfe-impostos";
 import { confirmar } from "@/components/Dialogos";
-import { juntarCorrecao, semFreteNaNota, textoTrocaTransportadora, transportadoraDaUltimaCarta } from "@/lib/cartaCorrecao";
+import { citaOutraTransportadora, juntarCorrecao, modalidadeDaUltimaCarta, semFreteNaNota, textoSefaz, textoTrocaTransportadora, transportadoraDaUltimaCarta } from "@/lib/cartaCorrecao";
 import { lerReducoes, textoReducoes, type ModeloRegra } from "@/lib/regrasTributacao";
 import { CartaoRegra, ComoFuncionaRegras, GlossarioFiscal, ModelosRegra, TesteVenda } from "@/components/fiscal/RegrasPainel";
 
@@ -39,16 +39,24 @@ export function CartaCorrecaoModal({ nota, onClose }: { nota: { id: string; nume
   });
   const [novaTransp, setNovaTransp] = useState("");
   const semFrete = semFreteNaNota(nota.payload);
-  const [modalidade, setModalidade] = useState(0);
   const hoje = transportadoraDaUltimaCarta(ultima ? [ultima.correcao] : []);
+  // quem paga o frete: o da última carta montada pelo ERP; sem ela, a pessoa escolhe (não há padrão escondido)
+  const [modalidade, setModalidade] = useState<number | null>(null);
+  const mod = modalidade ?? modalidadeDaUltimaCarta(ultima ? [ultima.correcao] : []);
+  // texto de antes de escolher a transportadora: "não trocar" volta a ele (sem perder a troca da carta anterior)
+  const [antesDaTroca, setAntesDaTroca] = useState<string | null>(null);
 
-  function montar(id: string, mod: number) {
+  function montar(id: string, m: number | null) {
     const t = transportadoras.find((x) => x.id === id);
-    // "não trocar" tira a troca do texto; as outras correções ficam
-    setTexto(juntarCorrecao(atual, t ? textoTrocaTransportadora(nota.payload, t, semFrete ? mod : null) : ""));
+    const base = antesDaTroca ?? atual;
+    if (!t) { setTexto(base); setAntesDaTroca(null); return; }
+    if (antesDaTroca === null) setAntesDaTroca(atual);
+    setTexto(juntarCorrecao(base, textoTrocaTransportadora(nota.payload, t, semFrete ? m : null)));
   }
 
   const tamanho = atual.trim().length;
+  const faltaModalidade = !!novaTransp && semFrete && mod == null;
+  const duasTransportadoras = citaOutraTransportadora(atual);
   async function enviar(e: FormEvent) {
     e.preventDefault();
     const t = transportadoras.find((x) => x.id === novaTransp);
@@ -59,10 +67,10 @@ export function CartaCorrecaoModal({ nota, onClose }: { nota: { id: string; nume
     setOcupado(true);
     try {
       // a troca no pedido e na expedição é feita no servidor, depois que a SEFAZ aceita a carta
-      const r = await callFunction<{ transportadora_trocada?: boolean }>("nfe-consultar", { nota_id: nota.id, acao: "carta_correcao", correcao: atual,
-        ...(trocando ? { transportadora_id: t!.id, ...(semFrete ? { modalidade_frete: modalidade } : {}) } : {}) });
+      const r = await callFunction<{ transportadora_trocada?: boolean }>("nfe-consultar", { nota_id: nota.id, acao: "carta_correcao", correcao: textoSefaz(atual),
+        ...(trocando ? { transportadora_id: t!.id, ...(semFrete && mod != null ? { modalidade_frete: mod } : {}) } : {}) });
       notify(r?.transportadora_trocada ? "Carta de correção registrada e transportadora trocada no pedido" : "Carta de correção registrada na SEFAZ");
-      setTexto(null); setNovaTransp("");
+      setTexto(null); setNovaTransp(""); setAntesDaTroca(null); setModalidade(null);
       invalidar("pedidos", "expedicoes");
     } catch (err) { notifyError(err); } finally { setOcupado(false); invalidar("nfe_cartas_correcao"); }
   }
@@ -93,26 +101,28 @@ export function CartaCorrecaoModal({ nota, onClose }: { nota: { id: string; nume
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Trocar a transportadora" className={semFrete ? "" : "sm:col-span-2"}
             dica={`Na nota: ${nota.payload?.nome_transportador || "sem transportadora"}${hoje ? `; pela última carta: ${hoje}` : ""}. Escolha a nova e o texto sai pronto.`}>
-            <select className="input" value={novaTransp} onChange={(e) => { setNovaTransp(e.target.value); montar(e.target.value, modalidade); }}>
+            <select className="input" value={novaTransp} onChange={(e) => { setNovaTransp(e.target.value); montar(e.target.value, mod); }}>
               <option value="">— não trocar —</option>
               {transportadoras.map((t) => <option key={t.id} value={t.id}>{t.nome_fantasia || t.nome}</option>)}
             </select>
           </Field>
           {semFrete && (
-            <Field label="Frete por conta" dica="A nota saiu sem frete: a carta corrige também quem paga">
-              <select className="input" value={modalidade} disabled={!novaTransp} onChange={(e) => { setModalidade(Number(e.target.value)); montar(novaTransp, Number(e.target.value)); }}>
+            <Field label="Frete por conta" dica="A nota saiu sem frete: a carta corrige também quem paga" erro={faltaModalidade ? "Escolha quem paga o frete" : undefined}>
+              <select className="input" value={mod ?? ""} disabled={!novaTransp} onChange={(e) => { const v = e.target.value === "" ? null : Number(e.target.value); setModalidade(v); montar(novaTransp, v); }}>
+                <option value="">— escolha —</option>
                 <option value={0}>Emitente (MF Máquinas)</option><option value={1}>Destinatário (cliente)</option><option value={2}>Terceiros</option>
               </select>
             </Field>
           )}
         </div>
-        <Field label={`Correção (${tamanho}/1000, mínimo 15)`} erro={tamanho > 1000 ? "Passou de 1.000 caracteres: encurte as outras correções" : undefined}>
+        <Field label={`Correção (${tamanho}/1000, mínimo 15)`} erro={tamanho > 1000 ? "Passou de 1.000 caracteres: encurte as outras correções"
+          : duasTransportadoras ? "O texto ainda cita outra transportadora (escrita na carta anterior): apague esse trecho" : undefined}>
           <textarea className="input" rows={5} value={atual} onChange={(e) => setTexto(e.target.value)} required
             placeholder="Ex.: Onde se lê 'Rua das Flores, 10', leia-se 'Rua das Flores, 100'." />
         </Field>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Fechar</Button>
-          <Button disabled={ocupado || tamanho < 15 || tamanho > 1000}>{ocupado ? "Enviando…" : "Enviar carta de correção"}</Button>
+          <Button disabled={ocupado || tamanho < 15 || tamanho > 1000 || faltaModalidade || duasTransportadoras}>{ocupado ? "Enviando…" : "Enviar carta de correção"}</Button>
         </div>
       </form>
     </Modal>
