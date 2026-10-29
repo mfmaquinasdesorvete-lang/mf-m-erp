@@ -36,6 +36,8 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
   entram depois).
 
 ## Esperando a usuária
+- Pedido #628, parcela 2/2 (paga pelo cliente direto a fornecedores, "a identificar"): baixar como paga a terceiros, sem entrada no banco da MF? E quais fornecedores (para baixar as contas a pagar deles)? Já não é cobrada (regra 197).
+- Religar o aviso de cobrança vencida e o passo "5 dias depois" da régua (pausados pelo ELO em 29/10) com a regra nova testada: só com o ok dela.
 - Máquinas repetidas (ela disse "São as mesmas" ao FIS em 29/10): migração 195 (unificar_equipamentos + equipamentos_unificados + gatilho que não recria) escrita, NÃO aplicada (o MCP pediu confirmação e expirou 2 vezes). Está na parte 7 do arquivo do FAZ (.claude/skills/faz/sql/rodar-no-sql-editor.sql), que já junta os 16 pares simples e grava os 4 itens do checklist. Depois de rodar: conferir (fica a da nota nfe-mf, sai a da My Frost). Um cliente com 3 máquinas da MF (NF 155 com 2 unidades e NF 62 contra 1 máquina My Frost de 2024): perguntar a ela qual é a mesma. NF 27 (transferência SC→SP) num cliente que é a própria MF: decidir com ela se sai da ficha.
 - Página de comunicações na Retaguarda (pedido 1af4af3c, 24/10: tudo do sino, avisos dos chats, anotações, avisos para a equipe): ainda quer? Pela rodada de fechamento só entra se ela confirmar.
 - Gravar no checklist a situação de 4 itens (46e702cc "precisa de você"; 3a664b6d para "fila" depois da rodada; c4640591 e 9f62820c com a nota "depois da rodada"): a gravação de 28/10 pediu confirmação no Supabase e expirou.
