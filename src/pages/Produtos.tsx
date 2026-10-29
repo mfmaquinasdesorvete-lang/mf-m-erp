@@ -435,6 +435,22 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const fabrica = (r: Record<string, any>) => r.tipo === "insumo" && !r.vendavel;
   const kitNovo = (r: Record<string, any>) => !!r.kit && !r.id;
   const fabricaNovo = (r: Record<string, any>) => fabrica(r) && !r.id;
+  /** O que falta no cadastro, com a aba onde se preenche (o que vende pede foto, medidas e código de barras; o insumo, fornecedor). */
+  const completudeProduto = (r: Record<string, any>) => {
+    const itens: { item: string; secao: string | null; ok: boolean }[] = [
+      { item: "categoria", secao: null, ok: !!r.categoria },
+      { item: "custo", secao: "secao_preco", ok: Number(r.preco_custo) > 0 || !!r.kit },
+      { item: "NCM", secao: "secao_fiscal", ok: String(r.ncm ?? "").replace(/\D/g, "").length === 8 },
+    ];
+    if (vende(r)) itens.push(
+      { item: "preço de venda", secao: "secao_preco", ok: Number(r.preco_venda) > 0 },
+      { item: "código de barras ou sem GTIN", secao: "secao_codigos", ok: !!String(r.codigo_barras ?? "").trim() || !!r.gtin_isento },
+      { item: "peso e medidas", secao: "secao_medidas", ok: ["peso_kg", "altura_cm", "largura_cm", "profundidade_cm"].every((k) => Number(r[k]) > 0) },
+      { item: "foto", secao: "secao_catalogo", ok: !!r.foto_caminho },
+    );
+    else itens.push({ item: "fornecedor", secao: "secao_compra", ok: !!r.fornecedor_padrao_id });
+    return { total: itens.length, falta: itens.filter((x) => !x.ok).map(({ item, secao }) => ({ item, secao })) };
+  };
   const abasProdutos = [
     { value: "produtos" as const, label: ehMaquinas ? "Máquinas" : "Produtos" },
     // Tornearia: a receita de cada peça usinada (insumos, fornecedor, desenho, custo), fora da ficha das máquinas
@@ -479,6 +495,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         key={cadastro}
         // produto novo: passo a passo (o básico, compra, preço, catálogo, anúncio…), com "Salvar agora" para pular o resto
         passoAPasso
+        // como o cadastro de clientes: o produto salvo abre em abas, com o quanto está completo e atalhos para o que falta
+        emAbas
+        completude={completudeProduto}
         // kit novo: logo depois de salvar, abre a escolha das peças (o custo e o estoque do kit saem delas)
         aoSalvar={(p, novo) => { if (novo && p.kit) { setKitAberto(p); notify("Agora escolha as peças do kit"); } }}
         // a tela começa pelo título; avisos, tipo de cadastro e sugestões vêm logo abaixo dele
@@ -654,7 +673,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               ? "Kit: o custo e o estoque saem das peças dele. Aqui vão só o preço, o fiscal e a foto; ao salvar, abre a escolha das peças."
               : "Componente de fabricação (não vende): só o custo, o fiscal, de quem se compra e o estoque. Preço, catálogo e anúncio não entram."}</p>,
           },
-          { name: "secao_preco", mostrar: (r) => !fabricaNovo(r), label: "Custo e preço", type: "secao", ajuda: "O custo é o valor do item na NF do fornecedor (atualizado sozinho na entrada da nota). O preço sugerido sai do custo e da margem." },
+          { name: "secao_preco", curto: "Custo e preço", mostrar: (r) => !fabricaNovo(r), label: "Custo e preço", type: "secao", ajuda: "O custo é o valor do item na NF do fornecedor (atualizado sozinho na entrada da nota). O preço sugerido sai do custo e da margem." },
 
           { name: "preco_custo", mostrar: (r) => !kitNovo(r), label: "Custo de compra", type: "number" },
           { name: "custo_kit", mostrar: kitNovo, label: "Custo", type: "custom", span: 1,
@@ -700,7 +719,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               ? <input aria-label="Motivo da alteração" className="input" value={v ?? ""} onChange={(e) => set(e.target.value)} placeholder="Ex.: reajuste do fornecedor na NF 1234" />
               : <span className="text-xs text-slate-500">no cadastro novo não precisa</span>,
           },
-          { name: "secao_fiscal", label: "Dados fiscais (NF-e)", type: "secao", ajuda: "O NCM é obrigatório para emitir a nota; o botão ao lado sugere pelo nome. O resto pode ficar vazio (usa o padrão)." },
+          { name: "secao_fiscal", curto: "Fiscal", label: "Dados fiscais (NF-e)", type: "secao", ajuda: "O NCM é obrigatório para emitir a nota; o botão ao lado sugere pelo nome. O resto pode ficar vazio (usa o padrão)." },
 
           { name: "ncm", label: "NCM (8 dígitos)", type: "custom", span: 2, render: (v, set, row) => <CampoNcm valor={v} onChange={set} produtoId={row.id} /> },
           {
@@ -720,7 +739,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "cest", label: "CEST", span: 1 },
           { name: "cfop", mostrar: salvo, label: "CFOP (vazio = padrão)", span: 1 },
           { name: "icms_situacao", mostrar: salvo, label: "CSOSN/CST (vazio = padrão)", span: 1 },
-          { name: "secao_compra", mostrar: (r) => !kitNovo(r), label: "Compra e estoque", type: "secao", ajuda: "De quem se compra, em quanto tempo chega e quanto ter guardado. O estoque mínimo deve cobrir o consumo durante o prazo do fornecedor." },
+          { name: "secao_compra", curto: "Compra e estoque", mostrar: (r) => !kitNovo(r), label: "Compra e estoque", type: "secao", ajuda: "De quem se compra, em quanto tempo chega e quanto ter guardado. O estoque mínimo deve cobrir o consumo durante o prazo do fornecedor." },
 
           { name: "custo_fabrica", mostrar: fabricaNovo, label: "Custo de compra", type: "custom", span: 1,
             render: (_v, _s, row, setCampo) => <input aria-label="Custo de compra" className="input num" type="number" step="0.01" min="0" inputMode="decimal"
@@ -756,7 +775,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
                 : <span className="text-xs text-slate-500">nenhum ainda: ao dar entrada de uma NF do fornecedor e vincular o item, o código fica guardado aqui</span>;
             },
           },
-          { name: "secao_material", mostrar: (r) => r.tipo === "insumo" || !!r.material_formato, label: "Como vem (barra, tubo ou chapa)", type: "secao",
+          { name: "secao_material", curto: "Material", mostrar: (r) => r.tipo === "insumo" || !!r.material_formato, label: "Como vem (barra, tubo ou chapa)", type: "secao",
             ajuda: "Para o material que se compra inteiro e se corta em peças: com as medidas, a receita da peça calcula quanto vai em cada uma e a sobra (aproveitamento)." },
           { name: "material_formato", label: "Formato", type: "select", span: 2,
             options: [{ value: "", label: "— não é cortado em peças —" }, ...FORMATOS.map((x) => ({ value: x.v, label: x.rotulo }))] },
@@ -772,7 +791,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               const custoInteiro = inteiro != null ? Number(row.preco_custo || 0) * inteiro : 0;
               return <span className="text-sm text-slate-700">1 {row.material_formato} = <b className="num">{String(inteiro).replace(".", ",")} {row.unidade ?? "UN"}</b>{custoInteiro > 0 ? <> · custa <b className="num">{brl(custoInteiro)}</b></> : ""}</span>;
             } },
-          { name: "secao_codigos", label: "Códigos, variação e situação", type: "secao", ajuda: "Opcional: código de barras, código do fabricante, variação (ex.: 3 Sabores), garantia e onde fica guardado. Dá para salvar sem isso." },
+          { name: "secao_codigos", curto: "Códigos", label: "Códigos, variação e situação", type: "secao", ajuda: "Opcional: código de barras, código do fabricante, variação (ex.: 3 Sabores), garantia e onde fica guardado. Dá para salvar sem isso." },
 
           { name: "subtitulo", mostrar: (r) => !fabricaNovo(r), label: "Subtítulo (aparece abaixo do nome)", span: 4, placeholder: "Ex.: Compatível com máquinas de sorvete expresso Top 200 e Top 300" },
           { name: "codigo_fabricante", label: "Código do fabricante (peça original)", span: 1, placeholder: "Ex.: TYA2446ZES, CFW300A06P0S2NB20" },
@@ -791,7 +810,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "fora_de_linha", label: "Fora de linha (não compra mais; vende até acabar)", type: "checkbox", span: 2 },
           { name: "ativo", mostrar: salvo, label: "Ativo", type: "checkbox", span: 1 },
           { name: "observacoes", label: "Observações internas", type: "textarea", span: 4 },
-          { name: "secao_medidas", mostrar: vende, label: "Peso e medidas (frete)", type: "secao", ajuda: "Peso e medidas da peça embalada: entram na cotação de frete e nos anúncios." },
+          { name: "secao_medidas", curto: "Medidas", mostrar: vende, label: "Peso e medidas (frete)", type: "secao", ajuda: "Peso e medidas da peça embalada: entram na cotação de frete e nos anúncios." },
 
           { name: "peso_kg", label: "Peso (kg) p/ frete", type: "number", span: 1 },
           { name: "altura_cm", label: "Altura (cm)", type: "number", span: 1 },
@@ -804,7 +823,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           },
           { name: "embalagem_id", label: "Embalagem padrão (envio)", type: "select", span: 2, ajuda: "As medidas da embalagem entram na cotação de frete (cubagem)",
             options: [{ value: "", label: "— sem embalagem —" }, ...embalagens.filter((e) => e.ativo).map((e) => ({ value: e.id, label: e.descricao }))] },
-          { name: "secao_catalogo", mostrar: vende, label: "Catálogo do WhatsApp e vitrine", type: "secao", ajuda: "Produtos marcados aparecem no catálogo do WhatsApp e na vitrine, com foto e preço de venda." },
+          { name: "secao_catalogo", curto: "Catálogo", mostrar: vende, label: "Catálogo do WhatsApp e vitrine", type: "secao", ajuda: "Produtos marcados aparecem no catálogo do WhatsApp e na vitrine, com foto e preço de venda." },
           { name: "no_catalogo", label: "Mostrar no catálogo", type: "checkbox", span: 1 },
           { name: "foto_caminho", label: "Foto principal", type: "custom", span: 3, render: (v, set) => <FotoProduto valor={v} onChange={set} /> },
           {
@@ -824,7 +843,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             },
           },
           { name: "descricao_catalogo", label: "Texto de venda (o cliente lê no WhatsApp)", type: "textarea", span: 4 },
-          { name: "secao_anuncio", mostrar: vende, label: "Nome e anúncio (marketplace e Google)", type: "secao", ajuda: "O último passo: o título certo para o Mercado Livre, a Shopee e a loja, e o texto para o Google achar (SEO). O assistente de IA ajuda; o que ficar vazio o ERP preenche no padrão ao salvar." },
+          { name: "secao_anuncio", curto: "Anúncio", mostrar: vende, label: "Nome e anúncio (marketplace e Google)", type: "secao", ajuda: "O último passo: o título certo para o Mercado Livre, a Shopee e a loja, e o texto para o Google achar (SEO). O assistente de IA ajuda; o que ficar vazio o ERP preenche no padrão ao salvar." },
           {
             name: "assistente_ia", label: "Assistente de IA", type: "custom", span: 4,
             render: (_v, _s, row, setCampo) => <AssistenteIA row={row} setCampo={setCampo} produtos={produtosTodos} garantiaPadrao={Number(cfgProd?.garantia_meses_padrao) || 3} />,
@@ -865,7 +884,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             ),
           },
           { name: "descricao_anuncio", label: "Texto do anúncio (sem telefone, e-mail ou link: os marketplaces proíbem)", type: "textarea", span: 4 },
-          { name: "secao_campos", mostrar: salvo, label: "Ficha técnica e campos adicionais", type: "secao",
+          { name: "secao_campos", curto: "Ficha técnica", mostrar: salvo, label: "Ficha técnica e campos adicionais", type: "secao",
             ajuda: "Nome e valor (ex.: Voltagem: 220 V; Part number; Compatível com). Saem na ficha do produto, na página da máquina do cliente e ajudam o anúncio." },
           {
             name: "especificacoes", label: "Campos adicionais", type: "custom", span: 4,
@@ -876,7 +895,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             render: (_v: any, _s: any, row: Record<string, any>) => row.tipo === "maquina" || row.tipo === "servico" ? <span className="text-xs text-slate-500">Só para peças e insumos.</span>
               : <DocumentosMaquina produtoId={row.id} podeEditar={pode("editar_produtos") || pode("editar_producao")} tipos={["desenho"]} /> },
           ...(cadastro === "maquinas" || cadastro === "todos" ? [
-            { name: "secao_maquina", mostrar: (r: Record<string, any>) => salvo(r) && r.tipo === "maquina", label: "Máquina: etapas de produção, manuais e dicas", type: "secao" as const,
+            { name: "secao_maquina", curto: "Máquina", mostrar: (r: Record<string, any>) => salvo(r) && r.tipo === "maquina", label: "Máquina: etapas de produção, manuais e dicas", type: "secao" as const,
               ajuda: "As etapas viram a lista de conferência de cada OP; os manuais e as dicas o cliente recebe pelo link da máquina dele." },
             { name: "etapas_producao", label: "Etapas de produção", type: "custom" as const, span: 4 as const,
               render: (v: any, set: (x: any) => void, row: Record<string, any>) => row.tipo === "maquina" ? <EditorEtapas valor={v} onChange={set} /> : <span className="text-xs text-slate-500">Só para máquinas.</span> },

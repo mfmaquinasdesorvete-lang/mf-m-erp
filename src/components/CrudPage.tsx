@@ -36,6 +36,8 @@ export type CampoForm = {
   ajuda?: string;
   span?: 1 | 2 | 3 | 4;
   required?: boolean;
+  /** Numa "secao": nome curto para a aba e o passo (ex.: "Anúncio" no lugar do título longo). */
+  curto?: string;
   /** Mostrar só quando vale para o registro (ex.: só depois de salvo, só para o que vende). Numa "secao", vale para o bloco todo. */
   mostrar?: (row: Record<string, any>) => boolean;
 };
@@ -121,6 +123,10 @@ type Props<T> = {
   passoAPasso?: boolean;
   /** Depois de gravar (ex.: kit novo abre a escolha das peças). `novo`: era cadastro novo. */
   aoSalvar?: (salvo: T, novo: boolean) => void;
+  /** Cadastro em abas (como o de clientes): o salvo abre em abas e o novo, passo a passo, tem "Ver tudo em abas". */
+  emAbas?: boolean;
+  /** Com emAbas: o que falta no cadastro (texto e a seção onde se preenche), para a barra "x% completo". */
+  completude?: (row: Record<string, any>) => { total: number; falta: { item: string; secao: string | null }[] };
   /** Marcadores coloridos (os mesmos das notas): chips na lista, filtro, botão na linha e em lote. Nome: ["cliente", "clientes"]. */
   marcadores?: [string, string];
   /** A busca não achou nada: aviso próprio no lugar de "Nenhum registro encontrado" (ex.: cadastrar com o CNPJ digitado). */
@@ -168,6 +174,8 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   const [buscando, setBuscando] = useState<string | null>(null);
   const [tocados, setTocados] = useState<Set<string>>(new Set());
   const [passo, setPasso] = useState(0);
+  const [verAbas, setVerAbas] = useState(false); // cadastro novo: trocou o passo a passo pelas abas
+  const [abaForm, setAbaForm] = useState(0);
   const [fechadas, setFechadas] = useState<Set<string>>(() =>
     typeof window !== "undefined" && window.innerWidth < 640 ? new Set(fields.filter((f) => f.type === "secao").map((f) => f.name)) : new Set());
   const [escolhas, setEscolhas] = useState<Record<string, string>>({});
@@ -252,6 +260,10 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       const i = grupos.findIndex((g) => g.campos.some((f) => f.required && (editando[f.name] == null || String(editando[f.name]).trim() === "")));
       if (i >= 0) { setPasso(i); notify("Falta preencher um campo obrigatório deste passo", "erro"); return; }
     }
+    if (modoAbas) {
+      const i = grupos.findIndex((g) => g.campos.some((f) => f.required && (editando[f.name] == null || String(editando[f.name]).trim() === "")));
+      if (i >= 0) { setAbaForm(i); notify(`Falta preencher um campo obrigatório na aba ${nomeGrupo(grupos[i], i, true)}`, "erro"); return; }
+    }
     const errados = fields.filter((f) => f.mask && erroCampo(f.mask, editando[f.name]));
     if (errados.length) {
       setTocados(new Set(errados.map((f) => f.name)));
@@ -279,7 +291,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
 
   // mudou algo no formulário aberto: fechar sem salvar pergunta antes
   const [alterou, setAlterou] = useState(false);
-  useEffect(() => { if (!editando) { setAlterou(false); setPasso(0); } }, [editando]);
+  useEffect(() => { if (!editando) { setAlterou(false); setPasso(0); setVerAbas(false); setAbaForm(0); } }, [editando]);
   const fecharForm = async () => {
     if (alterou && !(await confirmar("Sair sem salvar? O que você digitou neste cadastro será perdido.", { voltar: "Continuar editando" }))) return;
     setEditando(null);
@@ -369,8 +381,12 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     return g.filter((x) => x.campos.length);
   }, [fields, editando]);
   // o tipo mudou e um passo sumiu: fica no último que existe
-  useEffect(() => { if (passo > grupos.length - 1) setPasso(Math.max(0, grupos.length - 1)); }, [passo, grupos.length]);
-  const emPassos = !!props.passoAPasso && !!editando && !editando.id && grupos.length > 1;
+  useEffect(() => { if (passo > grupos.length - 1) setPasso(Math.max(0, grupos.length - 1)); if (abaForm > grupos.length) setAbaForm(Math.max(0, grupos.length - 1)); }, [passo, abaForm, grupos.length]);
+  const emPassos = !!props.passoAPasso && !!editando && !editando.id && grupos.length > 1 && !verAbas;
+  const modoAbas = !!props.emAbas && !!editando && !emPassos && grupos.length > 1;
+  const nomeGrupo = (x: { secao: CampoForm | null }, i: number, curto = false) =>
+    (curto && x.secao?.curto) || x.secao?.label || (i === 0 ? "O básico" : `Passo ${i + 1}`);
+  const grupoDaSecao = (secao: string | null) => Math.max(0, grupos.findIndex((g) => (g.secao?.name ?? null) === secao));
   // trocou de passo: a janela volta para o alto (senão o passo novo abria rolado no fim)
   useEffect(() => { if (emPassos) document.querySelector('[role="dialog"]')?.scrollIntoView({ block: "start" }); }, [passo]); // eslint-disable-line react-hooks/exhaustive-deps
   /** Próximo passo: antes confere o que é obrigatório e o formato (CPF, e-mail…) só dos campos deste passo. */
@@ -587,7 +603,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           notas={data.filter((r) => sel.has(r.id)) as (T & { marcadores?: string[] | null })[]} onClose={() => setMarcandoLote(false)} />
       )}
       {props.formulario && editando && props.formulario(editando, () => setEditando(null))}
-      <Modal open={!!editando && !props.formulario} onClose={() => setEditando(null)} sujo={alterou} title={editando?.id ? `Editar` : `Novo cadastro`}>
+      <Modal open={!!editando && !props.formulario} onClose={() => setEditando(null)} sujo={alterou} wide={props.emAbas} title={editando?.id ? `Editar` : `Novo cadastro`}>
         {editando && (
           <form onSubmit={salvar} onKeyDown={(e) => {
             // passo a passo: Enter num campo vai para o próximo passo (e não salva o cadastro pela metade)
@@ -596,7 +612,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
             {emPassos ? (() => {
               // onboarding: um passo por seção, com a barra de progresso e os nomes dos passos (os já vistos voltam ao tocar)
               const g = grupos[passo];
-              const titulo = (x: typeof g, i: number) => x.secao?.label ?? (i === 0 ? "O básico" : `Passo ${i + 1}`);
+              const titulo = (x: typeof g, i: number) => nomeGrupo(x, i);
               return (
                 <div>
                   <div className="mb-1 flex items-center justify-between gap-2 text-xs font-semibold text-slate-500">
@@ -611,7 +627,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                       <li key={x.secao?.name ?? `p${i}`}>
                         <button type="button" disabled={i > passo} aria-current={i === passo ? "step" : undefined} onClick={() => setPasso(i)}
                           className={chip(i === passo, "border-modulo bg-modulo-escuro text-white")}>
-                          <span className="num">{i + 1}</span> {titulo(x, i)}
+                          <span className="num">{i + 1}</span> {nomeGrupo(x, i, true)}
                         </button>
                       </li>
                     ))}
@@ -621,6 +637,57 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                     {g.secao?.ajuda && <p className="mt-0.5 text-xs text-slate-600">{g.secao.ajuda}</p>}
                     <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{g.campos.map(campoForm)}</div>
                   </section>
+                </div>
+              );
+            })() : modoAbas ? (() => {
+              // cadastro em abas (como o de clientes): o quanto está completo, atalhos para o que falta e uma aba por seção
+              const abaDocs = !!anexos && !!editando.id && abaForm === grupos.length; // anexos numa aba própria
+              const g = grupos[abaForm] ?? grupos[0];
+              const comp = props.completude?.(editando);
+              const pct = comp && comp.total > 0 ? Math.round(((comp.total - comp.falta.length) / comp.total) * 100) : null;
+              const faltaNa = (i: number) => comp?.falta.filter((x) => grupoDaSecao(x.secao) === i).length ?? 0;
+              return (
+                <div>
+                  {pct != null && (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
+                        <span>{pct === 100 ? "Cadastro completo" : `Cadastro ${pct}% completo`}</span>
+                      </div>
+                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Cadastro completo">
+                        <div className={`h-full rounded-full transition-all ${pct === 100 ? "bg-solido-verde" : "bg-modulo"}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      {comp!.falta.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {comp!.falta.map((x) => (
+                            <button key={x.item} type="button" className="chip chip-neutro text-2xs" onClick={() => setAbaForm(grupoDaSecao(x.secao))}>+ {x.item}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <nav className="faixa-chips sticky top-0 z-10 -mt-1 border-b border-slate-200 bg-surface pb-2 pt-1" aria-label="Partes do cadastro">
+                    {grupos.map((x, i) => {
+                      const n = faltaNa(i);
+                      return (
+                        <button key={x.secao?.name ?? `a${i}`} type="button" aria-current={i === abaForm ? "page" : undefined} onClick={() => setAbaForm(i)}
+                          className={chip(i === abaForm, "border-modulo bg-modulo-escuro text-white")}>
+                          {nomeGrupo(x, i, true)}
+                          {n > 0 && <span className="ml-1 rounded-full bg-amber-100 px-1.5 text-2xs font-bold text-amber-800">{n}</span>}
+                        </button>
+                      );
+                    })}
+                    {anexos && editando.id && (
+                      <button type="button" aria-current={abaDocs ? "page" : undefined} onClick={() => setAbaForm(grupos.length)}
+                        className={chip(abaDocs, "border-modulo bg-modulo-escuro text-white")}>Documentos</button>
+                    )}
+                  </nav>
+                  {abaDocs ? <div className="mt-3"><Anexos entidade={anexos!} id={editando.id} /></div> : (
+                  <section className="mt-3" aria-labelledby="aba-titulo">
+                    <h3 id="aba-titulo" className="text-base font-bold text-fg">{nomeGrupo(g, abaForm)}</h3>
+                    {g.secao?.ajuda && <p className="mt-0.5 text-xs text-slate-600">{g.secao.ajuda}</p>}
+                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{g.campos.map(campoForm)}</div>
+                  </section>
+                  )}
                 </div>
               );
             })() : (
@@ -647,7 +714,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
             </div>
             )}
             {/* passo a passo do cadastro novo: os anexos só existem depois de salvo (o aviso repetia em todo passo) */}
-            {anexos && !emPassos && <div className="mt-4"><Anexos entidade={anexos} id={editando.id} /></div>}
+            {anexos && !emPassos && !modoAbas && <div className="mt-4"><Anexos entidade={anexos} id={editando.id} /></div>}
             {emPassos ? (
               <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
                 {passo === 0
@@ -655,6 +722,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                   : <Button type="button" variant="secondary" onClick={() => setPasso((p) => p - 1)}><ChevronLeft size={16} aria-hidden /> Voltar</Button>}
                 <div className="flex flex-wrap gap-2">
                   {/* do 2º passo em diante, o resto é opcional: dá para salvar já */}
+                  {props.emAbas && <Button type="button" variant="ghost" onClick={() => { setAbaForm(passo); setVerAbas(true); }} title="Ver o cadastro completo, com todas as abas">Ver tudo em abas</Button>}
                   {passo > 0 && passo < grupos.length - 1 && <Button variant="ghost" carregando={save.isPending}>Salvar agora</Button>}
                   {/* key diferente: sem ela o React reaproveita o mesmo botão, e o clique em "Próximo" do penúltimo passo
                       virava "Salvar" e gravava sem mostrar o último passo */}

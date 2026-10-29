@@ -40,6 +40,9 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   das fichas (CP-ELE-003, 004, 010, 014), confirmado.
 
 ## Em andamento
+- 29/10 Cadastro de produto em abas, como o de clientes (CrudPage: emAbas, completude, curto nas seções): o salvo abre
+  em abas (O básico, Custo e preço, Fiscal, Compra e estoque, Códigos, Medidas, Catálogo, Anúncio, Ficha técnica,
+  Documentos) com "Cadastro x% completo" e atalhos do que falta; o novo segue passo a passo com "Ver tudo em abas".
 - 28/10 Insumo que não vende (MDF dos quiosques, tubos do dosador): só custo. Na edição saem preço, margem, preço
   sugerido e IPI; na lista aparece "não vende" no lugar do preço. O banco já não sugere preço para quem não vende
   (registrar_sugestao_preco); a última sugestão aberta de um insumo assim foi fechada como substituída.
