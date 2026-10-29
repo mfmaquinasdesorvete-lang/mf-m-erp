@@ -59,11 +59,17 @@ const GUIAS: [RegExp, GuiaRejeicao][] = [
       "Se a IE estiver baixada, apague a IE e marque o cliente como Não contribuinte (a nota sai com DIFAL, se for o caso).",
       "Se a IE estiver ativa no SINTEGRA, peça ao cliente o comprovante e fale com o contador antes de emitir de novo."],
   }],
+  [/nao permite contribuinte isento/, {
+    titulo: "O estado do cliente não aceita \"Isento\"",
+    porque: "A SEFAZ do estado do cliente não aceita destinatário marcado como Contribuinte isento de inscrição estadual.",
+    fazer: ["No cadastro do cliente, apague a IE (ISENTO) e marque Não contribuinte.",
+      "Volte na nota e toque em Corrigir e reenviar (ela sai para não contribuinte, com DIFAL se for o caso)."],
+  }],
   [/ie do destinatario (invalida|nao vinculada|nao cadastrada)|inscricao estadual do destinatario|ie do destinatario nao informada|indicador de ie/, {
     titulo: "Inscrição estadual do cliente errada",
     porque: "A IE não confere com o CNPJ ou com o dígito do estado, ou o cliente está como contribuinte sem IE.",
     fazer: ["No cadastro do cliente, toque na lupa ao lado de Inscrição estadual (busca no SINTEGRA).",
-      "Sem IE: marque Não contribuinte. Isento: escreva ISENTO e marque Contribuinte isento.",
+      "Sem IE: marque Não contribuinte. Isento: escreva ISENTO e marque Contribuinte isento (se o estado do cliente não aceitar Isento, marque Não contribuinte).",
       "Volte na nota e toque em Emitir de novo."],
   }],
   [/beneficio fiscal|cbenef/, {
@@ -84,11 +90,18 @@ const GUIAS: [RegExp, GuiaRejeicao][] = [
     porque: "O NCM foi digitado errado ou foi extinto na tabela da Receita.",
     fazer: ["Abra o produto e use o Sugestor de NCM (ficha do produto) ou copie o NCM da nota de compra do fornecedor.", "Emita de novo."],
   }],
+  [/duplicidade.*diferenca na chave/, {
+    titulo: "Número da nota já usado por outra nota",
+    porque: "A SEFAZ já tem uma nota com este número e série, mas com outra chave: o número foi usado fora do ERP (por exemplo, numa nota feita pela contabilidade ou em outro sistema). Reenviar com o mesmo número dá a mesma recusa.",
+    fazer: ["Em Notas fiscais → Mais → Configurações da NF-e, veja no Diagnóstico qual deve ser o próximo número da série.",
+      "Acerte o próximo número na Focus (Documentos fiscais → Produção) ou peça ao contador, e toque em Corrigir e reenviar.",
+      "Os números que ficarem sem nota se inutilizam em Notas fiscais → Inutilizar numeração, com o ok do contador."],
+  }],
   [/duplicidade/, {
     titulo: "Nota já enviada (duplicidade)",
-    porque: "A SEFAZ já recebeu uma nota com o mesmo número. Em geral a primeira foi autorizada e a resposta se perdeu.",
-    fazer: ["Abra a nota e toque em Consultar na SEFAZ: se ela estiver autorizada, o ERP atualiza sozinho.",
-      "Não emita outra nota para o mesmo pedido antes de consultar."],
+    porque: "A SEFAZ já recebeu esta mesma nota. Em geral a primeira foi autorizada e a resposta se perdeu.",
+    fazer: ["Abra a nota e toque em Atualizar: se ela estiver autorizada na SEFAZ, o ERP atualiza sozinho.",
+      "Não emita outra nota para o mesmo pedido antes de atualizar."],
   }],
   [/cfop.*(interestadual|uf)|uf.*cfop|cfop de operacao/, {
     titulo: "CFOP não combina com o estado do cliente",

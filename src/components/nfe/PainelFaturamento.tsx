@@ -16,7 +16,8 @@ export function PainelFaturamento() {
     queryFn: async () => {
       const [notas, cartas, pedidos] = await Promise.all([
         ler(supabase.from("notas_fiscais").select("status, origem, ambiente, tentativas, historico_envios, mensagem, created_at, pedido:pedidos(aprovado_em)").eq("origem", "erp")),
-        ler(supabase.from("nfe_cartas_correcao").select("id, status")),
+        // só as cartas das notas emitidas pelo ERP (as das importadas do Tiny não contam, como as notas)
+        ler(supabase.from("nfe_cartas_correcao").select("id, status, nota:notas_fiscais!inner(origem, ambiente)").eq("nota.origem", "erp")),
         ler(supabase.from("pedidos").select("id, numero, status, id_externo, nf_outra_numero, aprovado_em, created_at, notas:notas_fiscais(status, ambiente)").in("status", ["aprovado", "entregue"])),
       ]);
       return { notas: (notas ?? []) as any[], cartas: (cartas ?? []) as any[], pedidos: (pedidos ?? []) as any[] };
@@ -26,7 +27,7 @@ export function PainelFaturamento() {
   const r = useMemo(() => {
     if (!data) return null;
     const notas: NotaFat[] = data.notas.map((n) => ({ ...n, historico_envios: Array.isArray(n.historico_envios) ? n.historico_envios : [], pedido_aprovado_em: n.pedido?.aprovado_em ?? null }));
-    const ind = indicadoresFaturamento(notas, data.cartas.filter((c) => c.status !== "erro").length);
+    const ind = indicadoresFaturamento(notas, data.cartas.filter((c) => c.status !== "erro" && c.nota?.ambiente !== "homologacao").length);
     // vendas esperando nota: aprovadas no ERP, sem nota (as do Tiny e as com NF de outra empresa ficam de fora)
     const fila = data.pedidos.filter((p) => !pendenciasFaturar({ ...p, cliente: {}, itens: [] }, () => null)
       .some((f) => ["já tem NF-e", "veio do Tiny (nota feita lá)", "NF feita por outra empresa", "já faturado"].includes(f)));

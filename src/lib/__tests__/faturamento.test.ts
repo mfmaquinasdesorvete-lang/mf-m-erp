@@ -30,6 +30,9 @@ describe("guiaRejeicao", () => {
     expect(guiaRejeicao("Rejeicao: CST com beneficio fiscal e nao informado o codigo de beneficio fiscal [nItem:1]")?.titulo).toMatch(/cBenef/);
     expect(guiaRejeicao("Rejeicao: IBS/CBS não informado")?.titulo).toMatch(/Reforma/);
     expect(guiaRejeicao("Rejeição: Duplicidade de NF-e")?.titulo).toMatch(/duplicidade/);
+    expect(guiaRejeicao("Rejeição: Duplicidade de NF-e com diferença na Chave de Acesso [chNFe:3526...]")?.titulo).toMatch(/já usado por outra nota/);
+    expect(guiaRejeicao("Rejeicao: A SEFAZ do destinatario nao permite Contribuinte Isento de Inscricao Estadual")?.titulo).toMatch(/não aceita "Isento"/);
+    expect(guiaRejeicao("Rejeicao: IE do destinatario nao informada")?.fazer.join(" ")).toMatch(/não aceitar Isento/);
     expect(guiaRejeicao("algo inédito")).toBeNull();
     expect(guiaRejeicao(null)).toBeNull();
   });

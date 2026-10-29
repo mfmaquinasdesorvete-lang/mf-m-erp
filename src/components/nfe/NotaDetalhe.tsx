@@ -39,6 +39,9 @@ export type NotaEmitida = {
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
+/** Recusa por duplicidade da mesma nota (não a de número usado por outra chave): Atualizar consulta a SEFAZ pela Focus. */
+const duplicidadeSemOutraChave = (n: { status: string; mensagem: string | null }) =>
+  n.status === "erro" && /duplicidade/i.test(n.mensagem ?? "") && !/diferen/i.test(n.mensagem ?? "");
 
 export async function baixarXmlImportado(n: { id: string; chave: string | null; numero: string | null }) {
   const { data, error } = await supabase.from("notas_fiscais_xml").select("xml").eq("nota_id", n.id).maybeSingle();
@@ -199,7 +202,7 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
           {n.xml_url && <a href={n.xml_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-light"><Download size={15} /> XML</a>}
           {importada && <Button type="button" variant="ghost" onClick={() => baixarXmlImportado(n)}><Download size={15} /> XML</Button>}
           {n.chave && (importada || n.xml_url) && <Button type="button" variant="ghost" onClick={() => setJanela("validar")} title="Conferir o XML com as regras oficiais da SEFAZ"><ShieldCheck size={15} /> Validar</Button>}
-          {!leitura && n.status === "processando" && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => acao({}, "Situação atualizada")}><RefreshCw size={15} /> Atualizar</Button>}
+          {!leitura && (n.status === "processando" || duplicidadeSemOutraChave(n)) && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => acao({}, "Situação atualizada")}><RefreshCw size={15} /> Atualizar</Button>}
           {podeFiscal && n.status === "contingencia" && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => acao({ acao: "reenviar" }, "Nota reenviada")}><Send size={15} /> Reenviar</Button>}
           {podeFiscal && n.status === "erro" && !importada && <Button type="button" onClick={() => setJanela("corrigir")}><Wrench size={15} /> Corrigir e reenviar</Button>}
           {podeFiscal && !importada && n.status === "autorizada" && <Button type="button" variant="secondary" onClick={() => setJanela("carta")}><FilePen size={15} /> Carta de correção</Button>}
