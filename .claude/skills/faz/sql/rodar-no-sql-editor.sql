@@ -274,3 +274,8 @@ select (select count(*) from public.equipamentos_unificados) as unificadas,
        (select count(*) from public.equipamentos e where e.origem_ref like 'nfe-mf:%'
           and exists (select 1 from public.equipamentos m where m.cliente_id = e.cliente_id and m.produto_id = e.produto_id
                         and m.origem = 'My Frost' and coalesce(m.origem_ref, '') not like 'nfe-mf:%')) as ainda_com_par;
+
+-- =====================================================================
+-- 8) GER e REV — apagar a tabela temporária de um plano de compras de 23/10 (você autorizou em 27/10)
+-- =====================================================================
+drop table if exists public.tmp_oc_plano_2310;
