@@ -36,7 +36,8 @@ export async function ml<T = any>(caminho: string, token: string, init: Paramete
 /** Categoria sugerida pelo Mercado Livre: primeiro pelo nome da peça + "máquina de sorvete", depois pelo título. */
 export async function categoria(token: string, p: Pick<Produto, "descricao">, titulo: string) {
   const nome = String(p.descricao ?? "").split(/\s+[-–]\s+|\(|,/)[0].trim();
-  const tentativas = [...new Set([/sorvete/i.test(nome) ? nome : `${nome} máquina de sorvete`, titulo, nome].filter((q) => q.length >= 3))];
+  // as últimas tentativas tiram a peça de categorias de carro (ex.: condensadora → refrigeração comercial)
+  const tentativas = [...new Set([/sorvete/i.test(nome) ? nome : `${nome} máquina de sorvete`, titulo, nome, `${nome} refrigeração comercial`, "peça para máquina de sorvete expresso"].filter((q) => q.length >= 3))];
   // a primeira sugestão que não é de veículo (peça de máquina às vezes cai em "Acessórios para Veículos")
   let reserva: any = null;
   for (const q of tentativas) {
