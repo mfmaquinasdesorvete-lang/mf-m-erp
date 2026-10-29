@@ -54,6 +54,17 @@ export function contasDoMes(contas: ContaMensal[], pagos: PagoMensal[], hoje: st
   return itens.sort((a, b) => peso[a.situacao] - peso[b.situacao] || a.vencimento.localeCompare(b.vencimento));
 }
 
+/**
+ * O próximo mês da conta quando não há nada em aberto: o seguinte ao último que apareceu (pago); sem nenhum, o mês
+ * "desde" (que ainda não venceu) ou, sem ele, a competência que vence no mês de hoje.
+ */
+export function proximoMes(c: ContaMensal, itens: ItemDoMes[], hoje: string): { mes: string; vencimento: string } {
+  const ultimo = itens.filter((i) => i.conta.id === c.id).reduce((m, i) => (i.mes > m ? i.mes : m), "");
+  const atual = c.mes_anterior ? somarMes(hoje.slice(0, 7), -1) : hoje.slice(0, 7);
+  const mes = ultimo ? somarMes(ultimo, 1) : c.desde && c.desde > atual ? c.desde : atual;
+  return { mes, vencimento: vencimentoDe(c, mes) };
+}
+
 /** O que avisar agora: atrasado ou vencendo dentro dos dias de aviso. */
 export const paraAvisar = (itens: ItemDoMes[]) => itens.filter((i) => i.situacao === "atrasado" || i.situacao === "vencendo");
 

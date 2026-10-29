@@ -13,7 +13,7 @@ import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { lerValor } from "@/lib/auditoriaBusca";
 import type { ContaPessoal } from "@/lib/pessoal";
-import { contasDoMes, paraAvisar, somarMes, textoPrazo, vencimentoDe, type ContaMensal, type ItemDoMes, type PagoMensal, type Situacao } from "@/lib/contasDoMes";
+import { contasDoMes, paraAvisar, proximoMes, textoPrazo, type ContaMensal, type ItemDoMes, type PagoMensal, type Situacao } from "@/lib/contasDoMes";
 
 const COR: Record<Situacao, string> = {
   atrasado: "bg-red-100 text-red-800", vencendo: "bg-amber-100 text-amber-800", em_dia: "bg-slate-100 text-slate-600", pago: "bg-emerald-100 text-emerald-800",
@@ -35,11 +35,7 @@ export function ContasDoMes({ contasBanco, onVerComprovante }: { contasBanco: Co
   const abertos = itens.filter((i) => i.situacao !== "pago");
   const pagos = itens.filter((i) => i.situacao === "pago");
   // conta com tudo pago: mostra o próximo mês
-  const proximas = contas.filter((c) => c.ativa && !abertos.some((i) => i.conta.id === c.id)).map((c) => {
-    const ultimoPago = itens.filter((i) => i.conta.id === c.id).reduce((m, i) => (i.mes > m ? i.mes : m), "");
-    const mes = ultimoPago ? somarMes(ultimoPago, 1) : (c.mes_anterior ? somarMes(hoje().slice(0, 7), -1) : hoje().slice(0, 7));
-    return { conta: c, mes, vencimento: vencimentoDe(c, mes) };
-  });
+  const proximas = contas.filter((c) => c.ativa && !abertos.some((i) => i.conta.id === c.id)).map((c) => ({ conta: c, ...proximoMes(c, itens, hoje()) }));
 
   async function desfazer(p: PagoMensal) {
     if (!(await confirmar("Desfazer este pagamento? O lançamento na conta (se houver) fica anulado.", { ok: "Desfazer" }))) return;

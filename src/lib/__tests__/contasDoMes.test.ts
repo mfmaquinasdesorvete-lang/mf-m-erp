@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contasDoMes, paraAvisar, textoPrazo, vencimentoDe, type ContaMensal, type PagoMensal } from "@/lib/contasDoMes";
+import { contasDoMes, paraAvisar, proximoMes, textoPrazo, vencimentoDe, type ContaMensal, type PagoMensal } from "@/lib/contasDoMes";
 
 const das: ContaMensal = { id: "d", nome: "DAS do MEI", dia_vencimento: 20, mes_anterior: true, valor: 80, conta_id: null, avisar_dias: 5, observacao: null, desde: "2026-07", ativa: true, ordem: 0 };
 const pago = (mes: string): PagoMensal => ({ id: mes, mensal_id: "d", mes, pago_em: `${mes}-25`, valor: 80, comprovante: null, lancamento_id: null, anulado: false });
@@ -20,5 +20,18 @@ describe("contasDoMes", () => {
     expect(contasDoMes([{ ...das, ativa: false }], [], "2026-10-17")).toEqual([]);
     const itens = contasDoMes([{ ...das, desde: "2026-09" }], [{ ...pago("2026-09"), anulado: true }], "2026-10-01");
     expect(itens[0].situacao).toBe("em_dia");
+  });
+});
+
+describe("proximoMes", () => {
+  it("sem nada pago e o primeiro mês ainda não venceu, o próximo é o mês desde", () => {
+    const c = { ...das, desde: "2026-10" };
+    const itens = contasDoMes([c], [], "2026-10-29");
+    expect(itens).toEqual([]);
+    expect(proximoMes(c, itens, "2026-10-29")).toEqual({ mes: "2026-10", vencimento: "2026-11-20" });
+  });
+  it("depois do último pago vem o mês seguinte", () => {
+    const itens = contasDoMes([das], [pago("2026-07"), pago("2026-08"), pago("2026-09")], "2026-10-29");
+    expect(proximoMes(das, itens, "2026-10-29")).toEqual({ mes: "2026-10", vencimento: "2026-11-20" });
   });
 });
