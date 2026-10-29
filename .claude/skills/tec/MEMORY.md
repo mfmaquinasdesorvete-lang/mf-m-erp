@@ -1,5 +1,5 @@
 # MEMORY — TEC (ERP Line – Técnicos)
-Atualizado em 27/10/2026.
+Atualizado em 29/10/2026.
 
 ## Estado agora
 Cadastros → Técnicos virou um guia de cartões enxutos, com foto, estado, Instagram e WhatsApp.
@@ -20,13 +20,10 @@ Os parceiros Dr. Frost têm a foto do anúncio. Não há pedido de técnicos em 
 - Banco (RLS) da visão do técnico: com o SEG (o técnico ler só as OS dele, sem preços, compras e clientes de fora).
 
 ## Esperando a usuária
-- Conferir no ERP no ar (computador e celular), em Cadastros → Técnicos:
-  1. os ícones de Instagram e WhatsApp do cartão estão menores;
-  2. no botão Lista, cada técnico mostra a etiqueta "desde" e as siglas dos estados em destaque.
-  Os dois pedidos estão como "precisa de você" no Sobre e viram "feito" quando ela confirmar.
-- Testar a visão do técnico no ar: "Ver como" Técnico → só "Minhas OS" e "Meu cadastro" (pedido "precisa de você").
-- Visão do técnico: dos 2 usuários técnicos, 1 não tem cadastro em Técnicos com o mesmo nome (cadastrar para o
-  "Meu cadastro" aparecer); quem for fazer o teste do giga precisa do papel "Giga".
+- Nada para conferir: em 29/10 ela testou no ar e confirmou os ícones menores, o "desde" e as siglas no modo Lista
+  e a visão do técnico.
+- Para saber: 1 dos 2 usuários técnicos não tem cadastro em Técnicos com o mesmo nome (o "Meu cadastro" dele mostra
+  o aviso); quem for fazer o teste do giga precisa do papel "Giga".
 
 ## Decisões da usuária
 - O cartão mostra só o necessário: nome, estado, WhatsApp (só o ícone), Instagram (só o ícone) e quantos clientes
