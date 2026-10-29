@@ -1,5 +1,5 @@
 # MEMORY — SOR (ERP Line – My Frost Sorveterias e Yozzy)
-Atualizado em 28/10/2026.
+Atualizado em 29/10/2026.
 
 ## Estado agora
 A tela das sorveterias está no ar e as lojas estão cadastradas (My Frost e Yozzy).
@@ -24,7 +24,8 @@ Nada de código novo deste chat esperando publicação.
 - 15 lojas sem cliente do ERP ligado: ela precisa dizer qual cliente é cada loja.
 - 5 pagamentos de licença sem loja.
 - Máquinas pelo PDF (garantia de 2 anos e preventivas) e máquinas das lojas no painel com aviso de preventiva.
-- Endereço da Piracicaba 02; CEP de Americana e Campinas.
+- Endereço e CNPJ da Piracicaba 02; CEP de Americana; abertura das lojas sem data. Ela está organizando o resto dos
+  dados das unidades (mandou o arquivo de 28/10; o próximo deve completar).
 - Freezers dos quiosques: 4 freezers verticais numa nota do fornecedor de refrigeração (abr/2026), sem marcador. Ela diz
   se entram no custo dos quiosques (lançar como custo da loja, sem pôr o marcador na nota).
 - Relatório do INPI em PDF: ela anexa em Documentos (sem login daqui não dá).
@@ -38,6 +39,8 @@ Nada de código novo deste chat esperando publicação.
 - Os repasses da loja de Paulínia que caíram na conta do filho dela (quando a loja era dela) não se ligam à loja.
 - Funcionários das lojas My Frost e Yozzy ficam com o SOR; os da MF com o FUN (23/10).
 - Toda tela com filtro de período abre em "Esta semana"; ela troca na hora (27/10).
+- Arquivo das unidades de 28/10: Hortolândia passou para um shopping em Campinas (segue ativa), Santa Bárbara foi
+  para Piracicaba, Limeira 01 e Patrocínio trocaram de responsável. Dados antigos ficam na observação da loja.
 
 ## Onde está
 - Telas: `src/pages/Licenciados.tsx`, `src/components/licenciados/Unidades.tsx`, `src/pages/paineis/PainelLicencas.tsx`.
