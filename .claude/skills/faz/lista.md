@@ -40,7 +40,7 @@ Drive**. Só você consegue ver se ficou ligado: me diga "feito" em cada um.
 4. **Google, nas duas contas** (a da MF e a das sorveterias): myaccount.google.com/signinoptions/twosv → ativar.
 (Depois vem o 0b, a chave da Hostinger no GitHub, e o 8, o login com o rosto.)
 
-## 1. Rodar um arquivo no SQL Editor do Supabase (7 coisas de uma vez) — ~3 minutos
+## 1. Rodar um arquivo no SQL Editor do Supabase (8 coisas de uma vez) — ~3 minutos
 **O que é:** 5 partes do banco que os chats escreveram e não conseguem criar sozinhos (a ferramenta deles trava ao
 criar tabela ou apagar índice).
 **Por que importa:**
@@ -55,8 +55,10 @@ criar tabela ou apagar índice).
   para toda gravação e o cartão não chega até você).
 - GER (29/10): junta as 16 máquinas repetidas que você disse que "São as mesmas" (nota da MF + My Frost) e cria a
   unificação de máquinas; atualiza 4 itens do GER no Sobre → Pedidos.
+- GER e REV (29/10): apaga a tabela temporária `tmp_oc_plano_2310` (você autorizou em 27/10).
 
-**Onde:** Supabase → seu projeto → **SQL Editor** (menu da esquerda).
+**Onde:** https://supabase.com/dashboard/project/antfofmwrmkadiavjycg/sql/new
+**Arquivo:** https://github.com/mfmaquinasdesorvete-lang/mf-m-erp/blob/paineis-no-ar/.claude/skills/faz/sql/rodar-no-sql-editor.sql
 **Passo a passo:**
 1. Abra o arquivo `.claude/skills/faz/sql/rodar-no-sql-editor.sql` no GitHub (branch `paineis-no-ar`) e clique
    em **Copy raw file** (ícone de copiar).
