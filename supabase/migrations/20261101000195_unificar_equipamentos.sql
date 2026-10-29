@@ -36,7 +36,7 @@ for each row execute function public.trg_equipamento_nao_recriar();
 
 create or replace function public.unificar_equipamentos(p_fica uuid, p_sai uuid)
 returns void language plpgsql security definer set search_path = public as $$
-declare f public.equipamentos; s public.equipamentos;
+declare f public.equipamentos; s public.equipamentos; v_giga_fora jsonb;
 begin
   if not (public.is_erp_admin() or coalesce(auth.role(), '') = 'service_role' or current_user = 'postgres') then
     raise exception 'só o administrador unifica máquinas';
@@ -71,10 +71,18 @@ begin
 
   update public.ordens_servico set equipamento_id = p_fica where equipamento_id = p_sai;
   update public.contatos_cliente set equipamento_id = p_fica where equipamento_id = p_sai;
+  -- o reteste do giga é um por máquina: se as duas têm, fica o mais recente e o outro vai guardado em dados
+  select to_jsonb(g) into v_giga_fora from public.giga_retestes g
+   where g.equipamento_id in (p_fica, p_sai)
+     and (select count(*) from public.giga_retestes x where x.equipamento_id in (p_fica, p_sai)) = 2
+   order by coalesce(g.atualizado_em, g.criado_em) asc limit 1;
+  if v_giga_fora is not null then delete from public.giga_retestes where id = (v_giga_fora->>'id')::uuid; end if;
   update public.giga_retestes set equipamento_id = p_fica where equipamento_id = p_sai;
 
   insert into public.equipamentos_unificados (origem, origem_ref, token, ficou_id, dados, unificado_por)
-  values (s.origem, s.origem_ref, s.token, p_fica, to_jsonb(s), auth.uid());
+  values (s.origem, s.origem_ref, s.token, p_fica,
+          to_jsonb(s) || jsonb_build_object('giga_reteste_descartado', v_giga_fora),
+          auth.uid());
   delete from public.equipamentos where id = p_sai;
 end $$;
 revoke execute on function public.unificar_equipamentos(uuid, uuid) from public, anon;
