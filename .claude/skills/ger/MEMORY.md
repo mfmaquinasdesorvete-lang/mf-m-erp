@@ -35,6 +35,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
   entram depois).
 
 ## Esperando a usuária
+- 19 máquinas das notas da MF (nfe-mf:…) ao lado de uma do mesmo modelo, sem série, de origem "My Frost", no mesmo cliente: o FIS pergunta se são a mesma (29/10). Se ela disser que sim, o GER unifica (marcadores somam, nada se perde).
 - Página de comunicações na Retaguarda (pedido 1af4af3c, 24/10: tudo do sino, avisos dos chats, anotações, avisos para a equipe): ainda quer? Pela rodada de fechamento só entra se ela confirmar.
 - Gravar no checklist a situação de 4 itens (46e702cc "precisa de você"; 3a664b6d para "fila" depois da rodada; c4640591 e 9f62820c com a nota "depois da rodada"): a gravação de 28/10 pediu confirmação no Supabase e expirou.
 - Nota de peças sem OC (4 de 26/10): quer OC automática para as novas?
