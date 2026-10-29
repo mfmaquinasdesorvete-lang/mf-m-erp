@@ -24,6 +24,8 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
   O TRA e o TEC entram quando a base estiver no ar.
 
 ## Esperando a usuária
+- 28/10: rodar o SQL único do FAZ (cria config_ajustes e paginas_claude); depois o ELO grava as 16 páginas e muda o pedido a5b511b7 ("menos dependente do código") para "precisa de você" (a gravação pediu aprovação e expirou em 29/10).
+- 28/10: caixa de e-mail da contabilidade antiga (Dossiê MF SC) ficou "Depois"; está no FAZ como E1.
 - ELO: `paginas_claude` está no SQL único do FAZ (item 1). Quando a tabela existir, gravar as 16 páginas
   (inserts em paginas-claude.sql do scratchpad: refazer a partir da lista do Raio-X/artifacts). Site da aba já publicado.
 - GER: rodar no SQL Editor a criação da tabela `config_ajustes`, base de Prazos e padrões.
@@ -32,6 +34,7 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
 - IAD: "Pode publicar" do Resumir com IA dos documentos.
 
 ## Decisões da usuária
+- 28/10: auditor financeiro roda sozinho todo dia (AUD, 07:03, no ar); Dossiê da MF SC desde a abertura (FIS coordena, pedido 21a33e7d); extrato nunca cai em conta por padrão (GER consertou e publicou).
 - 27/10 (pelo GER): títulos das sessões numerados "NN ícone SIGLA · Nome — o que faz" (01 ELO … 22 DOC), mesma
   ordem em `chats_claude.ordem`; o `nome` não muda. Chat novo usa o próximo número.
 - Auditor Financeiro IA (27/10): chat AUD, só leitura, começando pela MF; sorveterias depois, com o SOR.
