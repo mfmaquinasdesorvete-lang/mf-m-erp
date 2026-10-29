@@ -1,5 +1,5 @@
 # MEMORY — SEG (ERP Line – Segurança)
-Atualizado em 27/10/2026.
+Atualizado em 29/10/2026.
 
 ## Estado agora
 A auditoria de segurança está em Sobre → Segurança, com 33 itens em 7 áreas, e o vigia confere o banco todo dia.
@@ -25,12 +25,13 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
   aparência, gravações travadas pelo fetch do Supabase enquanto simula (`src/lib/verComo.ts`, bd917a8).
 - Permissões por papel no ar (27/10, site 63df953): Retaguarda só da master entre os administradores (auditoria,
   bancos, importar), cada papel só com o seu e a tela única (Usuários → Perfis: coluna Master e Administrador editável).
+- Técnico só com o dele no banco (29/10, migração 20261101000178): regra restrictive `so_tecnico_fora` em 35 tabelas
+  (compras, fornecedores, cotações, produção, propostas, preços de tabela, cobrança, logística, controles internos).
 - Dados cadastrais reais da empresa fora do repositório; a demonstração e os testes usam fictícios (55a64e4).
 
 ## Em andamento
-- Técnico só com o dele no banco: migração 20261101000178 (regra restrictive com so_tecnico) escrita e no código,
-  ainda NÃO aplicada; o teste numa transação parou esperando a aprovação dela no conector. Depois: ligar o login ao
-  cadastro de técnico (hoje a OS liga pelo nome) para filtrar só as OS dele e os clientes dessas OS.
+- Técnico: falta ligar o login ao cadastro de técnico (hoje a OS liga pelo nome) para filtrar no banco só as OS dele
+  e os clientes dessas OS.
 - Repositório privado (decisão dela, 27/10): CI já roda por lote (a cada 3 h, se mudou). Chave de leitura da Hostinger
   gerada; falta ela cadastrar como deploy key no GitHub. Depois: trocar para privado e o deploy da Hostinger passa a
   usar o endereço SSH do repositório (avisar todos os chats pelo ELO).
@@ -59,7 +60,7 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
 - Telas: `src/components/sobre/Seguranca.tsx`, `src/components/Rosto.tsx`, `src/lib/rosto.ts`, `src/lib/sair.ts`
   (sai sozinho quando a sessão é derrubada), `src/pages/Usuarios.tsx` (Apagar o rosto, Derrubar sessões).
 - Banco: `seguranca_auditoria`, `seguranca_vigia`, `seguranca_vigia_base`, `vigiar_seguranca`, `seguranca_aceitar`,
-  `rosto_ok`, `rosto_vigente`, `meu_rosto`, `sessao_viva`, `minha_sessao_viva`, `derrubar_sessoes`.
+  `rosto_ok`, `rosto_vigente`, `meu_rosto`, `sessao_viva`, `minha_sessao_viva`, `derrubar_sessoes`, `so_tecnico`.
 - Funções do Supabase: `usuarios-admin` (acao apagar_rosto), `ia-voz`, `ia-busca`, `ia-produto`.
 - Teste que vigia as funções com poder total: `src/lib/__tests__/bancoSeguranca.test.ts` (listas PUBLICAS e
   AJUDANTES; função nova sem conferência de papel faz o teste falhar).
