@@ -31,7 +31,7 @@ begin
   return new;
 end $$;
 
-create trigger trg_equipamento_nao_recriar before insert on public.equipamentos
+create or replace trigger trg_equipamento_nao_recriar before insert on public.equipamentos
 for each row execute function public.trg_equipamento_nao_recriar();
 
 create or replace function public.unificar_equipamentos(p_fica uuid, p_sai uuid)
