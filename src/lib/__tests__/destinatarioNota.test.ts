@@ -1,6 +1,6 @@
 // Correção do destinatário pela própria nota recusada e a volta para o cadastro do cliente. Dados inventados.
 import { describe, expect, it } from "vitest";
-import { destinatarioParaCliente, indicadorDaIe, receitaParaDestinatario } from "../destinatarioNota";
+import { clienteComoDestinatario, destinatarioParaCliente, indicadorDaIe, receitaParaDestinatario } from "../destinatarioNota";
 
 describe("destinatário da nota recusada", () => {
   const original = { nome_destinatario: "Loja Exemplo", cnpj_destinatario: "11222333000181", indicador_inscricao_estadual_destinatario: 9, inscricao_estadual_destinatario: null, cep_destinatario: "57520000", uf_destinatario: "AL" };
@@ -8,7 +8,7 @@ describe("destinatário da nota recusada", () => {
 
   it("só o que mudou vai para o cadastro", () => {
     expect(destinatarioParaCliente(dest, original)).toEqual({});
-    expect(destinatarioParaCliente({ ...dest, cep_destinatario: "57.520-001", uf_destinatario: "al" }, original)).toEqual({ cep: "57520001", uf: "AL" });
+    expect(destinatarioParaCliente({ ...dest, cep_destinatario: "57.520-001", uf_destinatario: "al" }, original)).toEqual({ cep: "57520001" });
   });
 
   it("o cadastro fica com o mesmo indicador da nota (e PJ, com CNPJ)", () => {
@@ -30,5 +30,18 @@ describe("destinatário da nota recusada", () => {
   it("Receita → campos da nota (complemento acompanha o endereço novo)", () => {
     expect(receitaParaDestinatario({ nome: "Loja Exemplo Ltda", logradouro: "Rua A", cep: "57.520-000", uf: "al", inscricao_estadual: "248123456" }))
       .toEqual({ nome_destinatario: "Loja Exemplo Ltda", logradouro_destinatario: "Rua A", cep_destinatario: "57520000", uf_destinatario: "AL", inscricao_estadual_destinatario: "248123456", indicador_inscricao_estadual_destinatario: "1", complemento_destinatario: "" });
+  });
+
+  it("compara com o cadastro sem se enganar com máscara", () => {
+    const cad = clienteComoDestinatario({ tipo_pessoa: "PJ", contribuinte_icms: 2, cpf_cnpj: "11222333000181", nome: "Loja Exemplo", cep: "57.520-000", uf: "al", telefone: "(82) 9999-0000", email: "A@B.com", inscricao_estadual: null });
+    const igual = { nome_destinatario: "Loja Exemplo", cep_destinatario: "57520000", uf_destinatario: "AL", telefone_destinatario: "8299990000", email_destinatario: "a@b.com", indicador_inscricao_estadual_destinatario: "2", inscricao_estadual_destinatario: "" };
+    expect(destinatarioParaCliente(igual, cad)).toEqual({});
+    expect(destinatarioParaCliente({ ...igual, indicador_inscricao_estadual_destinatario: "1", inscricao_estadual_destinatario: "248123456" }, cad))
+      .toEqual({ inscricao_estadual: "248123456", contribuinte_icms: 1, tipo_pessoa: "PJ" });
+  });
+
+  it("mesma rua e CEP: o complemento fica", () => {
+    const r = receitaParaDestinatario({ logradouro: "Rua A", cep: "57520000", complemento: "" }, { logradouro_destinatario: "RUA A", cep_destinatario: "57520-000", complemento_destinatario: "Galpão 3" });
+    expect(r.complemento_destinatario).toBeUndefined();
   });
 });

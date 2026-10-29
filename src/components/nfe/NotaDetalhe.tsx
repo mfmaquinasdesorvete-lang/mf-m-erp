@@ -26,7 +26,8 @@ import { ValidarNfe } from "./ValidarNfe";
 import { EventosNota, useEventosNfe } from "./PostosFiscais";
 import { GuiaRejeicaoNota } from "./GuiaRejeicao";
 import { buscarIe, completarPorCnpj } from "@/lib/cadastro";
-import { destinatarioParaCliente, indicadorDaIe, receitaParaDestinatario } from "@/lib/destinatarioNota";
+import { clienteComoDestinatario, destinatarioParaCliente, indicadorDaIe, receitaParaDestinatario } from "@/lib/destinatarioNota";
+import { trocaDeContribuinte } from "../../../supabase/functions/_shared/nfe-contribuinte";
 
 export type NotaEmitida = {
   id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null; valor_total: number;
@@ -284,9 +285,24 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
   const cnpjDest = String(p.cnpj_destinatario ?? "").replace(/\D/g, "");
   const [buscando, setBuscando] = useState<"ie" | "receita" | null>(null);
   const [atualizarCadastro, setAtualizarCadastro] = useState(true);
-  const mudouCadastro = Object.keys(destinatarioParaCliente(dest, p)).length > 0;
-  // nota de transferência ou de devolução a fornecedor não tem cliente para atualizar
-  const podeAtualizarCadastro = !!(nota.cliente_id || nota.pedido_id);
+  // o cliente da nota (ou do pedido), só quando ele é mesmo o destinatário (a nota pode ter saído em nome de outro);
+  // nota de transferência ou de devolução a fornecedor não tem cliente
+  const docNota = String(p.cnpj_destinatario ?? p.cpf_destinatario ?? "").replace(/\D/g, "");
+  const { data: cliente } = useQuery({
+    queryKey: ["clientes", "da-nota", nota.id], enabled: !!(nota.cliente_id || nota.pedido_id),
+    queryFn: async () => {
+      let id = nota.cliente_id ?? null;
+      if (!id && nota.pedido_id) id = ((await supabase.from("pedidos").select("cliente_id").eq("id", nota.pedido_id).maybeSingle()).data?.cliente_id as string | null) ?? null;
+      if (!id) return null;
+      const { data } = await supabase.from("clientes").select("id, cpf_cnpj, tipo_pessoa, contribuinte_icms, nome, inscricao_estadual, logradouro, numero, complemento, bairro, municipio, uf, cep, telefone, email").eq("id", id).maybeSingle();
+      return data && String(data.cpf_cnpj ?? "").replace(/\D/g, "") === docNota ? data : null;
+    },
+  });
+  // compara com o cadastro (não com a tentativa anterior): a correção feita numa tentativa recusada também chega lá
+  const patchCadastro = cliente ? destinatarioParaCliente(dest, clienteComoDestinatario(cliente)) : {};
+  const mudouCadastro = Object.keys(patchCadastro).length > 0;
+  // trocar quem é contribuinte: o DIFAL sai sozinho; passar a não contribuinte, às vezes, pede emitir de novo pelo pedido
+  const troca = trocaDeContribuinte(p, Number(dest.indicador_inscricao_estadual_destinatario || 9));
 
   async function buscar(tipo: "ie" | "receita") {
     setBuscando(tipo);
@@ -299,26 +315,26 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
         // telefone e e-mail do cadastro ficam (os da Receita muitas vezes são do contador)
         const campos = ["nome", "inscricao_estadual", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "cep"];
         const r = await completarPorCnpj({}, cnpjDest, campos, true, { ieSoDoEstado: true });
-        if (r) setDest((d) => ({ ...d, ...receitaParaDestinatario(r) }));
+        if (r) setDest((d) => ({ ...d, ...receitaParaDestinatario(r, d) }));
       }
     } catch (e) { notifyError(e); } finally { setBuscando(null); }
   }
 
-  /** O que foi corrigido no destinatário vai também para o cadastro do cliente (para a próxima nota já sair certa),
-   *  só quando o cliente da nota (ou do pedido) é mesmo o destinatário: a nota pode ter saído em nome de outro. */
+  /** O que foi corrigido no destinatário vai também para o cadastro do cliente (a próxima nota já sai certa). */
   async function gravarNoCadastro() {
-    const patch = destinatarioParaCliente(dest, p);
-    if (!Object.keys(patch).length) return;
-    let clienteId = nota.cliente_id ?? null;
-    if (!clienteId && nota.pedido_id) clienteId = ((await supabase.from("pedidos").select("cliente_id").eq("id", nota.pedido_id).maybeSingle()).data?.cliente_id as string | null) ?? null;
-    const docNota = String(p.cnpj_destinatario ?? p.cpf_destinatario ?? "").replace(/\D/g, "");
-    const cli = clienteId ? (await supabase.from("clientes").select("id, cpf_cnpj").eq("id", clienteId).maybeSingle()).data : null;
-    if (!cli || String(cli.cpf_cnpj ?? "").replace(/\D/g, "") !== docNota) {
-      return notify("O cadastro do cliente não foi mudado: o destinatário desta nota não é o cliente do pedido. Corrija em Clientes, se precisar.", "erro");
-    }
-    const { data, error } = await supabase.from("clientes").update(patch).eq("id", cli.id).select("id");
-    if (error || !data?.length) notify(`O cadastro do cliente não foi atualizado${error ? `: ${error.message}` : " (sem permissão)"}. Corrija em Clientes.`, "erro");
-    else invalidate("clientes");
+    if (!cliente || !mudouCadastro) return false;
+    const { data, error } = await supabase.from("clientes").update(patchCadastro).eq("id", cliente.id).select("id");
+    if (error || !data?.length) { notify(`O cadastro do cliente não foi atualizado${error ? `: ${error.message}` : " (sem permissão)"}. Corrija em Clientes.`, "erro"); return false; }
+    invalidate("clientes");
+    return true;
+  }
+
+  /** Passar a não contribuinte com a nota montada como contribuinte: grava no cadastro e a nota sai de novo pelo pedido. */
+  async function soCadastro() {
+    setOcupado(true);
+    try {
+      if (await gravarNoCadastro()) notify("Cadastro do cliente atualizado. Agora emita a nota de novo pelo pedido (Vendas → pedido → Emitir NF-e): os impostos são refeitos.");
+    } finally { setOcupado(false); }
   }
 
   async function enviar(e: FormEvent) {
@@ -338,8 +354,10 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
     setOcupado(true);
     try {
       const r = await callFunction("nfe-consultar", { nota_id: nota.id, acao: "reenviar_corrigida", alteracoes });
-      // o cadastro só muda quando a SEFAZ não recusou de novo (senão ficaria com o dado que ela recusou)
-      if (podeAtualizarCadastro && atualizarCadastro && mudouCadastro && r.nota?.status !== "erro") await gravarNoCadastro();
+      // o cadastro só muda com a nota autorizada (recusada, denegada, na fila ou processando: ficaria com o dado que a
+      // SEFAZ ainda não aceitou)
+      if (atualizarCadastro && mudouCadastro && r.nota?.status === "autorizada") await gravarNoCadastro();
+      else if (atualizarCadastro && mudouCadastro && r.nota?.status !== "erro") notify("O cadastro do cliente fica para quando a nota for autorizada: abra a nota de novo e confira.");
       notify(r.nota?.status === "erro" ? `Rejeitada de novo: ${r.nota.mensagem}` : r.nota?.status === "autorizada" ? `NF-e ${r.nota.numero} autorizada` : "Nota reenviada para a SEFAZ", r.nota?.status === "erro" ? "erro" : "ok");
       invalidate("notas_fiscais", "pedidos");
       onClose(r.nota?.status !== "erro");
@@ -398,15 +416,23 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
             </table>
           </div>
           <Field label="Informações complementares"><textarea className="input min-h-16" value={info} onChange={(e) => setInfo(e.target.value)} /></Field>
-          {mudouCadastro && podeAtualizarCadastro && (
+          {troca.reemitir && (
+            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <p><b>Não contribuinte muda os impostos desta nota</b> (consumidor final e DIFAL): ela não pode só ser reenviada.
+                Grave no cadastro do cliente e emita a nota de novo pelo pedido.</p>
+              {mudouCadastro && <Button type="button" variant="secondary" disabled={ocupado} onClick={soCadastro}>Salvar no cadastro do cliente</Button>}
+            </div>
+          )}
+          {troca.tirarDifal && <p className="text-xs text-slate-500">Como o cliente passa a ter IE (ou isento), o DIFAL sai da nota (o total não muda).</p>}
+          {mudouCadastro && !troca.reemitir && (
             <label className="flex items-start gap-2 text-sm text-slate-700">
               <input type="checkbox" className="mt-0.5" checked={atualizarCadastro} onChange={(e) => setAtualizarCadastro(e.target.checked)} />
-              <span>Se a SEFAZ aceitar, atualizar também o cadastro do cliente com o que foi corrigido aqui (a próxima nota já sai certa)</span>
+              <span>Quando a SEFAZ autorizar, atualizar também o cadastro do cliente com o que foi corrigido aqui (a próxima nota já sai certa)</span>
             </label>
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => onClose(false)}>Voltar</Button>
-            <Button disabled={ocupado || !!buscando} title={buscando ? "Espere a busca terminar" : undefined}><Send size={16} /> {ocupado ? "Enviando…" : "Salvar e reenviar"}</Button>
+            <Button disabled={ocupado || !!buscando || troca.reemitir} title={buscando ? "Espere a busca terminar" : troca.reemitir ? "Emita de novo pelo pedido" : undefined}><Send size={16} /> {ocupado ? "Enviando…" : "Salvar e reenviar"}</Button>
           </div>
         </form>
       )}

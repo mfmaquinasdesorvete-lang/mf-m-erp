@@ -12,13 +12,31 @@ const NOTA_CLIENTE: Record<string, string> = {
 
 const digitos = (v: unknown) => String(v ?? "").replace(/\D/g, "");
 
-/** O que mudou nos campos do destinatário, já com os nomes do cadastro do cliente (só o que mudou). */
+/** Valor comparável: só dígitos no CEP, telefone e IE; e-mail em minúsculas; UF em maiúsculas. */
+function comparavel(k: string, v: unknown) {
+  const s = String(v ?? "").trim();
+  if (["cep_destinatario", "telefone_destinatario", "inscricao_estadual_destinatario"].includes(k)) return /^isento$/i.test(s) ? "ISENTO" : digitos(s);
+  if (k === "email_destinatario") return s.toLowerCase();
+  if (k === "uf_destinatario") return s.toUpperCase();
+  return s;
+}
+
+/** Cadastro do cliente no formato dos campos do destinatário da nota (o indicador é o que a emissão usaria). */
+export function clienteComoDestinatario(c: Record<string, any>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [nota, cliente] of Object.entries(NOTA_CLIENTE)) out[nota] = c[cliente] ?? "";
+  out.indicador_inscricao_estadual_destinatario = c.tipo_pessoa === "PJ" ? Number(c.contribuinte_icms ?? 9) : 9;
+  out.cnpj_destinatario = c.cpf_cnpj;
+  return out;
+}
+
+/** O que está diferente entre os campos do destinatário e o cadastro do cliente (`original` no formato da nota, ver
+ *  clienteComoDestinatario), já com os nomes do cadastro. */
 export function destinatarioParaCliente(dest: Record<string, string>, original: Record<string, unknown>): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
   let mexeuIe = false;
   for (const [k, v] of Object.entries(dest)) {
-    const antes = original[k] == null ? "" : String(original[k]);
-    if (v === antes) continue;
+    if (comparavel(k, v) === comparavel(k, original[k])) continue;
     if (k === "indicador_inscricao_estadual_destinatario") { mexeuIe = true; continue; }
     const campo = NOTA_CLIENTE[k];
     if (!campo) continue;
@@ -40,16 +58,20 @@ export function destinatarioParaCliente(dest: Record<string, string>, original: 
 /** Indicador que combina com a IE digitada: número → 1 (contribuinte), ISENTO → 2; vazia não muda o indicador. */
 export const indicadorDaIe = (ie: string, atual: string) => (/^\s*isento\s*$/i.test(ie) ? "2" : /\d/.test(ie) ? "1" : atual);
 
-/** Dados da Receita (completarPorCnpj, nomes do cadastro) → campos do destinatário da nota. A IE achada vira contribuinte. */
-export function receitaParaDestinatario(r: Record<string, unknown>): Record<string, string> {
+/** Dados da Receita (completarPorCnpj, nomes do cadastro) → campos do destinatário da nota. A IE achada vira contribuinte.
+ *  `atual`: os campos de agora (o complemento só acompanha quando a rua ou o CEP mudam). */
+export function receitaParaDestinatario(r: Record<string, unknown>, atual: Record<string, string> = {}): Record<string, string> {
   const dest: Record<string, string> = {};
   for (const [nota, cliente] of Object.entries(NOTA_CLIENTE)) {
     const v = r[cliente];
     if (v != null && String(v).trim()) dest[nota] = cliente === "cep" ? digitos(v) : String(v).trim();
   }
   if (dest.inscricao_estadual_destinatario) dest.indicador_inscricao_estadual_destinatario = "1";
-  // endereço novo da Receita: o complemento antigo não fica junto da rua nova
-  if (dest.logradouro_destinatario) dest.complemento_destinatario = String(r.complemento ?? "").trim();
+  // endereço novo da Receita: o complemento antigo não fica junto da rua nova (mesma rua e CEP: o complemento fica)
+  const ruaNova = dest.logradouro_destinatario && comparavel("logradouro_destinatario", dest.logradouro_destinatario).toLowerCase() !== comparavel("logradouro_destinatario", atual.logradouro_destinatario).toLowerCase();
+  const cepNovo = dest.cep_destinatario && dest.cep_destinatario !== digitos(atual.cep_destinatario);
+  if (ruaNova || cepNovo) dest.complemento_destinatario = String(r.complemento ?? "").trim();
+  else delete dest.complemento_destinatario;
   if (dest.uf_destinatario) dest.uf_destinatario = dest.uf_destinatario.toUpperCase();
   return dest;
 }

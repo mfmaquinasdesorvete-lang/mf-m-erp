@@ -1,6 +1,8 @@
 // Correção de uma NF-e rejeitada antes de reenviar: só o que não muda valores nem impostos
-// (natureza, informações complementares, dados do destinatário e NCM/CFOP/CEST/descrição dos itens).
+// (natureza, informações complementares, dados do destinatário e NCM/CFOP/CEST/descrição dos itens). A troca de
+// contribuinte acerta o grupo do DIFAL (nfe-contribuinte.ts).
 import { HttpError, onlyDigits } from "./supabase.ts";
+import { semDifalNosItens, trocaDeContribuinte } from "./nfe-contribuinte.ts";
 
 /** Campos do destinatário que podem ser corrigidos numa nota rejeitada. */
 const CAMPOS_DEST = ["nome_destinatario", "inscricao_estadual_destinatario", "indicador_inscricao_estadual_destinatario", "logradouro_destinatario",
@@ -29,6 +31,11 @@ export function corrigirPayload(payload: any, alt: any) {
     p[k] = v === "" ? undefined : v;
   }
   if (p.indicador_inscricao_estadual_destinatario !== 1) delete p.inscricao_estadual_destinatario;
+  // trocar quem é contribuinte mexe no DIFAL da nota: para contribuinte ou isento o grupo sai (senão a SEFAZ recusa com
+  // a 695); para não contribuinte, se a nota não estava pronta, os impostos são refeitos emitindo de novo pelo pedido
+  const troca = trocaDeContribuinte(payload, Number(p.indicador_inscricao_estadual_destinatario ?? 9));
+  if (troca.reemitir) throw new HttpError(400, "passar o cliente a não contribuinte muda os impostos da nota (consumidor final e DIFAL): corrija o cadastro do cliente e emita a nota de novo pelo pedido");
+  if (troca.tirarDifal) semDifalNosItens(p.items);
   for (const it of Array.isArray(alt?.itens) ? alt.itens : []) {
     const item = (p.items ?? []).find((x: any) => Number(x.numero_item) === Number(it.numero_item));
     if (!item) throw new HttpError(400, `item ${it.numero_item} não existe na nota`);
