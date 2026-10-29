@@ -1,4 +1,4 @@
--- FAZ (27/10/2026): tudo o que falta no banco e só roda pelo SQL Editor do Supabase.
+-- FAZ (27/10/2026, parte 6 em 29/10): tudo o que falta no banco e só roda pelo SQL Editor do Supabase.
 -- Como rodar: Supabase → SQL Editor → New query → colar este arquivo inteiro → Run.
 -- Se aparecer o aviso de "operação destrutiva" (por causa dos drop index), confirmar: só apaga 3 índices repetidos.
 -- Pode rodar de novo sem problema: cada parte confere se já existe.
@@ -143,6 +143,14 @@ create trigger produto_variacao before insert or update of produto_pai_id, agrup
 drop index if exists public.nfe_custos_itens_produto_idx;
 drop index if exists public.nfe_oc_baixas_pedido_idx;
 drop index if exists public.notas_fiscais_cliente_idx;
+
+-- =====================================================================
+-- 6) IAD — 17 IAs voltam para "fazendo" até o teste com tarefa real; o robô do WhatsApp fica para depois (29/10)
+-- =====================================================================
+update public.pedidos_checklist set situacao = case when id::text like '725e9c15%' then situacao else 'fazendo' end,
+  detalhe = case when id::text like '725e9c15%' then 'Fica para depois da rodada de fechamento: depende de ligar o número fixo na conta oficial da Meta (WhatsApp Business API).'
+            else 'No ar; falta o teste com uma tarefa real (rodada de fechamento 27/10). Lista dos testes na MEMORY.md do IAD.' end
+where id::text like '725e9c15%' or id in ('f26aeea6-f469-435b-b89f-f32b927cc37e','48893310-6fc7-4dd0-9178-71b3cf661ede','7becaa2f-6203-413c-b7b2-9591bf8b57ec','4f3c317e-093a-43fc-ab8b-67ed049a1049','8b91caad-d2b4-411e-a061-fced7fb18716','ff312363-a635-4419-9b89-ceb01fb8189d','0d403685-f3d7-4ed6-a4b3-4a62eb3bb264','158cf553-b3a1-4b81-9a3e-0cea84dbb55a','9e4b8114-cdec-4519-b149-80d6258691d9','b8f7d330-726c-4619-a217-48870a5b9d3f','e946bef6-d46f-47ba-bac2-5a81292cdf7a','99a4c607-fbd1-463c-b048-11a6fd502c59','e175ef8c-1b82-4f63-ae9b-3faee489eafe','976206dc-3bb4-4a8c-970a-f66fb7a20e47','7d5533f1-587c-4019-ba96-db6996840cde','63e76ee8-0b45-47da-a5a9-4b3b27fd2534','b12b4aba-0c63-4e73-b234-498879f9c577');
 
 -- Conferência (o FAZ confere sozinho depois): as 4 colunas devem dar "true".
 select (to_regclass('public.config_ajustes') is not null)::text as config_ajustes_ok,

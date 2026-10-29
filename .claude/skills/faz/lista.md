@@ -7,7 +7,7 @@ Conferido no banco e no GitHub em 27/10: as funções do Supabase estão todas n
 
 ---
 
-## 1. Rodar um arquivo no SQL Editor do Supabase (5 coisas de uma vez) — ~3 minutos
+## 1. Rodar um arquivo no SQL Editor do Supabase (6 coisas de uma vez) — ~3 minutos
 **O que é:** 5 partes do banco que os chats escreveram e não conseguem criar sozinhos (a ferramenta deles trava ao
 criar tabela ou apagar índice).
 **Por que importa:**
@@ -18,6 +18,8 @@ criar tabela ou apagar índice).
 - ELO: sem a tabela `paginas_claude`, a aba Sobre → Páginas (já no ar) fica vazia.
 - PRD: sem a regra das variações, dá para gravar variação de variação no cadastro de produtos.
 - REV: 3 índices repetidos deixam a gravação de notas mais lenta.
+- IAD (29/10): 17 IAs voltam para "fazendo" até o teste com tarefa real (o MCP passou a pedir a sua confirmação
+  para toda gravação e o cartão não chega até você).
 
 **Onde:** Supabase → seu projeto → **SQL Editor** (menu da esquerda).
 **Passo a passo:**

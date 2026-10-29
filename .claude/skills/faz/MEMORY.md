@@ -16,7 +16,7 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 ## Esperando a usuária (conferido no banco em 27/10)
 1. SQL Editor: `sql/rodar-no-sql-editor.sql` — `config_ajustes` (GER), `recibos.de_funcionario` + gatilho e regra
    (FUN; achado do FAZ), `paginas_claude` (ELO; o ELO grava as 16 páginas depois), gatilho `produto_variacao` (PRD),
-   3 índices repetidos (REV). Conferir: `to_regclass`, `pg_trigger`, coluna em `information_schema.columns`, `pg_indexes`.
+   3 índices repetidos (REV); parte 6 (29/10): 17 IAs do IAD voltam para "fazendo" (conferir a situação deles). Conferir: `to_regclass`, `pg_trigger`, coluna em `information_schema.columns`, `pg_indexes`.
 2. Secrets das transportadoras (TRA, 23/10): `MELHORENVIO_TOKEN`, `RODONAVES_USUARIO/SENHA`, `BRASPRESS_USUARIO/SENHA`.
 3. Secrets do Meu Pluggy (CAR, 22/10): `PLUGGY_PESSOAL_CLIENT_ID/SECRET`.
 4. Olist: envio diário do OFX para o e-mail do ERP (ENT, 23/10). Conferir: extrato Olist novo depois de 08/10.

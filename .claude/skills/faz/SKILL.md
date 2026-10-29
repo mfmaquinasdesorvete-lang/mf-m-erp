@@ -60,3 +60,5 @@ ou na Hostinger (e em outros painéis, como bancos e Anthropic). Explico o passo
 - Gravação pelo MCP pode pedir a aprovação dela e o cartão some em 60 s: avisar antes para ela ficar com o chat aberto.
 - Migração aplicada pelo MCP ganha outro número em `schema_migrations`: conferir a tabela, não o número.
 - As funções do Supabase sobem pelo GitHub Actions da branch `paineis-no-ar` (a `main` é antiga).
+- Desde 29/10 o MCP do Supabase pede a confirmação dela para toda gravação (até update no `pedidos_checklist`) e o
+  cartão não chega: escrita vira parte do arquivo do SQL Editor. Leitura segue normal.
