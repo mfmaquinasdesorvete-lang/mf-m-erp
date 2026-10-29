@@ -40,6 +40,8 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
   rodar como está: ela volta is_erp_user, tem_papel etc. para a versão sem rosto_ok e sem sessao_viva.
 
 ## Esperando a usuária
+- Fase 1 do plano de segurança (29/10, passada ao FAZ): duas etapas no GitHub, Supabase, Hostinger e nas 2 contas
+  Google; chave da Hostinger no GitHub; rosto ligado no Supabase e cadastrado.
 - Login com o rosto: um passo de configuração dela e o cadastro do rosto. Depois, marcar a data (+7 dias).
 - Pendências de segurança abertas (ver no banco, `seguranca_auditoria`).
 - GitHub: cadastrar a chave de leitura da Hostinger em Settings → Deploy keys (só leitura) antes de deixar privado.
@@ -66,6 +68,9 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
   AJUDANTES; função nova sem conferência de papel faz o teste falhar).
 
 ## Próximos passos
+- Plano de segurança (29/10): Fase 2 = saída automática e dados mascarados (#103/#104), técnico só com as OS dele,
+  senhas fracas e vazadas recusadas; Fase 3 = revisar funções com poder total, trocar a biblioteca xlsx, erros sem
+  detalhes internos, juntar regras repetidas, lista de quem acessa cada serviço. Rotina: vigia diário, auditoria mensal.
 0. Workflows agendados (backup, CI) rodam pelo arquivo da main: ao mudar um workflow na paineis-no-ar, levar à main.
 1. Quando a usuária terminar o passo do rosto: marcar `rosto_obrigatorio_em` para 7 dias depois e avisar a equipe.
 2. Trabalhar as pendências "atenção" da aba Segurança, uma por vez, com o "Pode publicar".
