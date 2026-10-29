@@ -32,7 +32,7 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
 - Abrir a aba Simulador com um produto (teste real que falta para marcar feito).
 - Kit Pá Agitadora Inox + Sanfona (PC-KIT-018): foto, catálogo e preço confirmado antes do anúncio.
 - Imposto sobre a venda está 0% nas Configurações (perguntado ao FIS em 27/10).
-- Planilha "Dados fiscais" do ML (29/10): preenchida (46/47); ela cria no ML a regra tributária "Importados" (ICMS interestadual 4%), põe nos 10 importados, completa o Kit Reparo e envia.
+- Planilha "Dados fiscais" do ML (29/10): os 47 preenchidos como nacionais; ela envia no Mercado Livre.
 - Contar os anéis do pistão dos kits de vedação (kits 7, 11 e 15).
 - Notas fiscais das vendas antigas do Mercado Livre sem NF (ela importa os XML).
 
@@ -40,6 +40,7 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
 - Estoque dos anúncios sai da Matriz SC; segurança de 1 unidade; mínimo de 1 no anúncio (estoque zerado na contagem
   de 24/10, sem lançar estoque falso).
 - Sem marca no cadastro, a marca do anúncio é "MF Máquinas". Nenhum anúncio, título, foto ou descrição com "My Frost".
+- Fiscal dos anúncios (29/10): nada é importado, tudo vai como nacional (origem 0, regra "Produtos nacionais").
 - Preço do anúncio: o que deixa o valor da loja depois da tarifa e do frete grátis, terminado em ,90.
 - Nada publica, pausa ou muda preço e estoque em lote sem o ok dela (mostrar a lista antes).
 
