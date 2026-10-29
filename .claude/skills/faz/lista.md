@@ -7,6 +7,18 @@ Conferido no banco e no GitHub em 27/10: as funções do Supabase estão todas n
 
 ---
 
+## 0. Escolher como os chats gravam no banco (SEG, 29/10) — 1 minuto
+**O que é:** no conector do Supabase no claude.ai, a gravação (`execute_sql` e `apply_migration`) está como "pedir
+aprovação". O cartão de Permitir só aparece no chat que gravou e some rápido, por isso as gravações dos chats (IAD,
+PRD, eu) estão parando. Não foi mudança no ERP nem no banco.
+**Escolha uma:**
+1. **Mais seguro:** deixar como está. O chat avisa antes de gravar e você fica com aquele chat aberto para tocar em
+   "Permitir". O que não der vai para o arquivo do SQL Editor (item 1).
+2. **Mais prático:** claude.ai → Personalizar → **Conectores** → Supabase → permissões das ferramentas → marcar
+   **"Sempre permitir"** só em `execute_sql` e `apply_migration`. As que apagam ou pausam (delete_branch,
+   pause_project, reset_branch, merge_branch, create_project, deploy_edge_function) continuam pedindo. Vale para todos
+   os chats; a proteção continua pelas regras do CLAUDE.md e pelas regras de acesso do banco.
+
 ## 1. Rodar um arquivo no SQL Editor do Supabase (6 coisas de uma vez) — ~3 minutos
 **O que é:** 5 partes do banco que os chats escreveram e não conseguem criar sozinhos (a ferramenta deles trava ao
 criar tabela ou apagar índice).

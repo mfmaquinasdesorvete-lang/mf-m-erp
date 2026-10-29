@@ -14,6 +14,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Cobrar e conferir as 9 tarefas abaixo.
 
 ## Esperando a usuária (conferido no banco em 27/10)
+0b. Escolher a permissão de gravação do conector Supabase (SEG, 29/10): deixar "pedir aprovação" ou "Sempre
+   permitir" só em execute_sql e apply_migration. Conferir: uma gravação simples minha passa sem cartão.
 1. SQL Editor: `sql/rodar-no-sql-editor.sql` — `config_ajustes` (GER), `recibos.de_funcionario` + gatilho e regra
    (FUN; achado do FAZ), `paginas_claude` (ELO; o ELO grava as 16 páginas depois), gatilho `produto_variacao` (PRD),
    3 índices repetidos (REV); parte 6 (29/10): 17 IAs do IAD voltam para "fazendo" (conferir a situação deles). Conferir: `to_regclass`, `pg_trigger`, coluna em `information_schema.columns`, `pg_indexes`.
