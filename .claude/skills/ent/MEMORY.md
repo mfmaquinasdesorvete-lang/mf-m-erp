@@ -11,7 +11,7 @@ pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliqu
   (migração 20261101000191; publicado em 28/10, site 2581db4). Olist sem data: a usuária confirma.
 - Link de pagamento (28/10, migração 20261101000192): o link do pedido dá baixa em todas as parcelas; sem taxa
   quando o cliente paga os juros; a conciliação automática liga o depósito do cartão do dia seguinte ao link pago
-  (`conciliar_deposito_link`, cobrancas_link.extrato_lancamento_id). Falta o teste real: extrato da InfinitePay SC desde 20/10.
+  (`conciliar_deposito_link`, cobrancas_link.extrato_lancamento_id). Teste real 29/10: depósito do pedido 621 ligou sozinho. Falta o do 630 e um link novo de várias parcelas.
 - Banco Inter SC: saldo inicial corrigido; extrato, ERP e banco batem (26/10).
 - Sem mudança de código nem de banco neste chat; só dados (conciliações) e esta skill (commit 5cc1dfd).
 - Tela "Entradas acima de R$ 5 mil" (já existia): anotação na própria linha do extrato.
@@ -27,7 +27,7 @@ pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliqu
   Sicoob inteiro, e saber quais bancos a MF usou em 2022–2023. Passo a passo enviado ao FAZ.
   Datas de abertura informadas em 28/10; a da Olist (12/2025) não bate com o extrato (desde 04/2025): ela confirma
   e confere o cartão da conta no ar (pedido em Sobre → Pedidos como "precisa de você").
-- Importar o extrato da InfinitePay SC desde 20/10 (pedidos #621 e #630 devem se ligar sozinhos).
+- Mandar o extrato da InfinitePay SC de 29/10 em diante (depósito do pedido #630).
 - Dizer o que foi cada entrada grande sem venda nem nota (licença, venda sem pedido, empréstimo, aporte).
 - Fatura ou relatório de fretes do Olist Envios (item do frete descontado).
 - Relatório de vendas da InfinitePay e da Olist por transação.

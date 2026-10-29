@@ -72,3 +72,5 @@ Descubro de onde veio cada entrada nos bancos da MF e ligo ao pedido, à nota ou
 - Link de cartão com juros pagos pelo cliente (3x 7,01%, 5x 8,80%): o cliente paga mais, a InfinitePay tira a taxa
   e a MF recebe o valor do link (o pedido). Não lançar taxa para a MF nesse caso; o depósito cai no dia útil seguinte.
 - Link do pedido inteiro (várias parcelas) não tem conta ligada: a baixa é em todas as parcelas abertas do pedido.
+- Rodar `conciliar_automatico_interno` na conta inteira também passa nas saídas antigas, que se ligam só pelo valor
+  (já ligou uma compra a outra conta de mesmo valor). Depois de rodar, conferir o que ligou e desfazer o que não for.
