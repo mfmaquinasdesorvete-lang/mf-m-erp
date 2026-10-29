@@ -4,9 +4,11 @@
 // Seção nova no código entra no lugar dela na ordem padrão; seção que deixou de existir é ignorada.
 // A conta master pode "Usar para toda a equipe" (27/10): a ordem dela vira a padrão de todos (configuracoes.aparencia
 // .ordem_secoes); quem arrumou a sua continua com a sua. Ordem de quem vale: a da pessoa, a da equipe, a do código.
+// Largura (29/10, "como o contêiner do Elementor"): no Organizar cada seção fica com meia tela ou a tela toda no
+// computador. Vai na mesma lista da ordem ("id|largo" ou "id|meia"), só quando difere do código; ordem antiga só com ids vale.
 import { useRef, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, Check, GripVertical, LayoutList, RotateCcw, Users } from "lucide-react";
-import { Button } from "@/components/ui";
+import { ArrowDown, ArrowUp, Check, Columns2, GripVertical, LayoutList, RectangleHorizontal, RotateCcw, Users } from "lucide-react";
+import { Button, chip } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { useConfig } from "@/lib/useConfig";
@@ -26,9 +28,24 @@ export type Secao = {
   soComputador?: boolean;
 };
 
-/** A ordem salva aplicada às seções de agora (as novas entram onde estão no padrão). */
-export function ordenarSecoes<T extends { id: string }>(secoes: T[], salva: string[] | null): T[] {
-  if (!salva?.length) return secoes;
+/** Um item da ordem salva: "id", "id|largo" (tela toda) ou "id|meia" (meia tela). */
+export function lerItemOrdem(item: string): { id: string; largo?: boolean } {
+  const [id, largura] = item.split("|");
+  return largura === "largo" ? { id, largo: true } : largura === "meia" ? { id, largo: false } : { id };
+}
+
+/** Grava a ordem com a largura só das seções em que a pessoa mudou a do código. */
+export function escreverOrdem(ids: string[], largo: Record<string, boolean>, doCodigo: Record<string, boolean>): string[] {
+  return ids.map((id) => (id in largo && largo[id] !== doCodigo[id] ? `${id}|${largo[id] ? "largo" : "meia"}` : id));
+}
+
+/** A ordem salva aplicada às seções de agora (as novas entram onde estão no padrão), com a largura escolhida. */
+export function ordenarSecoes<T extends { id: string; largo?: boolean }>(secoes: T[], salvaBruta: string[] | null): T[] {
+  if (!salvaBruta?.length) return secoes;
+  const itens = salvaBruta.map(lerItemOrdem);
+  const largura = new Map(itens.filter((x) => x.largo !== undefined).map((x) => [x.id, x.largo!]));
+  const comLargura = (s: T): T => (largura.has(s.id) ? { ...s, largo: largura.get(s.id) } : s);
+  const salva = itens.map((x) => x.id);
   const pos = new Map(salva.map((id, i) => [id, i]));
   const conhecidas = secoes.filter((s) => pos.has(s.id)).sort((a, b) => pos.get(a.id)! - pos.get(b.id)!);
   const resultado = [...conhecidas];
@@ -38,7 +55,7 @@ export function ordenarSecoes<T extends { id: string }>(secoes: T[], salva: stri
     const anterior = i > 0 ? resultado.findIndex((x) => x.id === secoes[i - 1].id) : -1;
     resultado.splice(anterior + 1, 0, s);
   });
-  return resultado;
+  return resultado.map(comLargura);
 }
 
 export function Secoes({ pagina, secoes, className = "" }: { pagina: string; secoes: Secao[]; className?: string }) {
@@ -46,6 +63,7 @@ export function Secoes({ pagina, secoes, className = "" }: { pagina: string; sec
   const [salva, setSalva] = useState<string[] | null>(() => lerOrdemSecoes(pagina));
   const [organizando, setOrganizando] = useState(false);
   const [rascunho, setRascunho] = useState<string[]>([]);
+  const [larguras, setLarguras] = useState<Record<string, boolean>>({});
   const [arrastando, setArrastando] = useState<string | null>(null);
   const itensRef = useRef(new Map<string, HTMLLIElement>());
   const { master } = usePerfil();
@@ -64,7 +82,11 @@ export function Secoes({ pagina, secoes, className = "" }: { pagina: string; sec
     notify(ordem ? "Essa ordem agora é a padrão de toda a equipe" : "A equipe volta para a ordem padrão do sistema");
   }
 
-  function abrir() { setRascunho(lista.map((s) => s.id)); setOrganizando(true); }
+  function abrir() {
+    setRascunho(lista.map((s) => s.id));
+    setLarguras(Object.fromEntries(lista.map((s) => [s.id, !!s.largo])));
+    setOrganizando(true);
+  }
   function salvar(ordem: string[] | null) {
     setSalva(ordem);
     guardarOrdemSecoes(pagina, ordem);
@@ -104,13 +126,14 @@ export function Secoes({ pagina, secoes, className = "" }: { pagina: string; sec
 
   if (organizando) {
     const porId = new Map(visiveis.map((s) => [s.id, s]));
-    const ordem = rascunho.filter((id) => porId.has(id));
+    const ids = rascunho.filter((id) => porId.has(id));
+    const ordem = escreverOrdem(ids, larguras, Object.fromEntries(visiveis.map((s) => [s.id, !!s.largo])));
     return (
       <section aria-label="Organizar a página" className={`cartao space-y-3 p-3 sm:p-4 ${className}`}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-bold text-fg">Organizar a página</h2>
-            <p className="text-xs text-slate-500">Segure a alça <GripVertical size={12} className="inline" aria-hidden /> e arraste, ou use as setas. "Pronto" vale só para você.
+            <p className="text-xs text-slate-500">Segure a alça <GripVertical size={12} className="inline" aria-hidden /> e arraste, ou use as setas. No computador, escolha meia tela ou tela toda. "Pronto" vale só para você.
               {master && daEquipe && <> A equipe usa a ordem que você definiu. <button type="button" className="link-discreto" onClick={() => paraEquipe(null)}>Tirar</button></>}</p>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
@@ -122,15 +145,23 @@ export function Secoes({ pagina, secoes, className = "" }: { pagina: string; sec
           </div>
         </div>
         <ol className="space-y-1.5">
-          {ordem.map((id, i) => (
+          {ids.map((id, i) => (
             <li key={id} ref={(el) => { if (el) itensRef.current.set(id, el); else itensRef.current.delete(id); }}
               className={`flex items-center gap-2 rounded-cartao border bg-surface px-2 py-2 transition ${arrastando === id ? "border-brand shadow-pop" : "border-slate-200"}`}>
               <button type="button" onPointerDown={(e) => arrastar(e, id)} aria-label={`Arrastar ${porId.get(id)!.titulo}`}
                 className="botao-icone h-9 w-9 cursor-grab touch-none active:cursor-grabbing"><GripVertical size={18} /></button>
               <span className="num w-5 shrink-0 text-center text-xs font-semibold text-slate-400">{i + 1}</span>
               <span className="min-w-0 flex-1 truncate text-sm font-semibold text-fg">{porId.get(id)!.titulo}</span>
+              {!porId.get(id)!.soCelular && (
+                <button type="button" onClick={() => setLarguras((l) => ({ ...l, [id]: !l[id] }))} aria-pressed={!!larguras[id]}
+                  aria-label={`${porId.get(id)!.titulo}: ${larguras[id] ? "tela toda" : "meia tela"} no computador. Trocar`}
+                  title="Largura no computador" className={chip(!!larguras[id])}>
+                  {larguras[id] ? <RectangleHorizontal size={14} aria-hidden /> : <Columns2 size={14} aria-hidden />}
+                  <span className="max-sm:sr-only">{larguras[id] ? "Tela toda" : "Meia tela"}</span>
+                </button>
+              )}
               <button type="button" onClick={() => mover(id, i - 1)} disabled={i === 0} aria-label="Subir" className="botao-icone h-8 w-8"><ArrowUp size={16} /></button>
-              <button type="button" onClick={() => mover(id, i + 1)} disabled={i === ordem.length - 1} aria-label="Descer" className="botao-icone h-8 w-8"><ArrowDown size={16} /></button>
+              <button type="button" onClick={() => mover(id, i + 1)} disabled={i === ids.length - 1} aria-label="Descer" className="botao-icone h-8 w-8"><ArrowDown size={16} /></button>
             </li>
           ))}
         </ol>

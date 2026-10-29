@@ -31,6 +31,9 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Clean Code (28/10): avisos (`JanelaAviso`, `ItemHistorico`, `acaoDoHistorico`, `dicaDoSom`, `linhaRemetente`) e
   `CampoMascara` (`atalhoDoCampo`, `tecladoDoCampo`) separados, com teste; mesma tela (montado).
 
+- Largura no Organizar (29/10): cada seção com meia tela ou tela toda no computador; vai na lista da ordem
+  ("id|largo" / "id|meia", só quando difere do código), então vale no perfil e no "Usar para toda a equipe".
+
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 
