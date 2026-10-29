@@ -122,6 +122,8 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   o aviso `avisar_compras_para_chegar` (dias úteis, 16h43) lembra o que já devia ter chegado.
 - Publicar funções (Actions deploy-supabase.yml): o campo `funcoes` é separado por ESPAÇO; com vírgula nada é publicado
   e a execução ainda sai "success" em ~10 s (aconteceu em 28/10). Conferir a duração ou o log antes de dizer "no ar".
+- Cobrança automática ao cliente: todo caminho que manda cobrança (régua, aviso diário, gatilho de criação) passa por
+  `conta_receber_cobravel`; conta paga a terceiros, de cartão, do Tiny ou sem NF de venda não é cobrada (29/10).
 - Repositório público: nada de nome de cliente, pessoa ou fornecedor em .md, .sql, comentário ou commit (29/10 um nome
   de cliente foi parar no arquivo do FAZ). Use "um cliente com 3 máquinas", "a nota de 26/10", o número da OC.
 - Caixa de e-mail (email-caixa): a função tem pouca CPU por chamada. Ler em pedaços (POR_RODADA, BYTES_RODADA), gravar
