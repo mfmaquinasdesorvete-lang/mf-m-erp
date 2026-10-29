@@ -1,5 +1,5 @@
 # MEMORY — FIS (ERP Line – Fiscal e contábil)
-Atualizado em 28/10/2026 (Onde o cliente pagou).
+Atualizado em 29/10/2026 (Onde o cliente pagou e Validador no ar).
 
 ## Estado agora
 A emissão da NF-e, o DIFAL, as certidões e a previsão de imposto por máquina estão no ar. O que falta depende
@@ -33,11 +33,11 @@ guias e os parcelamentos que chegam na caixa do contador.
   nem cobrança, lança a comissão e dá a baixa na conta a pagar da NF do fornecedor (o resto da NF vira conta aberta).
   Desfazer só o mais novo. Banco: pedido_pagamentos, registrar_pagamento_cliente e desfazer_pagamento_cliente
   (migrações 185 a 188, aplicadas). Tela: src/components/pedidos/OndeClientePagou.tsx; regras em
-  src/lib/pagamentosCliente.ts. Montado, falta publicar e o teste real com o pedido #628.
+  src/lib/pagamentosCliente.ts. No ar em 29/10; falta o teste real na tela do pedido #628.
   Orientação dada: a venda com NF menor que o pedido é subfaturamento; o ERP mostra o aviso e não ajuda a esconder.
 - Validador de NF-e na nota emitida dava "Failed to fetch" (o navegador não baixa o XML direto da Focus). Agora vem
   pelo servidor: nfe-consultar, ação "xml" (vendas, financeiro e contador; só manda o token para a própria Focus).
-  Falta publicar o site e a função e validar uma nota emitida no ar.
+  No ar em 29/10 (site e função); falta o teste: Validar uma nota emitida no ar.
 
 ## Esperando a usuária
 - Pedido #628: link antigo descartado e registrados a NF do fornecedor paga pelo cliente e as entradas na conta da
