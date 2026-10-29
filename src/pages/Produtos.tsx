@@ -22,7 +22,7 @@ import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
 import { RegistrarBaixa } from "@/components/fiscal/BaixaEstoque";
 import { ImportarProdutos } from "@/components/ImportarProdutos";
 import { ImportarKitsTiny } from "@/components/produtos/ImportarKitsTiny";
-import { KitComponentesModal } from "@/components/KitComponentes";
+import { KitComponentes, KitComponentesModal } from "@/components/KitComponentes";
 import { estoqueKit } from "@/lib/kits";
 import type { KitComponente } from "@/lib/types";
 import { QualidadeProdutos } from "@/components/QualidadeProdutos";
@@ -440,6 +440,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     const itens: { item: string; secao: string | null; ok: boolean }[] = [
       { item: "categoria", secao: null, ok: !!r.categoria },
       { item: "custo", secao: "secao_preco", ok: Number(r.preco_custo) > 0 || !!r.kit },
+      ...(r.kit && r.id ? [{ item: "peças do kit", secao: "secao_kit", ok: comps.some((c) => c.kit_id === r.id) }] : []),
       { item: "NCM", secao: "secao_fiscal", ok: String(r.ncm ?? "").replace(/\D/g, "").length === 8 },
     ];
     if (vende(r)) itens.push(
@@ -673,11 +674,19 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               ? "Kit: o custo e o estoque saem das peças dele. Aqui vão só o preço, o fiscal e a foto; ao salvar, abre a escolha das peças."
               : "Componente de fabricação (não vende): só o custo, o fiscal, de quem se compra e o estoque. Preço, catálogo e anúncio não entram."}</p>,
           },
+          // kit salvo: as peças dele numa aba própria, como a aba "kits" do Tiny
+          { name: "secao_kit", curto: "Peças do kit", mostrar: (r) => !!r.kit && salvo(r), label: "Peças do kit", type: "secao",
+            ajuda: "Os produtos que formam o kit e a quantidade de cada um. Ao vender, sai do estoque das peças. O custo do kit é a soma delas e muda sozinho quando você compra uma peça por outro valor. Opcional: o vendedor pode tirar no pedido; Grupo: itens alternativos (escolhe um)." },
+          { name: "kit_pecas", label: "Peças do kit", type: "custom", span: 4,
+            render: (_v, _s, row) => <KitComponentes kit={row as Produto} podeEditar={pode("editar_produtos")} explicar={false} /> },
           { name: "secao_preco", curto: "Custo e preço", mostrar: (r) => !fabricaNovo(r), label: "Custo e preço", type: "secao", ajuda: "O custo é o valor do item na NF do fornecedor (atualizado sozinho na entrada da nota). O preço sugerido sai do custo e da margem." },
 
-          { name: "preco_custo", mostrar: (r) => !kitNovo(r), label: "Custo de compra", type: "number" },
-          { name: "custo_kit", mostrar: kitNovo, label: "Custo", type: "custom", span: 1,
-            render: () => <span className="text-sm text-slate-600">soma das peças do kit (escolhidas ao salvar)</span> },
+          { name: "preco_custo", mostrar: (r) => !r.kit, label: "Custo de compra", type: "number" },
+          // kit: o custo é a soma das peças e o banco refaz sozinho quando uma peça muda de custo
+          { name: "custo_kit", mostrar: (r) => !!r.kit, label: "Custo (soma das peças)", type: "custom", span: 1,
+            render: (_v, _s, row) => row.id
+              ? <span className="text-sm"><b className="num">{brl(custo(row as Produto))}</b> <span className="block text-xs text-slate-500">atualiza sozinho quando o custo de uma peça muda</span></span>
+              : <span className="text-sm text-slate-600">soma das peças do kit (escolhidas ao salvar)</span> },
           { name: "ultimas_compras", mostrar: salvo, label: "2 últimas compras (pelas notas)", type: "custom", span: 2,
             render: (_v, _s, row) => row.id ? <UltimasCompras produtoId={row.id} /> : <span className="text-xs text-slate-500">aparece depois de salvar</span> },
           {

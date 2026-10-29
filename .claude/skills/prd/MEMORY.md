@@ -40,6 +40,14 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   das fichas (CP-ELE-003, 004, 010, 014), confirmado.
 
 ## Em andamento
+- 29/10 Kit: aba "Peças do kit" no cadastro (como a aba "kits" do Tiny: preço e custo por peça, totais, preço do kit e
+  economia) e o custo do kit sozinho: gatilhos zz_custo_kit_peca (produtos.preco_custo) e zz_custo_kit_composicao
+  (kit_componentes) chamam recalcular_custo_kit (migração 20261101000196; funções fechadas para a API). Kit dentro de
+  kit sobe pelo próprio gatilho. PC-KIT-012 e PC-MEC-010 acertados pela soma em 29/10.
+- 29/10 Planilha composicao_fabricados_kits de 29/10 conferida com o ERP: bate, menos o o-ring do dosador (Tiny usa
+  V3D01UN = PC-VED-011; o ERP usa PC-VED-014 nos kits 3, 5 e 7 Sabores; no 3 Sabores o Tiny põe 1 e o ERP 4) e o
+  7 Sabores (Tiny: 15 pistões, 4 gaiolas, 4 dosadores inox, 8 V3D01UN; o ERP segue o que ela disse em 28/10). Q.050 e
+  Q.063 vieram com quantidades de produção (5×, 17×), não por unidade: ignoradas. Esperando ela decidir.
 - 29/10 Cadastro de produto em abas, como o de clientes (CrudPage: emAbas, completude, curto nas seções): o salvo abre
   em abas (O básico, Custo e preço, Fiscal, Compra e estoque, Códigos, Medidas, Catálogo, Anúncio, Ficha técnica,
   Documentos) com "Cadastro x% completo" e atalhos do que falta; o novo segue passo a passo com "Ver tudo em abas".
