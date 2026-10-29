@@ -16,6 +16,8 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
 - Mínimo no anúncio (161): produto ativo sem estoque mostra o mínimo e não pausa.
 - Várias fotos (176, fotos.ts, GaleriaLoja.tsx): a principal + a galeria do cadastro (produtos_midia) vão para a loja
   (miniaturas, zoom, tela cheia) e para os anúncios (até o máximo da categoria); botão "Mandar fotos para os anúncios".
+- Anúncios novos (29/10): pendências em português, categoria de veículo evitada no preparo; compressor 1/5 e condensadora
+  publicados (MLB7908935582, MLB7908960276): os 57 produtos da loja têm anúncio.
 - Dados fiscais dos 47 anúncios completos no Mercado Livre (29/10), todos nacionais.
 - Simulador de canais (aba Simulador, simuladorCanais.ts, simular.ts, ação simular_canais): lucro por produto na loja
   (Pix, cartão, link) e no Mercado Livre (Clássico, Premium), preço mínimo, preço para o lucro desejado, verba de anúncio
@@ -26,7 +28,6 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
   Anúncios em 27/10: 43 ativos, 9 em análise e 7 pausados pelo Mercado Livre (o ERP ainda não lê o motivo da pausa).
 
 ## Esperando a usuária
-- EAN do compressor 1/5 (a categoria exige); a Condensadora Arame precisa de outra categoria (caiu em peça de carro).
 - Foto nova do CLP: a logo My Frost está impressa no aparelho (as fotos do Canva têm a logo).
 - Prints de outras fotos com a logo, se ela achar (o Cachorrinho já foi trocado em 25/10).
 - Pôr 3 ou 4 fotos na galeria de uma peça para o teste real das várias fotos (loja e "Mandar fotos para os anúncios").
@@ -55,5 +56,4 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
 0. Ideias de 27/10 (depois do simulador): lucro real das vendas por canal e mês; projeção do período (com GER/AUD).
 0. Kits O-Rings com variações (PRD fez o pai e as variações): anúncio único com escolha só com o ok dela.
 1. Ler o motivo da pausa (sub_status) dos anúncios e mostrar na lista; ver os 7 pausados.
-2. Publicar o compressor e a condensadora quando o EAN e a categoria estiverem certos.
 3. Google Shopping: conferir se o feed está em dia; perguntas e pós-venda do Mercado Livre.
