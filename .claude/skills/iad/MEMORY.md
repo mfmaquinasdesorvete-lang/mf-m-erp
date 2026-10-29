@@ -1,5 +1,5 @@
 # MEMORY — IAD (ERP Line – IA do dia a dia (ideias))
-Atualizado em 27/10/2026.
+Atualizado em 29/10/2026.
 
 ## Estado agora
 As cinco frentes de IA nos cadastros e nas vendas estão no ar, e também a fila das ideias da pesquisa (resumo, busca nos
@@ -33,6 +33,8 @@ As outras estão no ar e esperando o primeiro uso real.
   5. Perguntar à IA → 🛠️ Dúvida de manutenção e ⚡ Pedir uma ação (uma baixa de conta).
   6. Documentos → ✨ Resumir um PDF e "Achar pelo assunto".
   7. Ajuda IA → 📎 mandar a foto de um comprovante.
+- Sobre → Pedidos: voltar 17 IAs sem teste para "fazendo". Toda gravação pelo MCP do Supabase pede a confirmação dela e
+  ficou sem resposta 3 vezes (27 a 29/10); o SQL foi passado ao FAZ para ela rodar no SQL Editor.
 - Robô do WhatsApp: ligar o número fixo na conta oficial da Meta (WhatsApp Business API) antes de começar.
 
 ## Decisões da usuária
