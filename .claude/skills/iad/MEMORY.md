@@ -22,7 +22,10 @@ As outras estão no ar e esperando o primeiro uso real.
 - Controle: Configurações → Inteligência artificial (IA desligada e registro de uso de todas as funções).
 
 ## Em andamento
-- Rodada de fechamento: no Sobre → Pedidos, as IAs ainda sem uso real voltam para "fazendo" até o teste.
+- Rodada de fechamento: as 17 IAs sem uso real estão em "fazendo" no Sobre → Pedidos (gravado pelo SQL Editor em 29/10);
+  cada uma vira "feito" quando aparecer o primeiro uso real em ia_registros, com o teste escrito no detalhe.
+- Gravar no pedidos_checklist pelo MCP do Supabase pede a confirmação da usuária (desde 27/10); o que precisar gravar em
+  lote vai pelo FAZ (SQL Editor).
 
 ## Esperando a usuária
 - Teste com tarefa real (eu não tenho login no ERP nem a chave da IA para testar sozinho):
@@ -33,8 +36,6 @@ As outras estão no ar e esperando o primeiro uso real.
   5. Perguntar à IA → 🛠️ Dúvida de manutenção e ⚡ Pedir uma ação (uma baixa de conta).
   6. Documentos → ✨ Resumir um PDF e "Achar pelo assunto".
   7. Ajuda IA → 📎 mandar a foto de um comprovante.
-- Sobre → Pedidos: voltar 17 IAs sem teste para "fazendo". Toda gravação pelo MCP do Supabase pede a confirmação dela e
-  ficou sem resposta 3 vezes (27 a 29/10); o SQL foi passado ao FAZ para ela rodar no SQL Editor.
 - Robô do WhatsApp: ligar o número fixo na conta oficial da Meta (WhatsApp Business API) antes de começar.
 
 ## Decisões da usuária
