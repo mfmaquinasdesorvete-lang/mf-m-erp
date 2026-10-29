@@ -18,6 +18,7 @@ PRD, eu) estão parando. Não foi mudança no ERP nem no banco.
    **"Sempre permitir"** só em `execute_sql` e `apply_migration`. As que apagam ou pausam (delete_branch,
    pause_project, reset_branch, merge_branch, create_project, deploy_edge_function) continuam pedindo. Vale para todos
    os chats; a proteção continua pelas regras do CLAUDE.md e pelas regras de acesso do banco.
+**O que espera essa escolha:** a regra do SEG que deixa o técnico ver só o que é dele (precisa testar no banco antes).
 
 ## 0b. GitHub: cadastrar a chave de leitura da Hostinger (SEG) — 3 minutos
 **Por que importa:** é o que falta para deixar o repositório **privado** (decisão sua de 27/10). Com ele privado, os
@@ -25,7 +26,7 @@ nomes antigos que ficaram nos commits deixam de ficar abertos. Sem a chave, a Ho
 repositório para publicar o site.
 **Passo a passo:**
 1. Hostinger (hPanel) → Sites → erp.myfrost.ai → **Avançado → Git** → copiar a chave SSH (a chave pública que o
-   painel mostra; ela não é segredo).
+   painel mostra; ela não é segredo). O mesmo texto está no chat do SEG, se preferir copiar de lá.
 2. GitHub → repositório do ERP → **Settings → Deploy keys → Add deploy key** → título "Hostinger" → colar a chave →
    **NÃO** marcar "Allow write access" → Add key.
 3. Me avise (ou o SEG): ele confere, troca o site para o endereço SSH e só então o repositório vira privado.
