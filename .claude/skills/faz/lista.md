@@ -19,6 +19,17 @@ PRD, eu) estão parando. Não foi mudança no ERP nem no banco.
    pause_project, reset_branch, merge_branch, create_project, deploy_edge_function) continuam pedindo. Vale para todos
    os chats; a proteção continua pelas regras do CLAUDE.md e pelas regras de acesso do banco.
 
+## 0b. GitHub: cadastrar a chave de leitura da Hostinger (SEG) — 3 minutos
+**Por que importa:** é o que falta para deixar o repositório **privado** (decisão sua de 27/10). Com ele privado, os
+nomes antigos que ficaram nos commits deixam de ficar abertos. Sem a chave, a Hostinger não conseguiria mais ler o
+repositório para publicar o site.
+**Passo a passo:**
+1. Hostinger (hPanel) → Sites → erp.myfrost.ai → **Avançado → Git** → copiar a chave SSH (a chave pública que o
+   painel mostra; ela não é segredo).
+2. GitHub → repositório do ERP → **Settings → Deploy keys → Add deploy key** → título "Hostinger" → colar a chave →
+   **NÃO** marcar "Allow write access" → Add key.
+3. Me avise (ou o SEG): ele confere, troca o site para o endereço SSH e só então o repositório vira privado.
+
 ## 1. Rodar um arquivo no SQL Editor do Supabase (7 coisas de uma vez) — ~3 minutos
 **O que é:** 5 partes do banco que os chats escreveram e não conseguem criar sozinhos (a ferramenta deles trava ao
 criar tabela ou apagar índice).

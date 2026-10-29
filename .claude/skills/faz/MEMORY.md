@@ -16,6 +16,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 ## Esperando a usuária (conferido no banco em 27/10)
 0b. Escolher a permissão de gravação do conector Supabase (SEG, 29/10): deixar "pedir aprovação" ou "Sempre
    permitir" só em execute_sql e apply_migration. Conferir: uma gravação simples minha passa sem cartão.
+0c. GitHub Deploy key da Hostinger (só leitura) para o repositório virar privado (SEG, 29/10; esconde os nomes antigos
+   dos commits). Conferir com o SEG.
 1. SQL Editor: `sql/rodar-no-sql-editor.sql` — `config_ajustes` (GER), `recibos.de_funcionario` + gatilho e regra
    (FUN; achado do FAZ), `paginas_claude` (ELO; o ELO grava as 16 páginas depois), gatilho `produto_variacao` (PRD),
    3 índices repetidos (REV); parte 6 (29/10): 17 IAs do IAD voltam para "fazendo" (conferir a situação deles); parte 7 (GER, 29/10): unificação de
