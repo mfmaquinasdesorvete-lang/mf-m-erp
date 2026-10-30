@@ -1,5 +1,5 @@
 # MEMORY — IAD (ERP Line – IA do dia a dia (ideias))
-Atualizado em 29/10/2026.
+Atualizado em 30/10/2026.
 
 ## Estado agora
 As cinco frentes de IA nos cadastros e nas vendas estão no ar, e também a fila das ideias da pesquisa (resumo, busca nos
@@ -36,9 +36,14 @@ As outras estão no ar e esperando o primeiro uso real.
   5. Perguntar à IA → 🛠️ Dúvida de manutenção e ⚡ Pedir uma ação (uma baixa de conta).
   6. Documentos → ✨ Resumir um PDF e "Achar pelo assunto".
   7. Ajuda IA → 📎 mandar a foto de um comprovante.
-- Robô do WhatsApp: ligar o número fixo na conta oficial da Meta (WhatsApp Business API) antes de começar.
+- Robô do WhatsApp (depois da rodada de fechamento): a Meta já deixa o mesmo número fixo no app WhatsApp Business e na
+  API ao mesmo tempo ("coexistência", pelo Embedded Signup). Ela decide o caminho: (a) parceiro oficial da Meta
+  (360dialog, Infobip, Telnyx…, com mensalidade) ou (b) direto pelo app da MF na Meta (sem confirmação oficial de que dá).
+  Depois ela liga o número no painel da Meta (app Business 2.24.17+, ela como administradora do portfólio; a escolha do
+  portfólio não tem volta). Mensagens da equipe pelo app seguem grátis; só a API é cobrada.
 
 ## Decisões da usuária
+- 30/10: registrar a coexistência da Meta como o próximo passo do robô do WhatsApp (sem construir na rodada de fechamento).
 - A IA só sugere ou prepara; quem grava é a pessoa, com o Confirmar da tela de sempre.
 - Dúvida de manutenção: conhecimento geral + base que cresce com "Virou dica" (técnico ou administrador).
 - Cadastro de produto é do PRD; a parte de IA dele é deste chat.
