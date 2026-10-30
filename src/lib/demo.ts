@@ -4853,6 +4853,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     const vend = p_dados.vendedor_id || null, pct = p_dados.comissao_percentual === "" || p_dados.comissao_percentual == null ? null : Number(p_dados.comissao_percentual);
     Object.assign(p, { vendedor_id: vend, vendedor: vend !== antes.vendedor_id ? db.vendedores.find((v) => v.id === vend)?.nome ?? null : p.vendedor, comissao_percentual: vend ? pct : null,
       origem: p_dados.origem || p.origem, observacoes: p_dados.observacoes || null });
+    if (p_dados.data_venda) p.aprovado_em = `${p_dados.data_venda}T15:00:00.000Z`;
     registrarDemo("pedidos", "update", antes, p, String(p_motivo).trim(), "usuario");
     if (vend !== antes.vendedor_id || p.comissao_percentual !== antes.comissao_percentual) {
       (db.comissoes ?? []).filter((c) => c.pedido_id === p.id && c.status === "a_pagar" && !c.conta_pagar_id).forEach((c) => Object.assign(c, { status: "cancelada", conta_receber_id: null }));

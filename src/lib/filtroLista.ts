@@ -12,6 +12,10 @@ export const semanaAtual = (hoje: string): Periodo => periodoDoAtalho("semana", 
 
 const FUSO = "America/Sao_Paulo";
 
+/** Dia da venda (Brasília): o da aprovação, não o do lançamento. Pedido lançado depois, com a data da venda acertada
+ *  no Editar do pedido, conta no dia em que a venda fechou (pedido de 30/10: venda antiga entrou na semana). */
+export const diaDaVenda = (p: { created_at: string; aprovado_em?: string | null }) => diaLocal(p.aprovado_em ?? p.created_at);
+
 /** Dia (AAAA-MM-DD) no horário de Brasília: "2026-09-28" fica igual; "2026-09-29T01:30:00Z" vira "2026-09-28". */
 export function diaLocal(v: string | null | undefined): string {
   const s = String(v ?? "").trim();

@@ -8,6 +8,7 @@ import { Colunas, Ranking } from "@/components/Charts";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { useRows } from "@/lib/data";
 import { brl, hoje, somarDias, pl } from "@/lib/format";
+import { diaDaVenda } from "@/lib/filtroLista";
 import { MOTIVOS } from "@/lib/propostas";
 import type { Produto, Vendedor } from "@/lib/types";
 import { SELECT_NOTAS_VENDA, vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
@@ -17,7 +18,7 @@ import { DreRelatorio } from "@/components/relatorios/DreRelatorio";
 
 type ItemV = { produto_id: string; descricao: string; quantidade: number; valor_unitario: number; produto?: { preco_custo: number; tipo: string } | null };
 type PedidoR = {
-  id: string; created_at: string; status: string; valor_total: number; vendedor: string | null; vendedor_id: string | null; desconto: number; itens: ItemV[];
+  id: string; created_at: string; aprovado_em?: string | null; status: string; valor_total: number; vendedor: string | null; vendedor_id: string | null; desconto: number; itens: ItemV[];
   proposta_status: string | null; proposta_enviada_em: string | null; proposta_visualizada_em: string | null; proposta_respondida_em: string | null;
   motivo_rejeicao: string | null; concorrente: string | null;
 };
@@ -60,7 +61,7 @@ function VisaoGeral() {
   const [periodo, setPeriodo] = useState<"3" | "6" | "12">("6");
   const { data: vendedoresCad = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { filtrar } = useUnidade();
-  const { data: pedidosTodos = [] } = useRows<PedidoR>("pedidos", { select: "id, unidade_id, created_at, status, valor_total, vendedor, vendedor_id, desconto, frete, comissao_percentual, proposta_status, proposta_enviada_em, proposta_visualizada_em, proposta_respondida_em, motivo_rejeicao, concorrente, itens:pedido_itens(produto_id, descricao, quantidade, valor_unitario, produto:produtos(preco_custo, tipo))" });
+  const { data: pedidosTodos = [] } = useRows<PedidoR>("pedidos", { select: "id, unidade_id, created_at, aprovado_em, status, valor_total, vendedor, vendedor_id, desconto, frete, comissao_percentual, proposta_status, proposta_enviada_em, proposta_visualizada_em, proposta_respondida_em, motivo_rejeicao, concorrente, itens:pedido_itens(produto_id, descricao, quantidade, valor_unitario, produto:produtos(preco_custo, tipo))" });
   const pedidos = filtrar(pedidosTodos);
   // vendas que só têm a nota fiscal (importadas do Tiny, sem pedido no ERP) também contam
   const { data: notasTodas = [] } = useRows<NotaVenda>("notas_fiscais", { select: SELECT_NOTAS_VENDA });
@@ -78,12 +79,12 @@ function VisaoGeral() {
     const meses = ultimosMeses(Number(periodo));
     const inicio = meses[0] + "-01";
     const noPeriodo = (d: string | null | undefined) => !!d && d.slice(0, 10) >= inicio;
-    const vendas = [...pedidos, ...vendasNotas].filter((p) => VALIDOS.includes(p.status) && noPeriodo(p.created_at));
+    const vendas = [...pedidos, ...vendasNotas].filter((p) => VALIDOS.includes(p.status) && noPeriodo(diaDaVenda(p)));
     const deNotas = vendas.filter((p) => (p as { de_nota?: boolean }).de_nota).length;
 
     const porMes = meses.map((m) => ({
       rotulo: rotuloMes(m),
-      valores: [vendas.filter((p) => p.created_at.startsWith(m)).reduce((s, p) => s + Number(p.valor_total), 0)],
+      valores: [vendas.filter((p) => diaDaVenda(p).startsWith(m)).reduce((s, p) => s + Number(p.valor_total), 0)],
     }));
 
     // Top produtos por receita

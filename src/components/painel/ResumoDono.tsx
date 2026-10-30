@@ -11,6 +11,7 @@ import { useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
 import { hoje, somarDias } from "@/lib/format";
+import { diaDaVenda } from "@/lib/filtroLista";
 import { vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
 import type { Pedido } from "@/lib/types";
 
@@ -34,7 +35,8 @@ export function ResumoDono() {
   const { filtrar } = useUnidade();
   const seg = inicioSemana(), h = hoje(), ate30 = somarDias(30);
   const { data: pedidos = [] } = useRows<Pedido>("pedidos", {
-    select: "id, status, created_at, valor_total, unidade_id", key: ["resumo-dono", seg], filtro: (q) => q.gte("created_at", seg) });
+    select: "id, status, created_at, aprovado_em, valor_total, unidade_id", key: ["resumo-dono", seg],
+    filtro: (q) => q.or(`created_at.gte.${seg},aprovado_em.gte.${seg}`) });
   const { data: notas = [] } = useRows<NotaVenda>("notas_fiscais", {
     select: SELECT_NOTAS, key: ["resumo-dono", seg], filtro: (q) => q.gte("created_at", seg) });
   const { data: recebidas = [] } = useRows<Conta>("contas_receber", {
@@ -52,7 +54,7 @@ export function ResumoDono() {
   });
 
   const n = useMemo(() => {
-    const vendas = [...filtrar(pedidos).filter((p) => !["orcamento", "cancelado"].includes(p.status) && p.created_at.slice(0, 10) >= seg),
+    const vendas = [...filtrar(pedidos).filter((p) => !["orcamento", "cancelado"].includes(p.status) && diaDaVenda(p) >= seg),
       ...(filtrar(vendasDasNotas(notas, []).pedidos) as unknown as Pedido[])];
     const pag = filtrar(pagar);
     return {

@@ -68,3 +68,14 @@ describe("período de um mês", () => {
     expect(mesDoPeriodo({ de: "", ate: "" })).toBe("");
   });
 });
+
+import { diaDaVenda } from "../filtroLista";
+
+describe("dia da venda", () => {
+  it("conta pela aprovação, não pelo lançamento (venda antiga lançada agora fica no dia em que fechou)", () => {
+    expect(diaDaVenda({ created_at: "2026-10-28T13:49:46Z", aprovado_em: "2026-07-30T15:00:00Z" })).toBe("2026-07-30");
+  });
+  it("sem aprovação usa o lançamento, no dia de Brasília", () => {
+    expect(diaDaVenda({ created_at: "2026-10-28T01:30:00Z", aprovado_em: null })).toBe("2026-10-27");
+  });
+});

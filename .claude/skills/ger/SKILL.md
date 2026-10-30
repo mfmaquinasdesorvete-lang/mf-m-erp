@@ -54,6 +54,9 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 - `supabase/migrations/` (a mais nova que mexeu na tabela vale) e `src/lib/__tests__/`.
 
 ## Cuidados conhecidos
+- Venda conta pelo dia da venda: `diaDaVenda(p)` (aprovado_em, senão created_at), nunca `p.created_at` sozinho; a consulta
+  de pedidos de um período filtra `created_at.gte` OU `aprovado_em.gte`. Tirar o vendedor do pedido zera o % da comissão
+  do pedido (volta ao padrão do vendedor ao escolher outro): avisar a usuária.
 - Comissão no cartão: uma por pedido, com as parcelas em `comissoes.cartao_parcelas`. Para saber se uma parcela já tem
   comissão use `comissao_cobre_parcela(pedido, conta)` (olha conta_receber_id, cartao_parcelas e as tiradas à mão), nunca só
   `conta_receber_id`. Comissão com `motivo_edicao` foi mexida pela usuária: o `on conflict` de lancar_comissao não reabre.

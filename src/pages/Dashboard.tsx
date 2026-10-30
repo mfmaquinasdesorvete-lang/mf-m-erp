@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { cobraDoCliente } from "@/lib/cobranca";
 import { brl, hoje, somarDias, pl } from "@/lib/format";
+import { diaDaVenda } from "@/lib/filtroLista";
 import { situacaoGarantia, situacaoPreventiva } from "@/lib/garantia";
 import { usePerfil } from "@/lib/auth";
 import type { Equipamento, Necessidade, OrdemProducao, OrdemServico, Pedido, PedidoCompra, Produto } from "@/lib/types";
@@ -140,8 +141,8 @@ function PainelGeral() {
   // ainda vai ser entregue), não as tabelas inteiras: era o que deixava a primeira tela pesada.
   const corte = desde6Meses();
   const { data: pedidosTodos = [], isLoading: carregandoPedidos } = useRows<Pedido>("pedidos", {
-    select: "id, status, created_at, valor_total, unidade_id", key: ["inicio", corte],
-    filtro: (q) => q.or(`status.in.(orcamento,aprovado,faturado),created_at.gte.${corte}`) });
+    select: "id, status, created_at, aprovado_em, valor_total, unidade_id", key: ["inicio", corte],
+    filtro: (q) => q.or(`status.in.(orcamento,aprovado,faturado),created_at.gte.${corte},aprovado_em.gte.${corte}`) });
   const pedidos = filtrar(pedidosTodos);
   const { data: ordensTodos = [] } = useRows<OrdemServico>("ordens_servico", {
     select: "id, status, data_entrada, previsao, unidade_id", key: ["inicio", corte],
@@ -194,7 +195,8 @@ function PainelGeral() {
     const soma = (l: Conta[], f: (c: Conta) => boolean, campo: "valor" | "valor_pago" = "valor") =>
       l.filter(f).reduce((s, c) => s + Number(c[campo] ?? 0), 0);
     const validos = [...pedidos.filter((p) => !["orcamento", "cancelado"].includes(p.status)), ...vendasNotas];
-    const vendas = (r: string[]) => validos.filter((p) => dentro(p.created_at, r));
+    // pelo dia da venda (aprovação), não do lançamento: venda antiga lançada agora não entra na semana
+    const vendas = (r: string[]) => validos.filter((p) => dentro(diaDaVenda(p), r));
     const recebido = (r: string[]) => soma(receber, (c) => c.status === "pago" && dentro(c.data_pagamento, r), "valor_pago");
     const pago = (r: string[]) => soma(pagar, (c) => c.status === "pago" && dentro(c.data_pagamento, r), "valor_pago");
     const variacao = (a: number, b: number) => (b > 0 ? ((a - b) / b) * 100 : a > 0 ? null : 0);
@@ -206,7 +208,7 @@ function PainelGeral() {
       return {
         rotulo: `${MESES[x.getMonth()]}/${String(x.getFullYear()).slice(2)}`,
         valores: [
-          validos.filter((p) => p.created_at.startsWith(am)).reduce((s, p) => s + Number(p.valor_total), 0),
+          validos.filter((p) => diaDaVenda(p).startsWith(am)).reduce((s, p) => s + Number(p.valor_total), 0),
           soma(receber, (c) => c.status === "pago" && (c.data_pagamento ?? "").startsWith(am), "valor_pago"),
         ],
       };

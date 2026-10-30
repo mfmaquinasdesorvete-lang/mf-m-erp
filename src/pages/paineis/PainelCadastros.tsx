@@ -21,6 +21,7 @@ import { vendasDaEmpresa } from "@/lib/gerencial";
 import { SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } from "@/lib/paineisProdutos";
 import { SELECT_LISTA_CLIENTES } from "@/lib/clientesLista";
 import { FONTE_DESDE, desdeReal, type ClienteDesde } from "@/lib/clienteDesde";
+import { diaDaVenda } from "@/lib/filtroLista";
 
 const CORES = ["var(--serie-1)", "var(--serie-3)", "var(--serie-2)", "var(--kpi-roxo)", "var(--kpi-rosa)", "var(--kpi-ciano)", "var(--eixo-texto)"];
 const tag = (c: Cliente, t: string) => (c.tags ?? []).includes(t);
@@ -34,7 +35,7 @@ export default function PainelCadastros() {
   const { data: clientes = [], isLoading } = useRows<Cliente>("clientes", { select: SELECT_LISTA_CLIENTES, order: "nome", ascending: true });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: fornecedores = [] } = useRows<{ id: string; ativo?: boolean }>("fornecedores", { order: "nome", ascending: true });
-  const { data: pedidos = [] } = useRows<{ cliente_id: string; created_at: string; status: string }>("pedidos", { select: "cliente_id, created_at, status" });
+  const { data: pedidos = [] } = useRows<{ cliente_id: string; created_at: string; aprovado_em: string | null; status: string }>("pedidos", { select: "cliente_id, created_at, aprovado_em, status" });
   // vendas de verdade (as mesmas do Painel gerencial): pedidos aprovados + notas de venda importadas do sistema anterior,
   // com o cliente achado pelo CPF/CNPJ quando a nota não veio ligada ao cadastro
   const { data: pedidosV = [] } = useRows<any>("pedidos", { select: SELECT_PEDIDOS_VENDAS, key: ["gerencial"] });
@@ -57,7 +58,7 @@ export default function PainelCadastros() {
     const semData = desdes.filter((d) => !desdeReal(d)).length;
     // todos que compraram (ERP + notas importadas) e só os do ERP novo
     const compraram = (f: [string, string]) => new Set(todas.filter((v) => dentro(v.data, f)).map((v) => v.cliente));
-    const noErp = (f: [string, string]) => new Set(vendas.filter((p) => dentro(p.created_at, f)).map((p) => p.cliente_id));
+    const noErp = (f: [string, string]) => new Set(vendas.filter((p) => dentro(diaDaVenda(p), f)).map((p) => p.cliente_id));
     const ultimaCompra = new Map<string, string>();
     for (const v of todas) if (v.clienteId && (ultimaCompra.get(v.clienteId) ?? "") < v.data) ultimaCompra.set(v.clienteId, v.data);
     const seisMeses = somarDias(-180);

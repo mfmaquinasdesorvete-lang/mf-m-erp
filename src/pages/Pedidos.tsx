@@ -57,7 +57,7 @@ import { gravarSincronizado, NOME_CAMPO } from "@/lib/sincronizacao";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
 import { BarraFiltros, ChipsSituacao, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
 import { AplicarMarcadores } from "@/components/nfe/Marcadores";
-import { noPeriodoOuPendente, rotuloPeriodo, SEM_PERIODO, semanaAtual, somar, type Periodo } from "@/lib/filtroLista";
+import { diaLocal, noPeriodoOuPendente, rotuloPeriodo, SEM_PERIODO, semanaAtual, somar, type Periodo } from "@/lib/filtroLista";
 import { urlFotoProduto } from "@/lib/catalogo";
 import {
   contasDaVenda, envioDaVenda, meioDaVenda, pagamentoDaVenda, ROTULO_PAGAMENTO, sinaisDaVenda,
@@ -699,7 +699,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
   // devolução de produtos: NF de devolução (com NF-e) ou volta ao estoque pelo pedido (sem NF)
   const [devolver, setDevolver] = useState(false);
   const invalidate = useInvalidate();
-  const { pode, tem, user_id, email: meuEmail } = usePerfil();
+  const { pode, tem, papel, user_id, email: meuEmail } = usePerfil();
   const podeEditar = pode("editar_pedidos");
   // link de pagamento (InfinitePay): vendas e financeiro veem; ao aprovar por Pix ou cartão, já sai pronto
   const verPagamento = tem("vendas", "financeiro");
@@ -713,7 +713,11 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
   const ajustavel = podeEditar && !!p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "");
   const livre = editavel || ajustavel;
   const [salvo, setSalvo] = useState(() => ({ vendedor_id: inicial.vendedor_id ?? null, comissao_percentual: inicial.comissao_percentual ?? null, origem: inicial.origem, observacoes: inicial.observacoes ?? null }));
-  const alterado = ajustavel && (["vendedor_id", "comissao_percentual", "origem", "observacoes"] as const).some((k) => ((p as any)[k] ?? null) !== ((salvo as any)[k] ?? null));
+  // dia da venda (aprovação): pedido lançado depois fica no dia em que a venda fechou (só o administrador muda)
+  const [diaVendaSalvo, setDiaVendaSalvo] = useState(() => diaLocal(inicial.aprovado_em));
+  const [diaVenda, setDiaVenda] = useState(diaVendaSalvo);
+  const alterado = ajustavel && ((["vendedor_id", "comissao_percentual", "origem", "observacoes"] as const).some((k) => ((p as any)[k] ?? null) !== ((salvo as any)[k] ?? null))
+    || (!!diaVenda && diaVenda !== diaVendaSalvo));
   // orçamento novo já vem com quem está vendendo (se a pessoa tem cadastro de vendedor)
   const vendedorPadrao = useRef(false);
   useEffect(() => {
@@ -949,10 +953,12 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
   };
 
   async function editarAprovado(motivo: string) {
-    const dados = { vendedor_id: p.vendedor_id ?? "", comissao_percentual: p.comissao_percentual ?? "", origem: p.origem, observacoes: p.observacoes ?? "" };
+    const dados = { vendedor_id: p.vendedor_id ?? "", comissao_percentual: p.comissao_percentual ?? "", origem: p.origem, observacoes: p.observacoes ?? "",
+      ...(diaVenda && diaVenda !== diaVendaSalvo ? { data_venda: diaVenda } : {}) };
     const { error } = await supabase.rpc("editar_pedido_aprovado", { p_pedido: p.id, p_dados: dados, p_motivo: motivo });
     if (error) throw error;
     setSalvo({ vendedor_id: p.vendedor_id ?? null, comissao_percentual: p.comissao_percentual ?? null, origem: p.origem, observacoes: p.observacoes ?? null });
+    setDiaVendaSalvo(diaVenda);
     notify("Pedido alterado (comissões refeitas, se mudou o vendedor ou o %)");
     invalidate("pedidos", "comissoes", "auditoria");
   }
@@ -1094,6 +1100,13 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
             {temNotaValida
               ? " Itens, valores e pagamento já estão na NF-e autorizada: para mudar, cancele a nota ou use Devolver produtos (NF de devolução)."
               : <> Para mudar itens, valores ou pagamento, use <b>Reabrir pedido</b>: o estoque volta, as parcelas em aberto são canceladas e o pedido vira orçamento de novo.</>}
+            {papel === "admin" && (
+              <label className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="font-semibold">Data da venda</span>
+                <input type="date" className="input w-auto" value={diaVenda} max={hoje()} onChange={(e) => setDiaVenda(e.target.value)} />
+                <span className="text-xs">Venda antiga lançada agora: ponha o dia em que ela fechou (o Início e os relatórios contam por esse dia).</span>
+              </label>
+            )}
           </div>
         )}
 
@@ -1325,6 +1338,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
           <p>O pedido já foi aprovado. A alteração fica na auditoria do pedido com o seu nome e o motivo.</p>
           {(p.vendedor_id ?? null) !== (salvo.vendedor_id ?? null) || (p.comissao_percentual ?? null) !== (salvo.comissao_percentual ?? null)
             ? <p>As comissões deste pedido que ainda não foram pagas são refeitas com o vendedor e o percentual novos.</p> : null}
+          {diaVenda && diaVenda !== diaVendaSalvo ? <p>A venda passa a contar no dia {dataBR(diaVenda)} (Início, relatórios e metas).</p> : null}
         </MotivoAcao>
       )}
       {acaoMotivo === "reabrir" && (
