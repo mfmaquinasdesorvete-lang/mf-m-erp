@@ -48,6 +48,8 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
   Auditoria: `.claude/skills/cli/auditoria-2026-10-30-menus.md`.
 
 ## Esperando a usuária
+- Conferir no ERP no ar os menus publicados em 30/10 (pedido c5348c1c): ícones da lista, Ficha 360 com 6 abas,
+  ficha em "Meus dados" da página do cliente e "Ver minha página" depois de assinar.
 - Testar no celular um link de ficha cadastral de verdade (redes sociais, CEP errado, assinar vazio) para fechar
   o pedido e3e2cb8c; daqui o site no ar não abre.
 - Anexos sem dono (~50 do ZapSign e ~40 arquivos genéricos do Drive): ligar à mão se ela quiser.
