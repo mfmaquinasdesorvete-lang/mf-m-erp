@@ -1,9 +1,9 @@
 import { dddDe } from "@/lib/buscaCliente";
-import { AcoesClienteLista } from "@/components/clientes/AcoesClienteLista";
+import { AcoesClienteLista, SeloAssinatura } from "@/components/clientes/AcoesClienteLista";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Archive, BadgeCheck, Clock, EyeOff, FileX, Recycle, FileSpreadsheet, IdCard, Wrench, LayoutDashboard, UserPlus } from "lucide-react";
+import { Archive, EyeOff, Recycle, FileSpreadsheet, IdCard, Wrench, LayoutDashboard, UserPlus } from "lucide-react";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { ImportarContatos } from "@/components/ImportarContatos";
@@ -391,12 +391,6 @@ export default function Clientes() {
 }
 
 /** Ficha cadastral do cliente na lista: sempre um selo, assinada (verde), aguardando (azul) ou não assinada (cinza). */
-function SeloAssinatura({ f }: { f?: string }) {
-  if (f === "assinado") return <span title="Ficha cadastral assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-1.5 py-0.5 text-2xs font-semibold text-emerald-800"><BadgeCheck size={12} aria-hidden /> assinada</span>;
-  if (f === "pendente") return <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-2xs font-semibold text-sky-800"><Clock size={12} aria-hidden /> aguardando assinatura</span>;
-  return <span title="Ficha cadastral ainda não assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-600"><FileX size={12} aria-hidden /> não assinada</span>;
-}
-
 /** Comprou máquina usada (etiqueta, marcador do Tiny ou máquina usada registrada): selo forte, para ver de longe. Inativo: selo cinza. */
 function SeloUsada({ r, maquinas }: { r: Cliente; maquinas: { usada?: boolean | null }[] }) {
   const usada = tag(r, "compra_usada") || maquinas.some((m) => m.usada);

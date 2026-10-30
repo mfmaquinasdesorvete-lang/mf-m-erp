@@ -3,7 +3,8 @@
 -- desde 15/10/2026"). Agora vale a data mais antiga entre o cadastro, o primeiro pedido, a compra da máquina do
 -- cadastro, a venda das máquinas dele, a primeira nota e a primeira proposta.
 create or replace function public.cliente_desde(p_cliente uuid)
-returns date language sql stable security definer set search_path = public as $$
+-- sem security definer: só é chamada de dentro de area_cliente (que já roda como dona do banco)
+returns date language sql stable set search_path = public as $$
   select least(
     (select created_at::date from clientes where id = p_cliente),
     (select compra_maquina_em from clientes where id = p_cliente),

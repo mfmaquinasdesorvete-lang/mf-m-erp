@@ -1,7 +1,7 @@
 // Ficha do cliente 360°: tudo o que o cliente já fez com a empresa numa tela só. Compras (pedidos do ERP e notas
 // do sistema anterior), o que costuma comprar, como paga, assistência e equipamentos, atendimentos registrados,
 // preferências e o que fazer agora (cobrar, chamar de volta, oferecer reposição, agendar preventiva).
-import { AcoesClienteLista } from "@/components/clientes/AcoesClienteLista";
+import { AcoesClienteLista, SeloAssinatura } from "@/components/clientes/AcoesClienteLista";
 import { useAssinaturasFicha } from "@/components/clientes/AssinaturaFicha";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -793,9 +793,7 @@ function FichaAssinadaCabecalho({ c }: { c: Cliente }) {
     : lista.some((a) => a.status === "pendente" && new Date(a.expira_em) > new Date()) ? "pendente" : undefined;
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${situacao === "assinado" ? "bg-emerald-100 text-emerald-800" : situacao === "pendente" ? "bg-sky-100 text-sky-800" : "bg-slate-100 text-slate-600"}`}>
-        Ficha {situacao === "assinado" ? "assinada" : situacao === "pendente" ? "aguardando assinatura" : "não assinada"}
-      </span>
+      <SeloAssinatura f={situacao} />
       <AcoesClienteLista c={c} ficha={situacao} soFicha />
     </span>
   );

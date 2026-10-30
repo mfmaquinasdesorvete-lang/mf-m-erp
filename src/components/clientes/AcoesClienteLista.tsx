@@ -2,7 +2,8 @@
 // página do cliente como ele vê. Mensagem só sai quando a pessoa toca em Enviar no WhatsApp.
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, Loader2, Send } from "lucide-react";
+import { BadgeCheck, Clock, Eye, FileX, Send } from "lucide-react";
+import { Button } from "@/components/ui";
 import { DEMO, supabase } from "@/lib/supabase";
 import { useInvalidate } from "@/lib/data";
 import { useConfig } from "@/lib/useConfig";
@@ -41,11 +42,11 @@ export function AcoesClienteLista({ c, ficha, soFicha }: { c: Cliente; ficha?: s
   return (
     <span className="inline-flex items-center gap-1">
       {ficha !== "assinado" && (
-        <button type="button" className={ICONE} onClick={enviarFicha} disabled={ocupado}
+        <Button type="button" variant="secondary" tamanho="mini" onClick={enviarFicha} carregando={ocupado}
           aria-label="Enviar a ficha cadastral para assinar"
           title={c.whatsapp ? "Enviar a ficha cadastral para assinar (abre o WhatsApp com o link)" : "Copiar o link da ficha cadastral para assinar"}>
-          {ocupado ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} className="text-emerald-600" />}
-        </button>
+          {!ocupado && <Send size={15} className="text-emerald-600" />}
+        </Button>
       )}
       {portal && !soFicha && (
         <a href={`/cliente/${portal}`} target="_blank" rel="noreferrer" className={ICONE}
@@ -56,4 +57,11 @@ export function AcoesClienteLista({ c, ficha, soFicha }: { c: Cliente; ficha?: s
       )}
     </span>
   );
+}
+
+/** Situação da ficha cadastral do cliente: assinada, aguardando a assinatura ou não assinada. */
+export function SeloAssinatura({ f }: { f?: string }) {
+  if (f === "assinado") return <span title="Ficha cadastral assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-1.5 py-0.5 text-2xs font-semibold text-emerald-800"><BadgeCheck size={12} aria-hidden /> assinada</span>;
+  if (f === "pendente") return <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-2xs font-semibold text-sky-800"><Clock size={12} aria-hidden /> aguardando assinatura</span>;
+  return <span title="Ficha cadastral ainda não assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-600"><FileX size={12} aria-hidden /> não assinada</span>;
 }
