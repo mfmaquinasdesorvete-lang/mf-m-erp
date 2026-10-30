@@ -40,6 +40,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   das fichas (CP-ELE-003, 004, 010, 014), confirmado.
 
 ## Em andamento
+- 30/10 Achado B6 do DSG (auditoria dos cadastros): "Salvar agora" desde o 1º passo do produto novo quando a descrição
+  está preenchida (regra no CrudPage; só Produtos usa passoAPasso). Testado na demonstração.
 - 29/10 Origem: TUDO NACIONAL (0). Decisão dela ("não temos nada importado"), mesmo avisada de que algumas notas de
   compra vieram como estrangeiras e do ICMS interestadual de 4% do importado. Os 40 ativos com 1/2/5/7 foram para 0
   (antes, no mesmo dia, 8 tinham ido para 2/7 pelo achado do Fiscal). Produto novo: origem 0.

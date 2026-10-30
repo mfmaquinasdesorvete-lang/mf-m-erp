@@ -747,9 +747,10 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                   ? <Button type="button" variant="secondary" onClick={fecharForm}>Cancelar</Button>
                   : <Button type="button" variant="secondary" onClick={() => setPasso((p) => p - 1)}><ChevronLeft size={16} aria-hidden /> Voltar</Button>}
                 <div className="flex flex-wrap gap-2">
-                  {/* do 2º passo em diante, o resto é opcional: dá para salvar já */}
                   {props.emAbas && <Button type="button" variant="ghost" onClick={() => { setAbaForm(passo); setVerAbas(true); }} title="Ver o cadastro completo, com todas as abas">Ver tudo em abas</Button>}
-                  {passo > 0 && passo < grupos.length - 1 && <Button variant="ghost" carregando={save.isPending}>Salvar agora</Button>}
+                  {/* o resto é opcional: dá para salvar já, desde o 1º passo quando o obrigatório dele está preenchido */}
+                  {passo < grupos.length - 1 && (passo > 0 || !grupos[0].campos.some((f) => f.required && String(editando[f.name] ?? "").trim() === ""))
+                    && <Button variant="ghost" carregando={save.isPending}>Salvar agora</Button>}
                   {/* key diferente: sem ela o React reaproveita o mesmo botão, e o clique em "Próximo" do penúltimo passo
                       virava "Salvar" e gravava sem mostrar o último passo */}
                   {passo < grupos.length - 1
