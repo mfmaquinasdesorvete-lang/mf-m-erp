@@ -21,6 +21,19 @@ function singularDe(plural: string) {
   return plural.replace(/^(\S+)/, (p) => p.endsWith("ns") ? p.slice(0, -2) + "m" : /[rz]es$/.test(p) ? p.slice(0, -2) : p.replace(/s$/, ""));
 }
 
+/** Título da janela (30/10, auditoria dos cadastros A4): "Nova peça", "Editar fornecedor · Nome" no lugar de "Novo cadastro".
+ *  Feminino pela terminação da 1ª palavra (peça, forma, transportadora, embalagem). */
+export function tituloCadastro(singular: string, row: Record<string, any> | null) {
+  const primeira = singular.split(" ")[0];
+  const novo = /(a|agem)$/.test(primeira) ? "Nova" : "Novo";
+  if (!row?.id) return `${novo} ${singular}`;
+  const nome = String(row.nome_fantasia || row.nome || row.descricao || "").trim();
+  return `Editar ${singular}${nome ? ` · ${nome}` : ""}`;
+}
+
+/** Obrigatório ainda vazio (o zero de um número conta como preenchido). */
+const faltando = (f: CampoForm, row: Record<string, any>) => !!f.required && (row[f.name] == null || String(row[f.name]).trim() === "");
+
 export type CampoForm = {
   name: string;
   label: string;
@@ -98,6 +111,8 @@ type Props<T> = {
   podeExcluir?: boolean;
   /** Nome no plural para as mensagens (ex.: "clientes"). */
   plural?: string;
+  /** Nome no singular para o título da janela quando o plural não serve (ex.: "peça" numa lista de "produtos"). */
+  singular?: string;
   /** Outras ações para os selecionados (ex.: inativar produtos). Devolve a mensagem de sucesso. */
   acoesLote?: { label: string; executar: (ids: string[]) => Promise<string | void> }[];
   /** Recorte fixo da lista (ex.: só as máquinas); a busca e os filtros valem dentro dele. */
@@ -255,19 +270,18 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   async function salvar(e: FormEvent) {
     e.preventDefault();
     if (!editando) return;
-    // passo a passo: os campos obrigatórios de passos que não estão na tela também contam (volta ao primeiro que falta)
-    if (emPassos) {
-      const i = grupos.findIndex((g) => g.campos.some((f) => f.required && (editando[f.name] == null || String(editando[f.name]).trim() === "")));
-      if (i >= 0) { setPasso(i); notify("Falta preencher um campo obrigatório deste passo", "erro"); return; }
-    }
-    if (modoAbas) {
-      const i = grupos.findIndex((g) => g.campos.some((f) => f.required && (editando[f.name] == null || String(editando[f.name]).trim() === "")));
-      if (i >= 0) { setAbaForm(i); notify(`Falta preencher um campo obrigatório na aba ${nomeGrupo(grupos[i], i, true)}`, "erro"); return; }
+    // obrigatório vazio em qualquer passo ou aba (vai ao primeiro que falta) e formato errado (CPF, e-mail…):
+    // um jeito só de avisar, no próprio campo (o balão do navegador ficou desligado com noValidate)
+    const i = grupos.findIndex((g) => g.campos.some((f) => faltando(f, editando)));
+    if (i >= 0) {
+      if (emPassos) setPasso(i); else if (modoAbas) setAbaForm(i);
+      return mostrarErros(grupos[i].campos.filter((f) => faltando(f, editando)), "salvar");
     }
     const errados = fields.filter((f) => f.mask && erroCampo(f.mask, editando[f.name]));
     if (errados.length) {
       setTocados(new Set(errados.map((f) => f.name)));
       notifyError(new Error(`Confira: ${errados.map((f) => `${f.label.replace(/\s*\(.*\)$/, "")} (${erroCampo(f.mask, editando[f.name])})`).join(", ")}`));
+      setTimeout(() => document.querySelector<HTMLElement>(`[role="dialog"] [name="${errados[0].name}"]`)?.focus(), 80);
       return;
     }
     try {
@@ -310,6 +324,13 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   };
 
   const abrir = (row: Record<string, any>) => { setTocados(new Set()); setPasso(0); setEditando(row); };
+  /** Marca os campos com erro (ficam vermelhos, com a mensagem embaixo), leva o foco ao primeiro e avisa uma vez. */
+  const mostrarErros = (errados: CampoForm[], acao: "salvar" | "seguir") => {
+    setTocados((t) => new Set([...t, ...errados.map((f) => f.name)]));
+    notify(`Preencha para ${acao}: ${errados.map((f) => f.label.replace(/\s*\(.*\)$/, "")).join(", ")}`, "erro");
+    // depois de a aba ou o passo certo aparecer
+    setTimeout(() => document.querySelector<HTMLElement>(`[role="dialog"] [name="${errados[0].name}"]`)?.focus(), 80);
+  };
 
   // Exporta o que está na tela (respeita a busca), com os nomes dos campos do formulário
   function exportar() {
@@ -331,6 +352,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     f.type === "number" || f.type === "checkbox" || (f.span === 1 && f.type !== "custom" && f.type !== "textarea") ? "col-span-1" : "col-span-2";
   // "Fora de linha (não compra mais; vende até acabar)" → nome + explicação em letra menor
   const partesRotulo = (l: string) => { const i = l.indexOf(" ("); return i > 0 && l.endsWith(")") ? [l.slice(0, i), l.slice(i + 2, -1)] : [l, ""]; };
+  const tocar = (nome: string) => setTocados((t) => (t.has(nome) ? t : new Set(t).add(nome)));
   const campoForm = (f: CampoForm) => f.type === "checkbox" ? (
     <label key={f.name} className={`${larguraCelular(f)} ${spanClass[f.span ?? 2]} flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm`}>
       <input type="checkbox" className="h-5 w-5 shrink-0" checked={!!editando?.[f.name]} onChange={(e) => set(f.name, e.target.checked)} />
@@ -342,27 +364,30 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       {f.render!(editando![f.name], (v) => set(f.name, v), editando!, (nome, v) => set(nome, v))}
     </div>
   ) : (
-    <Field key={f.name} label={f.label} className={`${larguraCelular(f)} ${spanClass[f.span ?? 2]} flex flex-col justify-end`}>
+    <Field key={f.name} label={f.label} obrigatorio={f.required} erro={tocados.has(f.name) && faltando(f, editando!) && "Preencha este campo"}
+      className={`${larguraCelular(f)} ${spanClass[f.span ?? 2]} flex flex-col justify-end`}>
       {f.type === "select" ? (
-        <select className="input" value={editando![f.name] ?? ""} onChange={(e) => set(f.name, e.target.value)} required={f.required}>
+        <select className="input" name={f.name} value={editando![f.name] ?? ""} onChange={(e) => set(f.name, e.target.value)} onBlur={() => tocar(f.name)} required={f.required}>
           {f.options!.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       ) : f.type === "textarea" ? (
-        <textarea className="input" rows={3} value={editando![f.name] ?? ""} onChange={(e) => set(f.name, e.target.value)} />
+        <textarea className="input" name={f.name} rows={3} value={editando![f.name] ?? ""} onChange={(e) => set(f.name, e.target.value)} onBlur={() => tocar(f.name)} required={f.required} />
       ) : f.type === "readonly" ? (
         <div className="input flex items-center bg-slate-50 font-mono text-slate-600">{editando![f.name] ?? <span className="font-sans text-slate-400">automático</span>}</div>
       ) : f.mask ? (
         <CampoMascara f={f} valor={editando![f.name]} row={editando!} buscando={buscando === f.name}
-          mostrarErro={tocados.has(f.name)} onBlur={() => setTocados((t) => new Set(t).add(f.name))}
+          mostrarErro={tocados.has(f.name)} onBlur={() => tocar(f.name)}
           onChange={(v) => set(f.name, v)} onBuscar={() => set(f.name, editando![f.name], true)} />
       ) : (
         <input
           className="input"
+          name={f.name}
           type={f.type ?? "text"}
           step={f.type === "number" ? "any" : undefined}
           value={editando![f.name] ?? ""}
           placeholder={f.placeholder}
           onChange={(e) => set(f.name, e.target.value)}
+          onBlur={() => tocar(f.name)}
           required={f.required}
         />
       )}
@@ -392,15 +417,17 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   /** Próximo passo: antes confere o que é obrigatório e o formato (CPF, e-mail…) só dos campos deste passo. */
   const avancar = () => {
     if (!editando) return;
-    const errados = grupos[passo].campos.filter((f) =>
-      (f.required && (editando[f.name] == null || String(editando[f.name]).trim() === "")) || (f.mask && erroCampo(f.mask, editando[f.name])));
-    if (errados.length) {
-      setTocados(new Set(errados.map((f) => f.name)));
-      notify(`Preencha para seguir: ${errados.map((f) => f.label.replace(/\s*\(.*\)$/, "")).join(", ")}`, "erro");
-      return;
-    }
+    const errados = grupos[passo].campos.filter((f) => faltando(f, editando) || (f.mask && erroCampo(f.mask, editando[f.name])));
+    if (errados.length) return mostrarErros(errados, "seguir");
     setPasso((p) => Math.min(grupos.length - 1, p + 1));
   };
+
+  // lista vazia (30/10, A5): o mesmo aviso no computador e no celular, sempre com o próximo passo
+  const vazio = data.length
+    ? <Vazio titulo="Nada com essa busca ou filtro." texto="Confira o que foi digitado ou tire os filtros."
+        acao={<Button variant="secondary" onClick={() => { setBusca(""); setEscolhas({}); }}><X size={16} aria-hidden /> Limpar busca e filtros</Button>} />
+    : <Vazio titulo={`Nenhum ${singularDe(plural)} cadastrado ainda.`}
+        acao={!readOnly && !props.semNovo ? <Button onClick={() => abrir({ ...defaults })}><Plus size={16} /> Novo</Button> : undefined} />;
 
   return (
     <div>
@@ -521,8 +548,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           {/* estados padrão: erro, carregando e vazio (com o "Novo" quando a lista inteira está vazia) */}
           {erroLista ? <ErroLista erro={erroLista} onTentar={() => refetch()} />
             : isLoading ? <Carregando />
-            : filtrados.length === 0 && !avisoBusca && <div className="cartao"><Vazio titulo={todos.length ? "Nada com essa busca ou filtro." : "Nenhum registro ainda."}
-                acao={!todos.length && !readOnly && !props.semNovo ? <Button onClick={() => abrir({ ...defaults })}><Plus size={16} /> Novo</Button> : undefined} /></div>}
+            : filtrados.length === 0 && !avisoBusca && <div className="cartao">{vazio}</div>}
           <ul className={props.cartoesNoPc ? "grid gap-2.5 md:grid-cols-2 xl:grid-cols-3" : "space-y-2"}>
             {filtrados.slice(0, limite).map((row) => (
               <li key={row.id} className={`relative flex flex-col rounded-2xl border border-l-4 bg-surface p-3 shadow-card ${sel.has(row.id) ? "border-brand bg-brand-light/40" : "border-slate-200 border-l-modulo"}`}
@@ -554,7 +580,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       {erroLista && <ErroLista className="mb-3" erro={erroLista} onTentar={() => refetch()} />}
       <Table
         limite={limite}
-        empty={!isLoading && !erroLista && filtrados.length === 0 && !avisoBusca} carregando={isLoading}
+        empty={!isLoading && !erroLista && filtrados.length === 0 && !avisoBusca && vazio} carregando={isLoading}
         head={<>
           {selecionavel && (
             <th className="th w-10">
@@ -603,9 +629,9 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           notas={data.filter((r) => sel.has(r.id)) as (T & { marcadores?: string[] | null })[]} onClose={() => setMarcandoLote(false)} />
       )}
       {props.formulario && editando && props.formulario(editando, () => setEditando(null))}
-      <Modal open={!!editando && !props.formulario} onClose={() => setEditando(null)} sujo={alterou} wide={props.emAbas} title={editando?.id ? `Editar` : `Novo cadastro`}>
+      <Modal open={!!editando && !props.formulario} onClose={() => setEditando(null)} sujo={alterou} wide={props.emAbas} title={tituloCadastro(props.singular ?? singularDe(plural), editando)}>
         {editando && (
-          <form onSubmit={salvar} onKeyDown={(e) => {
+          <form noValidate onSubmit={salvar} onKeyDown={(e) => {
             // passo a passo: Enter num campo vai para o próximo passo (e não salva o cadastro pela metade)
             if (emPassos && passo < grupos.length - 1 && e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") { e.preventDefault(); avancar(); }
           }}>
@@ -793,6 +819,7 @@ export function CampoMascara({ f, valor, row, buscando, mostrarErro, onBlur, onC
       <div className="relative">
         <input
           className={`input ${erro ? "!border-red-400" : ""}`}
+          name={f.name}
           style={botoes ? { paddingRight: `${botoes * 2.25 + 0.5}rem` } : undefined}
           type={m === "email" ? "email" : "text"}
           inputMode={tecladoDoCampo(m)}

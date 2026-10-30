@@ -44,6 +44,9 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
   fichas das peças, padrões, nomes, quando criar peça, divergências D1–D11 e governança. Teste guarda com 3 limites
   novos (estados soltos 87/64, selos à mão 124, window.confirm 5).
 
+- Cadastros (CrudPage, 30/10): obrigatório com `*`, erro no campo com foco, um jeito só de avisar (noValidate),
+  título "Nova peça" / "Editar · Nome" (`tituloCadastro`), vazio com "Limpar busca e filtros" (Table aceita o vazio).
+
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 

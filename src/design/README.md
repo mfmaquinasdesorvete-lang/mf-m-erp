@@ -347,10 +347,10 @@ na tela que for mexida.
 | # | Divergência | Impacto | Esforço | Proposta |
 |---|---|---|---|---|
 | D1 | **124 selos à mão**; o `Badge` só aceita situações do mapa | Alto: cada tela inventa cor e tamanho; contraste sem garantia | Médio | Peça `Selo` (`tom`, `icone`, `children`) que o `Badge` usa por dentro; migrar ao mexer; teste guarda |
-| D2 | **Obrigatório sem `*` e erro sem campo vermelho** no `CrudPage` (auditoria dos cadastros A1–A3) | Alto: todos os cadastros | Baixo | Passar `obrigatorio` e `erro` ao `Field`; foco no primeiro com erro; um jeito só de avisar |
+| D2 | ~~Obrigatório sem `*` e erro sem campo vermelho no `CrudPage`~~ **feito em 30/10** (A1–A5) | Alto: todos os cadastros | Baixo | Passar `obrigatorio` e `erro` ao `Field`; foco no primeiro com erro; um jeito só de avisar |
 | D3 | **4 cartões de número** (`Stat`, `Indicador`, `CartaoPainel`, `NumeroEscuro`) | Alto: mudar o visual pede 4 consertos | Médio | `Stat` ganha `comparacao` e o tom único; `Indicador` e `CartaoPainel` passam a desenhar com `Stat` (mesmo nome por fora até migrar) |
 | D4 | **87 "Carregando…" e 62 "Nenhum…" soltos** | Médio: tela sem próximo passo nem erro | Baixo por tela | Trocar pelas peças; teste guarda com limite que só desce |
-| D5 | **Título genérico da janela** ("Novo cadastro") | Médio | Baixo | `CrudPage` recebe o nome no singular e monta "Nova peça" / "Editar · Nome" |
+| D5 | ~~Título genérico da janela~~ **feito em 30/10** (`tituloCadastro`, prop `singular`) | Médio | Baixo | `CrudPage` recebe o nome no singular e monta "Nova peça" / "Editar · Nome" |
 | D6 | **`MaisAcoes` e `MenuAcoes`** | Médio | Baixo | Um só (`MaisAcoes` com `itens` opcional); o outro vira apelido |
 | D7 | **4 vocabulários de tom** | Médio | Médio | Seção 8; apelidos antigos aceitos |
 | D8 | **90 rótulos de campo à mão** | Médio: sem `*`, sem erro ligado | Médio | `Field` ao mexer na tela |

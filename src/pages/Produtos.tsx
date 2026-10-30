@@ -560,6 +560,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         ordens={ORDENS_PRODUTO}
         podeExcluir={papel === "admin"}
         plural="produtos"
+        singular={({ pecas: "peça", maquinas: "máquina", tornearia: "peça usinada", componentes: "componente", servicos: "serviço", todos: "produto" } as Record<Cadastro, string>)[cadastro]}
         acoesLote={pode("editar_produtos") ? [
           // perfil Marketplaces: ativar, inativar e mudar de cadastro ficam com o financeiro
           ...(tem("financeiro") ? [{ label: "Inativar", executar: (ids: string[]) => situacaoProdutos(ids, false) },

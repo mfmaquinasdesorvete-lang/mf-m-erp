@@ -225,7 +225,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   const campo = (nome: string, rotulo: string, o: { span?: Span; classe?: string; tipo?: string; placeholder?: string; buscar?: boolean; ajuda?: string; obrigatorio?: boolean; linhas?: number } = {}) => {
     const mask = MASCARAS[nome];
     return (
-      <Field key={nome} label={rotulo + (o.obrigatorio ? " *" : "")} className={`col-span-1 ${SPAN[o.span ?? 6]} ${o.classe ?? ""}`}>
+      <Field key={nome} label={rotulo} obrigatorio={o.obrigatorio} className={`col-span-1 ${SPAN[o.span ?? 6]} ${o.classe ?? ""}`}>
         {mask ? (
           <CampoMascara f={{ name: nome, label: rotulo, mask, buscar: o.buscar, placeholder: o.placeholder }} valor={c[nome]} row={c}
             buscando={buscando === nome} mostrarErro={tocados.has(nome)} onBlur={() => tocar(nome)}

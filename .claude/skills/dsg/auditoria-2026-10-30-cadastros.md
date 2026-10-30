@@ -51,6 +51,13 @@ Fotos e números do teste ficaram no rascunho da sessão (não no repositório).
 | B6 | Peças e Máquinas | **8 passos para cadastrar uma peça simples** e não dá para salvar no 1º passo (o "Salvar agora" só aparece do 2º em diante) | Teste e código. | Médio | Baixo: "Salvar agora" também no 1º passo quando o obrigatório está preenchido | PRD |
 | B7 | Clientes | Em "Pessoa física", o exemplo do CPF fala de CNPJ e aparece cortado | Teste no celular. | Baixo | Baixo | CLI |
 
+## Feito em 30/10
+
+A1–A5 na peça comum (commit abaixo): asterisco e "(obrigatório)", campo vermelho com "Preencha este campo" e foco
+no primeiro que falta (sem o balão do navegador), "Nova peça" / "Editar fornecedor · Nome", vazio igual no computador e
+no celular com "Limpar busca e filtros". Clientes: o `*` agora vem do `Field` (o formulário próprio do CLI ainda avisa
+só no canto). Itens B enviados aos chats donos.
+
 ## Ordem para consertar
 
 1. **Peça comum (DSG), já:** A1, A2 e A3 juntos (obrigatório marcado, campo vermelho com a mensagem embaixo e o foco

@@ -607,7 +607,8 @@ export function ErroLista({ erro, onTentar, className = "" }: { erro?: unknown; 
   );
 }
 
-export function Table({ head, children, empty, limite, carregando }: { head: ReactNode; children: ReactNode; empty?: boolean; limite?: number; carregando?: boolean }) {
+/** `empty`: true mostra o vazio padrão; um elemento (ex.: <Vazio … acao={…} />) mostra esse vazio no lugar. */
+export function Table({ head, children, empty, limite, carregando }: { head: ReactNode; children: ReactNode; empty?: boolean | ReactNode; limite?: number; carregando?: boolean }) {
   const ref = useRef<HTMLTableElement>(null);
   const [ordem, setOrdem] = useState<{ col: number; crescente: boolean } | null>(null);
   const titulos = achatar(head).filter((t) => isValidElement(t)) as ReactElement<Record<string, unknown> & { children?: ReactNode }>[];
@@ -665,7 +666,7 @@ export function Table({ head, children, empty, limite, carregando }: { head: Rea
           <tbody className="divide-y divide-slate-100">{mostradas}</tbody>
         </table>
       </RolagemLateral>
-      {carregando ? <Carregando linhas={3} className="p-3 [&_.cartao]:border-0 [&_.cartao]:shadow-none" /> : empty && <Vazio />}
+      {carregando ? <Carregando linhas={3} className="p-3 [&_.cartao]:border-0 [&_.cartao]:shadow-none" /> : empty === true ? <Vazio /> : empty || null}
     </Card>
   );
 }
