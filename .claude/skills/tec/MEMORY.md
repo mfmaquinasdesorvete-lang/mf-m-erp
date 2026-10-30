@@ -1,5 +1,5 @@
 # MEMORY — TEC (ERP Line – Técnicos)
-Atualizado em 29/10/2026.
+Atualizado em 30/10/2026.
 
 ## Estado agora
 Cadastros → Técnicos virou um guia de cartões enxutos, com foto, estado, Instagram e WhatsApp.
@@ -22,6 +22,9 @@ Os parceiros Dr. Frost têm a foto do anúncio. Não há pedido de técnicos em 
 ## Esperando a usuária
 - Nada para conferir: em 29/10 ela testou no ar e confirmou os ícones menores, o "desde" e as siglas no modo Lista
   e a visão do técnico.
+- Decidir se faz os achados do DSG no formulário do técnico (auditoria de 30/10, itens B1–B3): aviso de técnico
+  repetido ao cadastrar; formulário em blocos fechados (Contato, Região, Site Dr. Frost); "Logo" repetido e UF em
+  lista. Pela rodada de fechamento, só com o ok dela.
 - Para saber: 1 dos 2 usuários técnicos não tem cadastro em Técnicos com o mesmo nome (o "Meu cadastro" dele mostra
   o aviso); quem for fazer o teste do giga precisa do papel "Giga".
 
