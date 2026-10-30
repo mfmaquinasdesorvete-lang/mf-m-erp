@@ -56,6 +56,10 @@ O design system está pronto quando uma função nova pode ser feita só com as 
 
 ## Como o design system se organiza
 
+O manual com os tokens, cada peça (para que serve, entradas, estados, acessibilidade), os padrões, os nomes e a
+contribuição fica ao lado do código: `src/design/README.md` (v1.0, 30/10).
+
+
 1. **Fundamentos:** cores, letras, espaços, grade, ícones e tokens (`src/design/tokens.js`, `src/index.css`).
 2. **Peças:** botões, campos, cartões, tabelas, janelas, menus, filtros, abas, avisos (`src/components/ui.tsx` e afins).
 3. **Padrões de uso:** cadastro, aprovação, busca, painel, erro, lote, confirmação.

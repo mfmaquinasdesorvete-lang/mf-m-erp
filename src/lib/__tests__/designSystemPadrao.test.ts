@@ -44,6 +44,24 @@ function botoes(txt: string) {
 /** As peças únicas de botão (src/index.css e ui.tsx) */
 const PECA = /\b(botao-icone|botao-icone-perigo|link-acao|link-modulo|link-discreto|botao-mini|botao-claro|botao-toque|chip|linha-clicavel|cartao|btn)\b|chip\(|classeChip\(|CLASSE_BOTAO/;
 
+/** Fora das próprias peças (ui.tsx define Carregando, Vazio e Badge) */
+function contarFora(rx: RegExp) {
+  const por: Record<string, number> = {};
+  for (const [arq, txt] of Object.entries(TELAS)) {
+    if (arq.endsWith("components/ui.tsx")) continue;
+    const n = txt.match(rx)?.length ?? 0;
+    if (n) por[arq] = n;
+  }
+  return { total: Object.values(por).reduce((s, n) => s + n, 0), por };
+}
+/** Estados escritos à mão em vez de Carregando / Vazio (src/design/README.md, seção 3.2) */
+const CARREGANDO_SOLTO = />\s*Carregando…|"Carregando…"|Carregando\.\.\./g;
+const VAZIO_SOLTO = />\s*Nenhuma? [a-zà-ú ]+(?:encontrad|ainda|cadastrad)/g;
+/** Selo feito à mão (pílula pequena com fundo); o certo é Badge (situação) ou Selo */
+const SELO_SOLTO = /rounded-full px-[12](?:\.5)? py-0\.5 text-(?:2xs|xs)/g;
+/** Pergunta do navegador em vez de confirmar() / pedirTexto() (Dialogos.tsx) */
+const DIALOGO_NAVEGADOR = /window\.(?:confirm|alert|prompt)\(/g;
+
 describe("design system", () => {
   it("lê as telas", () => {
     expect(Object.keys(TELAS).length).toBeGreaterThan(200);
@@ -67,5 +85,21 @@ describe("design system", () => {
     }
     const total = Object.values(por).reduce((s, n) => s + n, 0);
     expect(total, JSON.stringify(por, null, 1)).toBeLessThanOrEqual(356);
+  });
+
+  it("estados à mão (Carregando…, Nenhum…) não voltam a crescer: use Carregando e Vazio (30/10)", () => {
+    const c = contarFora(CARREGANDO_SOLTO), v = contarFora(VAZIO_SOLTO);
+    expect(c.total, JSON.stringify(c.por, null, 1)).toBeLessThanOrEqual(87);
+    expect(v.total, JSON.stringify(v.por, null, 1)).toBeLessThanOrEqual(64);
+  });
+
+  it("selo feito à mão não volta a crescer (30/10)", () => {
+    const { total, por } = contarFora(SELO_SOLTO);
+    expect(total, JSON.stringify(por, null, 1)).toBeLessThanOrEqual(124);
+  });
+
+  it("pergunta do navegador (window.confirm/alert) não volta: use confirmar() (30/10)", () => {
+    const { total, por } = contarFora(DIALOGO_NAVEGADOR);
+    expect(total, JSON.stringify(por, null, 1)).toBeLessThanOrEqual(5);
   });
 });

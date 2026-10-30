@@ -40,6 +40,10 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Área de toque no celular (botões de ícone, mini e chips) e rolagem suave no site, com troca de tela e setas
   do teclado instantâneas (30/10).
 
+- Manual do design system `src/design/README.md` v1.0 (30/10): inventário, fundamentos, estados, acessibilidade,
+  fichas das peças, padrões, nomes, quando criar peça, divergências D1–D11 e governança. Teste guarda com 3 limites
+  novos (estados soltos 87/64, selos à mão 124, window.confirm 5).
+
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 

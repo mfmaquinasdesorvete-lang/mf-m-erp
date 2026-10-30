@@ -16,7 +16,7 @@ Situação: ✅ atende · 🟡 em parte · 🔴 falta.
 | 9 | Acessibilidade | 🟡 | 866 `aria-label`, foco visível, cores de texto entre 5,0 e 10,3:1. Corrigido hoje: título do menu (3,8 → 5,1:1). Falta: toque de 28 a 32 px nos botões de ícone, mini e chips (pede 44 px nas ações principais). |
 | 10 | Navegação | ✅ | Menu estável, Ctrl+K, trilha com Voltar, página "não encontrada", aviso depois das ações, "Ver como" para a master. |
 | 11 | Rapidez e segurança | 🟡 | 121 confirmações e "Desfazer" nos avisos. Só 23 botões usam a trava `carregando` (64 formulários com botão de enviar). Lentidão é com o chat Revisão. |
-| 12 | Governança | 🟡 | Dono, teste guarda, memória e histórico no git. Falta documentação de cada peça no mesmo lugar do código e um número de versão do design system. |
+| 12 | Governança | 🟡 → 30/10: manual `src/design/README.md` v1.0 com versão e contribuição; teste guarda conta também estados, selos e `window.confirm`. | Dono, teste guarda, memória e histórico no git. Falta documentação de cada peça no mesmo lugar do código e um número de versão do design system. |
 
 ## O que fazer, em ordem
 
