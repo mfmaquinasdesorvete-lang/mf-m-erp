@@ -1,4 +1,5 @@
 import { dddDe } from "@/lib/buscaCliente";
+import { AcoesClienteLista } from "@/components/clientes/AcoesClienteLista";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -312,7 +313,8 @@ export default function Clientes() {
       fields={FIELDS}
       rowActions={(r) => {
         const temHistorico = comHistorico?.has(r.id);
-        return (
+        return (<>
+          <AcoesClienteLista c={r} ficha={situacaoFicha.get(r.id)} />
           <button type="button" onClick={() => setFicha(r)}
             title={temHistorico ? "Ficha 360: compras, financeiro, assistência e atendimentos deste cliente" : "Ficha 360: este cliente ainda não tem compras, contas nem atendimentos"}
             className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs font-semibold transition ${temHistorico
@@ -320,7 +322,7 @@ export default function Clientes() {
               : "border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50"}`}>
             <IdCard size={15} /> Ficha 360
           </button>
-        );
+        </>);
       }}
       columns={[
         {

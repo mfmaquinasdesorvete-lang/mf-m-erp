@@ -90,7 +90,7 @@ export default function AreaCliente() {
             <Printer size={16} aria-hidden /> Imprimir tudo
           </button>
         </header>
-        <nav className="flex gap-1 overflow-x-auto border-b border-slate-300 bg-slate-50 px-3 print:hidden" aria-label="Seções">
+        <nav className="flex gap-1 overflow-x-auto border-b border-slate-300 bg-slate-50 px-3 [scrollbar-width:none] sm:flex-wrap print:hidden [&::-webkit-scrollbar]:hidden" aria-label="Seções">
           {abas.map((x) => (
             <button key={x.id} type="button" onClick={() => setAba(x.id)} aria-current={aba === x.id ? "page" : undefined}
               className={`inline-flex shrink-0 items-center gap-1.5 border-b-[3px] px-3 py-3 text-sm font-bold ${aba === x.id ? "border-publico-petroleo text-publico-petroleo-escuro" : "border-transparent text-slate-700 hover:text-slate-950"}`}>

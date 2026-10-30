@@ -1,6 +1,8 @@
 // Ficha do cliente 360°: tudo o que o cliente já fez com a empresa numa tela só. Compras (pedidos do ERP e notas
 // do sistema anterior), o que costuma comprar, como paga, assistência e equipamentos, atendimentos registrados,
 // preferências e o que fazer agora (cobrar, chamar de volta, oferecer reposição, agendar preventiva).
+import { AcoesClienteLista } from "@/components/clientes/AcoesClienteLista";
+import { useAssinaturasFicha } from "@/components/clientes/AssinaturaFicha";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, BadgeCheck, CalendarDays, Clock, FileText, History, Info, Lightbulb, Link2, MessageCircle, MessageSquarePlus, Package, Receipt, Repeat, Save, ShieldCheck, ShoppingCart, Snowflake, StickyNote, Truck, Wallet, Wrench, XCircle } from "lucide-react";
@@ -149,6 +151,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
           <Button type="button" variant="secondary" onClick={() => setResponder(true)} title="Mensagem pronta com a nota fiscal, o rastreio ou o preço e estoque da peça">
             <MessageCircle size={15} className="text-emerald-600" /> Responder no WhatsApp
           </Button>
+          <FichaAssinadaCabecalho c={c} />
           {c.portal_token && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <Button type="button" variant="ghost" title="Página do cliente: contas em aberto, Pix e segunda via (sem login)"
@@ -779,5 +782,21 @@ function Atendimentos({ cliente, contatos, nomes }: { cliente: Cliente; contatos
       )}
       </BlocoFicha>
     </div>
+  );
+}
+
+/** Situação da ficha cadastral no alto da Ficha 360, com o atalho para mandar assinar quando ainda falta. */
+function FichaAssinadaCabecalho({ c }: { c: Cliente }) {
+  const { data: todas = [] } = useAssinaturasFicha();
+  const lista = todas.filter((a) => a.cliente_id === c.id);
+  const situacao = lista.some((a) => a.status === "assinado") ? "assinado"
+    : lista.some((a) => a.status === "pendente" && new Date(a.expira_em) > new Date()) ? "pendente" : undefined;
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${situacao === "assinado" ? "bg-emerald-100 text-emerald-800" : situacao === "pendente" ? "bg-sky-100 text-sky-800" : "bg-slate-100 text-slate-600"}`}>
+        Ficha {situacao === "assinado" ? "assinada" : situacao === "pendente" ? "aguardando assinatura" : "não assinada"}
+      </span>
+      <AcoesClienteLista c={c} ficha={situacao} soFicha />
+    </span>
   );
 }
