@@ -41,6 +41,12 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
   ClienteForm: nome vazio fica vermelho com foco, exemplo do CPF/CNPJ conforme o tipo. Publicado em 30/10 (6e68b1b); falta o teste no ar com um link de verdade.
   Itens 6, 7, 9, 10, 11 da ficha ficam para depois.
 
+- Menus (30/10, pedido dela): lista com ícones de enviar a ficha e ver como o cliente vê; Ficha 360 com 6 abas
+  (Máquinas só máquinas e notas; Compras com o que compra) e atalhos iguais no alto; página do cliente com a ficha em
+  "Meus dados" (assinada, Conferir e assinar, ou pedir o link) e "Cliente desde" pela data mais antiga
+  (`cliente_desde`, 20261101000200); fim da assinatura com "Ver minha página" (20261101000201).
+  Auditoria: `.claude/skills/cli/auditoria-2026-10-30-menus.md`.
+
 ## Esperando a usuária
 - Testar no celular um link de ficha cadastral de verdade (redes sociais, CEP errado, assinar vazio) para fechar
   o pedido e3e2cb8c; daqui o site no ar não abre.

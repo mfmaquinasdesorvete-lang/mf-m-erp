@@ -15,9 +15,11 @@ import type { Cliente } from "@/lib/types";
 
 const ICONE = "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:opacity-50";
 
-export function AcoesClienteLista({ c, ficha, soFicha }: { c: Cliente; ficha?: string;
+export function AcoesClienteLista({ c, ficha, soFicha, comTexto }: { c: Cliente; ficha?: string;
   /** só o botão da ficha (na Ficha 360 o "Ver como o cliente vê" já está ao lado) */
-  soFicha?: boolean }) {
+  soFicha?: boolean;
+  /** botão com o nome escrito ("Enviar ficha"), como os outros do alto da Ficha 360 */
+  comTexto?: boolean }) {
   const [ocupado, setOcupado] = useState(false);
   const { data: cfg } = useConfig();
   const invalidar = useInvalidate();
@@ -42,10 +44,10 @@ export function AcoesClienteLista({ c, ficha, soFicha }: { c: Cliente; ficha?: s
   return (
     <span className="inline-flex items-center gap-1">
       {ficha !== "assinado" && (
-        <Button type="button" variant="secondary" tamanho="mini" onClick={enviarFicha} carregando={ocupado}
+        <Button type="button" variant="secondary" tamanho={comTexto ? undefined : "mini"} onClick={enviarFicha} carregando={ocupado}
           aria-label="Enviar a ficha cadastral para assinar"
           title={c.whatsapp ? "Enviar a ficha cadastral para assinar (abre o WhatsApp com o link)" : "Copiar o link da ficha cadastral para assinar"}>
-          {!ocupado && <Send size={15} className="text-emerald-600" />}
+          {!ocupado && <Send size={15} className="text-emerald-600" />}{comTexto && " Enviar ficha"}
         </Button>
       )}
       {portal && !soFicha && (

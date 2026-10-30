@@ -5,7 +5,7 @@ import { AcoesClienteLista, SeloAssinatura } from "@/components/clientes/AcoesCl
 import { useAssinaturasFicha } from "@/components/clientes/AssinaturaFicha";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, BadgeCheck, CalendarDays, Clock, FileText, History, Info, Lightbulb, Link2, MessageCircle, MessageSquarePlus, Package, Receipt, Repeat, Save, ShieldCheck, ShoppingCart, Snowflake, StickyNote, Truck, Wallet, Wrench, XCircle } from "lucide-react";
+import { AlertTriangle, BadgeCheck, CalendarDays, Clock, Eye, FileText, History, Info, Lightbulb, Link2, MessageCircle, MessageSquarePlus, Package, Receipt, Repeat, Save, ShieldCheck, ShoppingCart, Snowflake, StickyNote, Truck, Wallet, Wrench, XCircle } from "lucide-react";
 import { Badge, Button, Field, Indicador, Modal, Tabs, type CorCartao } from "@/components/ui";
 import { ResponderWhatsApp } from "@/components/atendimento/ResponderWhatsApp";
 import { Contato } from "@/components/Contato";
@@ -33,7 +33,7 @@ import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
 import { consertosDasNotas, type NotaConserto } from "@/lib/consertos";
 import { MaquinasComprasFicha } from "@/components/clientes/MaquinasComprasFicha";
 
-type Aba = "resumo" | "maquinas" | "compras" | "produtos" | "financeiro" | "assistencia" | "atendimentos";
+type Aba = "resumo" | "maquinas" | "compras" | "financeiro" | "assistencia" | "atendimentos";
 
 const NOTA = "id, numero, serie, status, ambiente, finalidade, tipo_operacao, pedido_id, valor_total, created_at, payload, origem, chave, chave_referenciada";
 const TIPOS: Record<string, string> = { pos_venda: "Pós-venda", cobranca: "Cobrança", preventiva: "Preventiva", garantia: "Garantia", outro: "Atendimento" };
@@ -152,24 +152,23 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
             <MessageCircle size={15} className="text-emerald-600" /> Responder no WhatsApp
           </Button>
           <FichaAssinadaCabecalho c={c} />
-          {c.portal_token && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <Button type="button" variant="ghost" title="Página do cliente: contas em aberto, Pix e segunda via (sem login)"
-                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/cliente/${c.portal_link || c.portal_token}`).then(() => notify("Link da página do cliente copiado"))}>
-                <Link2 size={15} /> Link do cliente
-              </Button>
-              <a href={`/cliente/${c.portal_link || c.portal_token}`} target="_blank" rel="noreferrer" className="link-acao whitespace-nowrap text-sm"
-                onClick={(e) => { if (DEMO) { e.preventDefault(); navigate(`/cliente/${c.portal_link || c.portal_token}`); } }}>Ver como o cliente vê</a>
-            </div>
-          )}
+          {c.portal_token && (<>
+            <Button type="button" variant="secondary" title="Página do cliente: contas em aberto, Pix e segunda via (sem login)"
+              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/cliente/${c.portal_link || c.portal_token}`).then(() => notify("Link da página do cliente copiado"))}>
+              <Link2 size={15} /> Copiar link do cliente
+            </Button>
+            <Button type="button" variant="secondary" title="Abre a página do cliente como ele vê (sem login)"
+              onClick={() => (DEMO ? navigate(`/cliente/${c.portal_link || c.portal_token}`) : window.open(`/cliente/${c.portal_link || c.portal_token}`, "_blank", "noopener"))}>
+              <Eye size={15} /> Ver como o cliente vê
+            </Button>
+          </>)}
         </div>
       </div>
 
       <Tabs value={aba} onChange={setAba} options={[
         { value: "resumo", label: "Resumo" },
-        { value: "maquinas", label: "Máquinas e compras" },
+        { value: "maquinas", label: `Máquinas${data ? ` (${data.equipamentos.length})` : ""}` },
         { value: "compras", label: `Compras${calc ? ` (${calc.compras.length})` : ""}` },
-        { value: "produtos", label: "O que compra" },
         { value: "financeiro", label: "Financeiro" },
         { value: "assistencia", label: `Assistência${data ? ` (${data.oss.length})` : ""}` },
         { value: "atendimentos", label: `Atendimentos${data ? ` (${data.contatos.length})` : ""}` },
@@ -180,9 +179,11 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
       {data && calc && (
         <>
           {aba === "resumo" && <Resumo c={c} r={calc.resumo} sugestoes={calc.sugestoes} pedidos={data.pedidos} compras={calc.compras} equipamentos={data.equipamentos} dia={dia} redes={redes} />}
-          {aba === "maquinas" && <MaquinasComprasFicha clienteId={c.id} equipamentos={data.equipamentos} notas={data.notas} pedidos={data.pedidos} propostasTiny={data.propostasTiny} oss={data.oss} />}
-          {aba === "compras" && <Compras compras={calc.compras} pedidos={data.pedidos} propostasTiny={data.propostasTiny} />}
-          {aba === "produtos" && <Produtos produtos={calc.produtos} />}
+          {aba === "maquinas" && <MaquinasComprasFicha clienteId={c.id} equipamentos={data.equipamentos} notas={data.notas} pedidos={data.pedidos} propostasTiny={data.propostasTiny} oss={data.oss} soMaquinasENotas />}
+          {aba === "compras" && (<div className="space-y-3">
+            <Compras compras={calc.compras} pedidos={data.pedidos} propostasTiny={data.propostasTiny} />
+            <Produtos produtos={calc.produtos} />
+          </div>)}
           {aba === "financeiro" && <Financeiro contas={data.contas} r={calc.resumo} />}
           {aba === "assistencia" && <Assistencia cliente={c} oss={data.oss} equipamentos={data.equipamentos} legado={data.legado} notas={data.notas} />}
           {aba === "atendimentos" && <Atendimentos cliente={c} contatos={data.contatos} nomes={data.nomes} />}
@@ -794,7 +795,7 @@ function FichaAssinadaCabecalho({ c }: { c: Cliente }) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <SeloAssinatura f={situacao} />
-      <AcoesClienteLista c={c} ficha={situacao} soFicha />
+      <AcoesClienteLista c={c} ficha={situacao} soFicha comTexto />
     </span>
   );
 }

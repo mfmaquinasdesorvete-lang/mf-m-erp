@@ -22,7 +22,10 @@ type Area = {
   cliente: string; empresa: { nome: string; whatsapp: string | null; telefone: string | null; email: string | null };
   abertas: Aberta[]; pagas: { descricao: string; valor: number; data_pagamento: string | null }[];
   maquinas?: Maquina[]; manutencoes?: Manutencao[]; compras?: Compra[]; notas?: Nota[]; propostas?: Proposta[]; dados?: Dados;
+  ficha?: FichaSituacao;
 };
+/** Ficha cadastral do cliente: a assinada mais recente, o link ainda válido para assinar, ou nenhuma. */
+type FichaSituacao = { status: "assinado" | "pendente" | "nenhuma"; assinado_em?: string; token?: string; expira_em?: string };
 type Nota = { tipo: string; numero?: string | number; serie?: string; data: string; valor?: number; chave?: string; danfe?: string; devolucao?: boolean };
 type Proposta = { numero?: string | number; data?: string; situacao?: string; valor?: number };
 type Dados = { nome?: string; fantasia?: string; documento?: string; ie?: string; endereco?: string; telefone?: string; whatsapp?: string; email?: string; cliente_desde?: string };
@@ -99,7 +102,7 @@ export default function AreaCliente() {
           ))}
         </nav>
         {ve("inicio") && !tudo && <Inicio a={a} total={total} ir={setAba} imprimir={() => setTudo(true)} />}
-        {ve("dados") && <>{titulo("dados")}<MeusDados d={a.dados} empresa={a.empresa} /></>}
+        {ve("dados") && <>{titulo("dados")}<MeusDados d={a.dados} empresa={a.empresa} ficha={a.ficha} /></>}
         {ve("maquinas") && <>{titulo("maquinas")}<Maquinas lista={a.maquinas ?? []} zap={zap} cliente={a.cliente} /></>}
         {ve("manutencoes") && <>{titulo("manutencoes")}<Manutencoes lista={a.manutencoes ?? []} /></>}
         {ve("compras") && <>{titulo("compras")}<Compras lista={a.compras ?? []} /></>}
@@ -174,7 +177,7 @@ function Inicio({ a, total, ir, imprimir }: { a: Area; total: number; ir: (x: Ab
   );
 }
 
-function MeusDados({ d, empresa }: { d?: Dados; empresa: Area["empresa"] }) {
+function MeusDados({ d, empresa, ficha }: { d?: Dados; empresa: Area["empresa"]; ficha?: FichaSituacao }) {
   if (!d) return <Vazio texto="Cadastro não encontrado." />;
   const linhas: [string, string | undefined][] = [
     ["Nome / razão social", d.nome], ["Nome fantasia", d.fantasia], ["CPF / CNPJ", d.documento], ["Inscrição estadual", d.ie],
@@ -183,6 +186,7 @@ function MeusDados({ d, empresa }: { d?: Dados; empresa: Area["empresa"] }) {
   ];
   return (
     <div className="space-y-3 px-5 py-6 text-sm">
+      {ficha && <FichaCadastral f={ficha} empresa={empresa} />}
       <dl className="divide-y divide-slate-200 rounded-xl border border-slate-300">
         {linhas.filter(([, v]) => v).map(([k, v]) => (
           <div key={k} className="grid gap-1 px-4 py-2.5 sm:grid-cols-[170px_1fr]">
@@ -192,6 +196,35 @@ function MeusDados({ d, empresa }: { d?: Dados; empresa: Area["empresa"] }) {
         ))}
       </dl>
       <p className="text-xs text-slate-700">Algum dado errado ou mudou de endereço? Avise a {empresa.nome}{empresa.email ? ` (${empresa.email})` : ""} para atualizarmos.</p>
+    </div>
+  );
+}
+
+/** A ficha cadastral do cliente em "Meus dados": assinada (abre o comprovante), para assinar, ou pedir à empresa. */
+function FichaCadastral({ f, empresa }: { f: FichaSituacao; empresa: Area["empresa"] }) {
+  const navigate = useNavigate();
+  const abrir = (token: string) => (e: React.MouseEvent) => { if (DEMO) { e.preventDefault(); navigate(`/ficha/${token}`); } };
+  const zap = empresa.whatsapp || empresa.telefone;
+  if (f.status === "assinado") {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
+        <span className="flex items-center gap-2 font-semibold text-emerald-900"><ShieldCheck size={18} aria-hidden /> Ficha cadastral assinada{f.assinado_em ? ` em ${dataBR(f.assinado_em)}` : ""}</span>
+        {f.token && <a href={`/ficha/${f.token}`} onClick={abrir(f.token)} className="inline-flex items-center gap-1 font-semibold text-emerald-900 underline">Ver a ficha <ChevronRight size={16} aria-hidden /></a>}
+      </div>
+    );
+  }
+  if (f.status === "pendente" && f.token) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-300 bg-sky-50 px-4 py-3">
+        <span className="text-sky-950"><b>Falta assinar a sua ficha cadastral.</b> Confira os dados e assine pelo celular (leva 1 minuto).</span>
+        <a href={`/ficha/${f.token}`} onClick={abrir(f.token)} className="inline-flex items-center gap-1.5 rounded-lg bg-publico-marinho px-4 py-2.5 font-semibold text-white">Conferir e assinar <ChevronRight size={16} aria-hidden /></a>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3">
+      <span className="text-slate-800">Ficha cadastral ainda não assinada.</span>
+      {zap && <a href={whatsappLink(zap, "Olá! Quero assinar a minha ficha cadastral.")} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-slate-900 underline"><MessageCircle size={16} aria-hidden /> Pedir o link à {empresa.nome}</a>}
     </div>
   );
 }

@@ -51,8 +51,10 @@ function Secao({ titulo, n, icone, cor, children }: { titulo: string; n: number;
   );
 }
 
-export function MaquinasComprasFicha({ clienteId, equipamentos, notas, pedidos, propostasTiny, oss }: {
+export function MaquinasComprasFicha({ clienteId, equipamentos, notas, pedidos, propostasTiny, oss, soMaquinasENotas }: {
   clienteId: string; equipamentos: any[]; notas: any[]; pedidos: any[]; propostasTiny: PropostaTiny[]; oss: any[];
+  /** na Ficha 360 os pedidos ficam na aba Compras e as OS na Assistência: aqui só máquinas e notas */
+  soMaquinasENotas?: boolean;
 }) {
   const { data: notasMyFrost = [] } = useQuery({
     queryKey: ["notas_my_frost_do_cliente", clienteId],
@@ -114,6 +116,7 @@ export function MaquinasComprasFicha({ clienteId, equipamentos, notas, pedidos, 
         </ul>
       </Secao>
 
+      {!soMaquinasENotas && (<>
       <Secao titulo="Pedidos e propostas" n={vendas.length + propostasTiny.length} icone={ShoppingCart} cor="verde">
         <p className="mb-1.5 text-xs text-slate-500">Valor negociado e condição de pagamento, quando foram registrados.</p>
         <ul className="divide-y divide-slate-100 text-sm">
@@ -147,6 +150,7 @@ export function MaquinasComprasFicha({ clienteId, equipamentos, notas, pedidos, 
           ))}
         </ul>
       </Secao>
+      </>)}
     </div>
   );
 }

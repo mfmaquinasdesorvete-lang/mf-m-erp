@@ -14,7 +14,7 @@ Telas: `src/components/FichaCliente.tsx`, `src/pages/AreaCliente.tsx` (/cliente/
 | F3 | Abas da página do cliente sem a barra de rolagem; no computador quebram linha, no celular deslizam | Página do cliente |
 | F4 | "Cliente desde" pela data mais antiga (cadastro, pedido, compra da máquina, máquinas, notas, propostas); antes usava a data da importação do Tiny | Banco (`cliente_desde`, migração 20261101000200) |
 
-## Achados e propostas (esperando a escolha dela)
+## Achados e propostas (ela escolheu as quatro em 30/10; feitas no mesmo dia)
 
 | # | Achado | Proposta |
 |---|---|---|
@@ -22,7 +22,7 @@ Telas: `src/components/FichaCliente.tsx`, `src/pages/AreaCliente.tsx` (/cliente/
 | P2 | No alto da Ficha 360 os atalhos têm quatro jeitos diferentes (botão, botão sem borda, link azul, selo) | Uma fila só de botões iguais: WhatsApp · Enviar ficha · Copiar link do cliente · Ver como o cliente vê |
 | P3 | A página do cliente não mostra a ficha cadastral | Em "Meus dados": "Ficha assinada em dd/mm (baixar comprovante)" ou o botão "Conferir e assinar" quando falta |
 | P4 | Depois de assinar, a ficha não leva à página do cliente | Botão "Ver minha página" no fim da assinatura |
-| P5 | Resto da auditoria do DSG na ficha para assinar: o que é opcional, foco no campo com erro, rascunho, CNPJ da MF no rodapé, topo sem degradê | Fazer junto com P3 e P4 |
+| P5 | Feito em parte: "(opcional)" nos campos, foco no campo com erro, CNPJ da MF no rodapé, topo sem degradê. Fica para depois o rascunho (item 9 do DSG). Resto da auditoria do DSG na ficha para assinar: o que é opcional, foco no campo com erro, rascunho, CNPJ da MF no rodapé, topo sem degradê | Fazer junto com P3 e P4 |
 
 Teste depois de publicar: na lista, enviar a ficha de um cliente pelo ícone (o WhatsApp abre com o link) e abrir
 "Ver como o cliente vê"; conferir o "Cliente desde" de um cliente antigo do Tiny.

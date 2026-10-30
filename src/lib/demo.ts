@@ -3192,7 +3192,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     const cfg = db.configuracoes[0];
     const c = db.clientes.find((x) => x.id === a.cliente_id);
     return { data: { status, termo: a.termo, dados: status === "pendente" ? fichaClienteDemo(c ?? {}) : status === "assinado" ? a.dados : null, nome: a.nome, assinado_em: a.assinado_em,
-      hash: a.hash, expira_em: a.expira_em, empresa: { nome: cfg.nome_fantasia || cfg.razao_social, razao_social: cfg.razao_social, cnpj: cfg.cnpj, whatsapp: cfg.whatsapp, telefone: cfg.telefone, email: cfg.email } }, error: null };
+      hash: a.hash, expira_em: a.expira_em, pagina: c?.portal_link || c?.portal_token, empresa: { nome: cfg.nome_fantasia || cfg.razao_social, razao_social: cfg.razao_social, cnpj: cfg.cnpj, whatsapp: cfg.whatsapp, telefone: cfg.telefone, email: cfg.email } }, error: null };
   },
   ficha_cadastral_assinar: ({ p_token, p_nome, p_cpf, p_png, p_dados, p_user_agent }) => {
     const a = (db.clientes_assinaturas ?? []).find((x) => x.token === p_token && x.canal === "link");
@@ -3324,6 +3324,13 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       notas: db.notas_fiscais.filter((n) => n.status === "autorizada" && n.ambiente !== "homologacao" && (n.cliente_id === c.id || db.pedidos.some((pe) => pe.id === n.pedido_id && pe.cliente_id === c.id)))
         .map((n) => ({ tipo: "NF-e", numero: n.numero, serie: n.serie, data: String(n.created_at).slice(0, 10), valor: n.valor_total, chave: n.chave, danfe: n.danfe_url, devolucao: n.finalidade === "devolucao" })),
       propostas: [],
+      ficha: (() => {
+        const fs = (db.clientes_assinaturas ?? []).filter((x) => x.cliente_id === c.id);
+        const ass = fs.find((x) => x.status === "assinado");
+        if (ass) return { status: "assinado", assinado_em: ass.assinado_em, token: ass.canal === "link" ? ass.token : undefined };
+        const pend = fs.find((x) => x.canal === "link" && x.status === "pendente" && Date.parse(x.expira_em) > Date.now());
+        return pend ? { status: "pendente", token: pend.token, expira_em: pend.expira_em } : { status: "nenhuma" };
+      })(),
     }, error: null };
   },
   gerar_recorrentes: () => (podeFinanceiro() ? { data: gerarRecorrentesDemo(db), error: null } : erro("sem permissão para esta ação")),

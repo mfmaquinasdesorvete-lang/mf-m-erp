@@ -5,7 +5,7 @@ import { usePaginaClara } from "@/lib/tema";
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, BadgeCheck, RotateCcw, Check, FileDown, Fingerprint, Loader2, MapPin, MessageCircle, PenLine, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Home, RotateCcw, Check, FileDown, Fingerprint, Loader2, MapPin, MessageCircle, PenLine, ShieldCheck, UserRound } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
 import { notifyError } from "@/lib/notify";
 import { docFormat, digitos, whatsappLink } from "@/lib/format";
@@ -19,6 +19,8 @@ import logo from "@/assets/logo.webp";
 type Ficha = {
   status: "pendente" | "assinado" | "cancelado" | "vencido"; termo: string; dados: Record<string, any> | null;
   nome: string | null; assinado_em: string | null; hash: string | null; expira_em: string;
+  /** link da página do cliente (/cliente/…), para o "Ver minha página" depois de assinar */
+  pagina?: string | null;
   empresa: { nome: string; razao_social: string | null; cnpj: string | null; whatsapp: string | null; telefone: string | null; email: string | null };
 };
 type Feito = { hash: string; assinado_em: string; ip: string | null; dados: Record<string, any> | null; nome: string; cpf: string; png: string };
@@ -29,12 +31,12 @@ const PASSOS = [
   { titulo: "Assinatura", Icon: PenLine },
 ];
 const CONTATO: [string, string, Mascara | undefined][] = [
-  ["whatsapp", "Celular / WhatsApp", "whatsapp"], ["telefone", "Telefone", "telefone"], ["email", "E-mail", "email"], ["email_nfe", "E-mail para receber a nota fiscal", "email"],
-  ["instagram", "Instagram da empresa", undefined], ["facebook", "Facebook", undefined], ["tiktok", "TikTok", undefined],
+  ["whatsapp", "Celular / WhatsApp", "whatsapp"], ["telefone", "Telefone", "telefone"], ["email", "E-mail (opcional)", "email"], ["email_nfe", "E-mail para receber a nota fiscal (opcional)", "email"],
+  ["instagram", "Instagram da empresa (opcional)", undefined], ["facebook", "Facebook (opcional)", undefined], ["tiktok", "TikTok (opcional)", undefined],
 ];
 const ENDERECO: [string, string, string][] = [
-  ["logradouro", "Endereço (rua, avenida)", "sm:col-span-4"], ["numero", "Número", "sm:col-span-2"], ["complemento", "Complemento", "sm:col-span-3"],
-  ["bairro", "Bairro", "sm:col-span-3"], ["municipio", "Cidade", "sm:col-span-4"], ["uf", "UF", "sm:col-span-2"],
+  ["logradouro", "Endereço (rua, avenida)", "sm:col-span-4"], ["numero", "Número (opcional)", "sm:col-span-2"], ["complemento", "Complemento (opcional)", "sm:col-span-3"],
+  ["bairro", "Bairro (opcional)", "sm:col-span-3"], ["municipio", "Cidade", "sm:col-span-4"], ["uf", "UF", "sm:col-span-2"],
 ];
 const EDITAVEIS = Object.keys(ROTULOS_FICHA);
 
@@ -90,14 +92,14 @@ export default function FichaPublica() {
     </a>
   );
   if (f.status === "cancelado" || f.status === "vencido") {
-    return <Tela><Cartao empresa={f.empresa.nome}><Aviso titulo={f.status === "vencido" ? "Este link venceu" : "Este link foi cancelado"} texto="Peça um link novo para quem atendeu você." acao={falar} /></Cartao></Tela>;
+    return <Tela><Cartao empresa={f.empresa.nome} rodape={rodapeEmpresa(f.empresa)}><Aviso titulo={f.status === "vencido" ? "Este link venceu" : "Este link foi cancelado"} texto="Peça um link novo para quem atendeu você." acao={falar} /></Cartao></Tela>;
   }
   if (feito || f.status === "assinado") {
     return (
       <Tela>
-        <Cartao empresa={f.empresa.nome}>
+        <Cartao empresa={f.empresa.nome} rodape={rodapeEmpresa(f.empresa)}>
           <Concluido nome={feito?.nome ?? f.nome ?? ""} quando={feito?.assinado_em ?? f.assinado_em} hash={feito?.hash ?? f.hash}
-            comprovante={feito ? () => baixarComprovante(f, feito).catch(notifyError) : undefined} acao={falar} />
+            comprovante={feito ? () => baixarComprovante(f, feito).catch(notifyError) : undefined} pagina={f.pagina} acao={falar} />
         </Cartao>
       </Tela>
     );
@@ -119,11 +121,18 @@ export default function FichaPublica() {
     if (r) setD((x) => ({ ...x, logradouro: r.logradouro || x.logradouro, bairro: r.bairro || x.bairro, municipio: r.municipio || x.municipio, uf: r.uf || x.uf }));
   }
 
+  // leva até o campo com erro (lá em cima no celular) e põe o cursor nele
+  const focar = (k: string) => setTimeout(() => { const el = document.getElementById(`ficha-${k}`); el?.scrollIntoView({ block: "center" }); el?.focus(); }, 0);
+
   function avancar() {
     if (passo === 0) {
       const errados = CONTATO.filter(([k, , m]) => m && erroCampo(m, d[k]));
-      if (errados.length) { setTocados(new Set(errados.map(([k]) => k))); return setErro(`Confira: ${errados.map(([, l]) => l).join(", ")}`); }
-      if (!d.whatsapp && !d.telefone) return setErro("Informe pelo menos um telefone ou WhatsApp");
+      if (errados.length) {
+        setTocados(new Set(errados.map(([k]) => k)));
+        focar(errados[0][0]);
+        return setErro(`Confira: ${errados.map(([, l]) => l.replace(" (opcional)", "")).join(", ")}`);
+      }
+      if (!d.whatsapp && !d.telefone) { focar("whatsapp"); return setErro("Informe pelo menos um telefone ou WhatsApp"); }
     }
     if (passo === 1) {
       if (erroCampo("cep", d.cep)) return setErro("CEP com 8 números");
@@ -157,11 +166,12 @@ export default function FichaPublica() {
 
   return (
     <Tela>
-      <Cartao empresa={f.empresa.nome}>
+      <Cartao empresa={f.empresa.nome} rodape={rodapeEmpresa(f.empresa)}>
         {/* boas-vindas + passos */}
         <div className="px-5 pt-5 sm:px-7">
           <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{primeiro ? `Olá, ${primeiro}!` : "Olá!"}</h1>
           <p className="mt-1 text-sm text-slate-600">Confira os seus dados e assine a ficha cadastral. Leva 1 minuto.</p>
+          {passo === 0 && <p className="mt-1 text-xs text-slate-500">Só é obrigatório um telefone ou WhatsApp; o resto é opcional.</p>}
           <ol className="mt-5 grid grid-cols-3" aria-label="Passos">
             {PASSOS.map((p, i) => (
               <li key={p.titulo} className="flex flex-col items-center gap-1.5 text-center" aria-current={i === passo ? "step" : undefined}>
@@ -194,7 +204,7 @@ export default function FichaPublica() {
               {CONTATO.map(([k, l, m]) => (
                 <label key={k} className="block">
                   <span className="mb-1.5 block text-sm font-semibold text-slate-700">{l}</span>
-                  <input className={`${input} ${tocados.has(k) && m && erroCampo(m, d[k]) ? "!border-red-400" : ""}`} value={mostrar(m, d[k])}
+                  <input id={`ficha-${k}`} className={`${input} ${tocados.has(k) && m && erroCampo(m, d[k]) ? "!border-red-400" : ""}`} value={mostrar(m, d[k])}
                     type={m === "email" ? "email" : "text"} inputMode={m === "email" ? "email" : m ? "numeric" : "text"} autoComplete={m === "email" ? "email" : m ? "tel" : "off"} autoCapitalize={m ? undefined : "none"}
                     onBlur={() => setTocados((t) => new Set(t).add(k))} onChange={(e) => setCampo(k, gravar(m, e.target.value))}
                     placeholder={m === "email" ? "nome@empresa.com.br" : m ? "(00) 00000-0000" : "@suaempresa"} />
@@ -287,6 +297,9 @@ export default function FichaPublica() {
   );
 }
 
+const rodapeEmpresa = (e: Ficha["empresa"]) =>
+  [e.razao_social || e.nome, e.cnpj && `CNPJ ${docFormat(e.cnpj)}`].filter(Boolean).join(" · ");
+
 async function baixarComprovante(f: Ficha, a: Feito) {
   const { pdfFichaCadastral } = await import("@/lib/pdf");
   const cfg = { nome_fantasia: f.empresa.nome, razao_social: f.empresa.razao_social ?? f.empresa.nome, cnpj: f.empresa.cnpj, whatsapp: f.empresa.whatsapp, telefone: f.empresa.telefone, email: f.empresa.email } as any;
@@ -302,7 +315,8 @@ async function baixarComprovante(f: Ficha, a: Feito) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-function Concluido({ nome, quando, hash, comprovante, acao }: { nome: string; quando: string | null; hash: string | null; comprovante?: () => void; acao?: ReactNode }) {
+function Concluido({ nome, quando, hash, comprovante, pagina, acao }: { nome: string; quando: string | null; hash: string | null; comprovante?: () => void; pagina?: string | null; acao?: ReactNode }) {
+  const navigate = useNavigate();
   return (
     <div className="px-5 py-10 text-center sm:px-7">
       <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-solido-verde text-white shadow-lg ring-8 ring-emerald-100"><BadgeCheck size={34} /></span>
@@ -322,6 +336,12 @@ function Concluido({ nome, quando, hash, comprovante, acao }: { nome: string; qu
             <FileDown size={16} /> Baixar comprovante (PDF)
           </button>
         )}
+        {pagina && (
+          <a href={`/cliente/${pagina}`} onClick={(e) => { if (DEMO) { e.preventDefault(); navigate(`/cliente/${pagina}`); } }}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            <Home size={16} className="text-sky-600" /> Ver minha página
+          </a>
+        )}
         {acao}
       </div>
     </div>
@@ -338,10 +358,12 @@ function Aviso({ titulo, texto, acao }: { titulo: string; texto: string; acao?: 
   );
 }
 
-function Cartao({ empresa, children }: { empresa: string; children: ReactNode }) {
+function Cartao({ empresa, children, rodape }: { empresa: string; children: ReactNode;
+  /** razão social e CNPJ de quem pede a assinatura, para o cliente conferir */
+  rodape?: string }) {
   return (
     <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
-      <header className="flex items-center gap-3 bg-gradient-to-r from-[#071528] to-[#0f2a4d] px-5 py-4 text-white sm:px-7">
+      <header className="flex items-center gap-3 bg-publico-marinho px-5 py-4 text-white sm:px-7">
         <img src={logo} alt="" className="h-11 w-11 rounded-xl bg-white/10" />
         <div className="min-w-0">
           <div className="truncate text-lg font-bold">{empresa}</div>
@@ -349,6 +371,7 @@ function Cartao({ empresa, children }: { empresa: string; children: ReactNode })
         </div>
       </header>
       {children}
+      {rodape && <p className="border-t border-slate-100 px-5 py-3 text-center text-xs text-slate-500 sm:px-7">{rodape}</p>}
     </div>
   );
 }
@@ -357,7 +380,7 @@ function Tela({ children }: { children: ReactNode }) {
   usePaginaClara(); // página do cliente: sempre clara, independente do tema escolhido no ERP
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-200 to-slate-100 px-3 py-5 sm:py-10" style={{ colorScheme: "light" }}>
+    <div className="min-h-screen bg-slate-100 px-3 py-5 sm:py-10" style={{ colorScheme: "light" }}>
       {DEMO && <button type="button" onClick={() => navigate("/clientes")} className="mx-auto mb-3 block rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white">← Prévia: voltar ao ERP</button>}
       {children}
     </div>
