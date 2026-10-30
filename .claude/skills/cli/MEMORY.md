@@ -38,10 +38,12 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
 - Achados do DSG (auditorias de 30/10): ficha pelo link (FichaPublica) itens 1–5 e 8 consertados (redes sociais
   com teclado de letras e "@suaempresa", "Não foi possível abrir" com Tentar de novo, todos os erros da assinatura de
   uma vez, botão "Falar com a MF" no 1º passo, aviso de CEP não encontrado, erro do servidor em frase simples);
-  ClienteForm: nome vazio fica vermelho com foco, exemplo do CPF/CNPJ conforme o tipo. Falta publicar e testar no ar.
+  ClienteForm: nome vazio fica vermelho com foco, exemplo do CPF/CNPJ conforme o tipo. Publicado em 30/10 (6e68b1b); falta o teste no ar com um link de verdade.
   Itens 6, 7, 9, 10, 11 da ficha ficam para depois.
 
 ## Esperando a usuária
+- Testar no celular um link de ficha cadastral de verdade (redes sociais, CEP errado, assinar vazio) para fechar
+  o pedido e3e2cb8c; daqui o site no ar não abre.
 - Anexos sem dono (~50 do ZapSign e ~40 arquivos genéricos do Drive): ligar à mão se ela quiser.
 - Levantamento da qualidade do cadastro (sem CPF/CNPJ, sem cidade/UF, sem telefone, repetidos): só com números,
   quando ela pedir.
