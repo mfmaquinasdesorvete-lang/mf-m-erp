@@ -5,7 +5,7 @@ import { usePaginaClara } from "@/lib/tema";
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, BadgeCheck, Check, FileDown, Fingerprint, Loader2, MapPin, MessageCircle, PenLine, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, RotateCcw, Check, FileDown, Fingerprint, Loader2, MapPin, MessageCircle, PenLine, ShieldCheck, UserRound } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
 import { notifyError } from "@/lib/notify";
 import { docFormat, digitos, whatsappLink } from "@/lib/format";
@@ -40,7 +40,7 @@ const EDITAVEIS = Object.keys(ROTULOS_FICHA);
 
 export default function FichaPublica() {
   const token = useLocation().pathname.split("/")[2] ?? "";
-  const { data: f, isLoading } = useQuery({
+  const { data: f, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["ficha_publica", token],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("ficha_cadastral_publica", { p_token: token });
@@ -60,6 +60,7 @@ export default function FichaPublica() {
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [feito, setFeito] = useState<Feito | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [cepAviso, setCepAviso] = useState<string | null>(null);
 
   useEffect(() => {
     if (!f?.dados) return;
@@ -70,6 +71,16 @@ export default function FichaPublica() {
   useEffect(() => { setErro(null); }, [nome, cpf, png, aceite, d]);
 
   if (isLoading) return <Tela><p className="flex items-center justify-center gap-2 py-24 text-slate-500"><Loader2 className="animate-spin" size={18} /> Carregando a ficha…</p></Tela>;
+  // falha de internet não é link inválido: deixa tentar de novo
+  if (isError) {
+    return (
+      <Tela><Aviso titulo="Não foi possível abrir a ficha" texto="Confira a internet do celular e tente de novo." acao={
+        <button type="button" onClick={() => refetch()} disabled={isFetching}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-solido-azul px-4 py-2.5 text-sm font-bold text-white hover:opacity-90 disabled:opacity-60">
+          {isFetching ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />} Tentar de novo
+        </button>} /></Tela>
+    );
+  }
   if (!f) return <Tela><Aviso titulo="Link não encontrado" texto="Confira o link ou peça um novo para quem atendeu você." /></Tela>;
   const zap = f.empresa.whatsapp || f.empresa.telefone;
   const falar = zap && (
@@ -99,10 +110,12 @@ export default function FichaPublica() {
 
   async function aoMudarCep(v: string) {
     setCampo("cep", v);
+    setCepAviso(null);
     if (digitos(v).length !== 8) return;
     setBuscandoCep(true);
     const r = await buscarCep(v).catch(() => null);
     setBuscandoCep(false);
+    if (!r) setCepAviso("CEP não encontrado: confira os números ou preencha o endereço abaixo.");
     if (r) setD((x) => ({ ...x, logradouro: r.logradouro || x.logradouro, bairro: r.bairro || x.bairro, municipio: r.municipio || x.municipio, uf: r.uf || x.uf }));
   }
 
@@ -121,10 +134,9 @@ export default function FichaPublica() {
   }
 
   async function assinar() {
-    const e = erroAssinante(nome, cpf, cpfValido);
-    if (e) return setErro(e);
-    if (!png) return setErro("Faça a sua assinatura no quadro");
-    if (!aceite) return setErro("Marque que leu e concorda com a declaração");
+    // tudo o que falta de uma vez, para não descobrir um erro por toque
+    const faltam = [erroAssinante(nome, cpf, cpfValido), !png && "Faça a sua assinatura no quadro", !aceite && "Marque que leu e concorda com a declaração"].filter(Boolean);
+    if (faltam.length) return setErro(faltam.join(" · "));
     setOcupado(true);
     setErro(null);
     try {
@@ -134,7 +146,8 @@ export default function FichaPublica() {
       if (error) throw error;
       setFeito({ ...(data as any), nome: nome.trim(), cpf, png });
     } catch (err) {
-      setErro((err as Error)?.message ?? "Não foi possível assinar agora. Tente de novo.");
+      console.error(err); // o texto técnico fica só no registro
+      setErro("Não foi possível registrar a assinatura agora. Confira a internet e toque em \"Assinar ficha\" de novo.");
     } finally {
       setOcupado(false);
     }
@@ -175,15 +188,16 @@ export default function FichaPublica() {
                 {[dados.cpf_cnpj && `${pj ? "CNPJ" : "CPF"} ${docFormat(dados.cpf_cnpj)}`, dados.inscricao_estadual && `IE ${dados.inscricao_estadual}`].filter(Boolean).join(" · ")}
               </div>
               <p className="mt-2 text-xs text-slate-500">Algo errado aqui? Fale com a {f.empresa.nome} antes de assinar.</p>
+              {falar && <div className="mt-2">{falar}</div>}
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {CONTATO.map(([k, l, m]) => (
                 <label key={k} className="block">
                   <span className="mb-1.5 block text-sm font-semibold text-slate-700">{l}</span>
                   <input className={`${input} ${tocados.has(k) && m && erroCampo(m, d[k]) ? "!border-red-400" : ""}`} value={mostrar(m, d[k])}
-                    type={m === "email" ? "email" : "text"} inputMode={m === "email" ? "email" : "numeric"} autoComplete={m === "email" ? "email" : "tel"}
+                    type={m === "email" ? "email" : "text"} inputMode={m === "email" ? "email" : m ? "numeric" : "text"} autoComplete={m === "email" ? "email" : m ? "tel" : "off"} autoCapitalize={m ? undefined : "none"}
                     onBlur={() => setTocados((t) => new Set(t).add(k))} onChange={(e) => setCampo(k, gravar(m, e.target.value))}
-                    placeholder={m === "email" ? "nome@empresa.com.br" : "(00) 00000-0000"} />
+                    placeholder={m === "email" ? "nome@empresa.com.br" : m ? "(00) 00000-0000" : "@suaempresa"} />
                   {tocados.has(k) && m && erroCampo(m, d[k]) && <span className="mt-1 block text-xs font-semibold text-red-600">{erroCampo(m, d[k])}</span>}
                 </label>
               ))}
@@ -205,7 +219,9 @@ export default function FichaPublica() {
                   {buscandoCep && <Loader2 size={18} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-sky-500" />}
                 </div>
               </label>
-              <p className="self-end pb-3 text-xs text-slate-500 sm:col-span-4">Digite o CEP: a rua, o bairro e a cidade vêm sozinhos.</p>
+              <p role={cepAviso ? "alert" : undefined} className={`self-end pb-3 text-xs sm:col-span-4 ${cepAviso ? "font-semibold text-amber-700" : "text-slate-500"}`}>
+                {cepAviso ?? "Digite o CEP: a rua, o bairro e a cidade vêm sozinhos."}
+              </p>
               {ENDERECO.map(([k, l, span]) => (
                 <label key={k} className={`block ${span}`}>
                   <span className="mb-1.5 block text-sm font-semibold text-slate-700">{l}</span>

@@ -35,6 +35,12 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
   "cadastro nº X", levar a pessoa de contato "Cadastro unificado nº X" e conferir de quem são pedidos e notas pelo CNPJ
   do destinatário (`unificar_clientes` não registra o que moveu).
 
+- Achados do DSG (auditorias de 30/10): ficha pelo link (FichaPublica) itens 1–5 e 8 consertados (redes sociais
+  com teclado de letras e "@suaempresa", "Não foi possível abrir" com Tentar de novo, todos os erros da assinatura de
+  uma vez, botão "Falar com a MF" no 1º passo, aviso de CEP não encontrado, erro do servidor em frase simples);
+  ClienteForm: nome vazio fica vermelho com foco, exemplo do CPF/CNPJ conforme o tipo. Falta publicar e testar no ar.
+  Itens 6, 7, 9, 10, 11 da ficha ficam para depois.
+
 ## Esperando a usuária
 - Anexos sem dono (~50 do ZapSign e ~40 arquivos genéricos do Drive): ligar à mão se ela quiser.
 - Levantamento da qualidade do cadastro (sem CPF/CNPJ, sem cidade/UF, sem telefone, repetidos): só com números,

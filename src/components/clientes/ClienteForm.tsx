@@ -220,12 +220,14 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   }
 
   const tocar = (nome: string) => setTocados((t) => new Set(t).add(nome));
+  // nome vazio ao gravar: o campo fica vermelho e recebe o foco (como na peça comum do CrudPage)
+  const faltaNome = tocados.has("nome") && !String(c.nome ?? "").trim();
 
   /** Campo do formulário (função, não componente: o campo não perde o foco ao digitar). */
   const campo = (nome: string, rotulo: string, o: { span?: Span; classe?: string; tipo?: string; placeholder?: string; buscar?: boolean; ajuda?: string; obrigatorio?: boolean; linhas?: number } = {}) => {
     const mask = MASCARAS[nome];
     return (
-      <Field key={nome} label={rotulo} obrigatorio={o.obrigatorio} className={`col-span-1 ${SPAN[o.span ?? 6]} ${o.classe ?? ""}`}>
+      <Field key={nome} label={rotulo} obrigatorio={o.obrigatorio} erro={nome === "nome" && faltaNome && "Preencha este campo"} className={`col-span-1 ${SPAN[o.span ?? 6]} ${o.classe ?? ""}`}>
         {mask ? (
           <CampoMascara f={{ name: nome, label: rotulo, mask, buscar: o.buscar, placeholder: o.placeholder }} valor={c[nome]} row={c}
             buscando={buscando === nome} mostrarErro={tocados.has(nome)} onBlur={() => tocar(nome)}
@@ -233,7 +235,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
         ) : o.tipo === "textarea" ? (
           <textarea className="input" rows={o.linhas ?? 3} value={c[nome] ?? ""} placeholder={o.placeholder} disabled={!podeEditar} onChange={(e) => set(nome, e.target.value)} />
         ) : (
-          <input className="input" type={o.tipo ?? "text"} value={c[nome] ?? ""} placeholder={o.placeholder} disabled={!podeEditar}
+          <input id={`cliente-${nome}`} aria-invalid={(nome === "nome" && faltaNome) || undefined} className="input" type={o.tipo ?? "text"} value={c[nome] ?? ""} placeholder={o.placeholder} disabled={!podeEditar}
             inputMode={o.tipo === "decimal" ? "decimal" : undefined} onChange={(e) => set(nome, e.target.value)} />
         )}
         {o.ajuda && <span className="mt-1 block text-xs text-slate-500">{o.ajuda}</span>}
@@ -251,6 +253,8 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
     const errados = Object.entries(MASCARAS).filter(([k, m]) => (k.startsWith("cobranca_") && !c.cobranca_diferente ? false : !!erroCampo(m, c[k])));
     if (!String(c.nome ?? "").trim()) {
       setAba("gerais");
+      tocar("nome");
+      setTimeout(() => document.getElementById("cliente-nome")?.focus(), 50);
       notify(pj ? "Informe a razão social" : "Informe o nome do cliente", "erro");
       return null;
     }
@@ -487,7 +491,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 ))}
               </div>
               <div className="cartao grid grid-cols-1 gap-3 p-4 sm:grid-cols-12 sm:p-5">
-                {campo("cpf_cnpj", pj ? "CNPJ" : "CPF", { span: 12, buscar: true, ajuda: pj ? "Toque na lupa (ou Enter) para buscar na Receita" : "Pode deixar para depois" })}
+                {campo("cpf_cnpj", pj ? "CNPJ" : "CPF", { span: 12, buscar: true, placeholder: pj ? "00.000.000/0000-00" : "000.000.000-00", ajuda: pj ? "Toque na lupa (ou Enter) para buscar na Receita" : "Pode deixar para depois" })}
                 {repetido && (
                   <div className="col-span-1 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-12">
                     <TriangleAlert size={18} className="shrink-0" />
@@ -760,7 +764,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                     ))}
                   </div>
                 </div>
-                {campo("cpf_cnpj", pj ? "CNPJ" : "CPF", { span: 6, classe: "lg:col-span-4", buscar: true })}
+                {campo("cpf_cnpj", pj ? "CNPJ" : "CPF", { span: 6, classe: "lg:col-span-4", buscar: true, placeholder: pj ? "00.000.000/0000-00" : "000.000.000-00" })}
                 <Field label="Código" className="col-span-1 sm:col-span-6 lg:col-span-2">
                   <div className="input flex items-center bg-slate-50 font-mono text-slate-600">{c.codigo ?? <span className="font-sans text-slate-400">automático</span>}</div>
                 </Field>
