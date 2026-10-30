@@ -24,6 +24,7 @@ import { AcessoRapido } from "@/components/painel/AcessoRapido";
 import { Secoes } from "@/components/Secoes";
 import { ResumoDono, veResumoDono } from "@/components/painel/ResumoDono";
 import { EquipeOnline } from "@/components/painel/EquipeOnline";
+import { Contagem } from "@/components/Animar";
 
 const Fluxo = lazy(() => import("@/pages/Fluxo"));
 
@@ -448,7 +449,7 @@ function ResumoCelular({ titulo, periodo, onPeriodo, itens, onAbrir }: {
           <button key={c.id} type="button" onClick={() => onAbrir(c)} title={c.sub ? `${c.label}: ${c.valor} · ${c.sub}` : `${c.label}: ${c.valor}`}
             className="botao-toque flex min-w-0 flex-col items-center gap-1 rounded-cartao px-1 py-1.5 text-center active:bg-white/10">
             <c.icon size={19} className="text-white/85" aria-hidden />
-            <span className="num max-w-full truncate text-base font-bold leading-tight">{c.moeda && <span className="mr-0.5 text-2xs font-semibold text-white/80">R$</span>}{c.curto ?? c.valor}</span>
+            <span className="num max-w-full truncate text-base font-bold leading-tight">{c.moeda && <span className="mr-0.5 text-2xs font-semibold text-white/80">R$</span>}<Contagem>{c.curto ?? c.valor}</Contagem></span>
             <span className="line-clamp-2 text-2xs leading-tight text-white/85">{c.label}</span>
           </button>
         ))}
@@ -472,7 +473,7 @@ function KpiCard({ c, anterior, onClick }: { c: Kpi; anterior: string; onClick: 
         </span>
         <span className="min-w-0 truncate text-xs font-semibold leading-tight text-slate-600 sm:whitespace-normal sm:text-sm">{c.label}</span>
       </span>
-      <span className="num mt-2 block truncate text-lg font-bold leading-none tracking-tight text-fg sm:mt-auto sm:pt-2 sm:text-2xl">{c.valor}</span>
+      <span className="num mt-2 block truncate text-lg font-bold leading-none tracking-tight text-fg sm:mt-auto sm:pt-2 sm:text-2xl"><Contagem>{c.valor}</Contagem></span>
       <span className="mt-1 flex min-w-0 items-center gap-x-1.5 text-2xs text-slate-500 sm:mt-1.5 sm:flex-wrap sm:gap-y-0.5 sm:text-xs">
         {c.delta !== undefined && (
           c.delta === null

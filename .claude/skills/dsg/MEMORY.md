@@ -47,6 +47,10 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Cadastros (CrudPage, 30/10): obrigatório com `*`, erro no campo com foco, um jeito só de avisar (noValidate),
   título "Nova peça" / "Editar · Nome" (`tituloCadastro`), vazio com "Limpar busca e filtros" (Table aceita o vazio).
 
+- GSAP (30/10): `Animar.tsx` com `Contagem` (números sobem até o valor) e `useEntrada` (blocos em sequência nas
+  Secoes); baixa à parte quando a tela fica livre; desliga com reduzir movimento. Cuidado: o React monta duas vezes
+  em modo de desenvolvimento, e a limpeza da animação precisa deixar a próxima montagem animar.
+
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 

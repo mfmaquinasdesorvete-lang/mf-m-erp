@@ -120,6 +120,12 @@ do tema ficam em `src/index.css` (claro em `:root`, escuro em `:root[data-theme=
 - `transition` curto (≈150 ms) em hover, foco e toque; entrada de janela e aviso com `animate-[entrar_.3s_ease-out]`.
 - Animação só para explicar uma mudança. `prefers-reduced-motion` desliga tudo (em `index.css`).
 - Rolagem suave no site; troca de tela e setas do teclado usam `behavior: "instant"`.
+- **GSAP** (`src/components/Animar.tsx`, 30/10): biblioteca de animação que baixa à parte (70 KB) quando a tela fica
+  livre, sem pesar a abertura. As peças só animam se ele já carregou (nada pisca).
+  - `Contagem`: o número de um cartão sobe até o valor, e vai do antigo ao novo quando o período muda. Já está em
+    `Stat`, `Indicador`, `CartaoPainel`, `NumeroEscuro` e nos cartões do Início.
+  - `useEntrada(ref)`: os blocos entram em sequência, já nas `Secoes` do Início e dos painéis.
+  - Não usar GSAP para enfeite nem em listas longas; para hover e foco basta o `transition` do CSS.
 
 ---
 

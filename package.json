@@ -27,6 +27,7 @@
     "@tanstack/react-query": "^5.83.0",
     "@xmldom/xmldom": "^0.9.12",
     "fflate": "^0.8.3",
+    "gsap": "3.13.0",
     "jsbarcode": "^3.12.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",

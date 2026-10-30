@@ -7,6 +7,7 @@
 // Largura (29/10, "como o contêiner do Elementor"): no Organizar cada seção fica com meia tela ou a tela toda no
 // computador. Vai na mesma lista da ordem ("id|largo" ou "id|meia"), só quando difere do código; ordem antiga só com ids vale.
 import { useRef, useState, type ReactNode } from "react";
+import { useEntrada } from "@/components/Animar";
 import { ArrowDown, ArrowUp, Check, Columns2, GripVertical, LayoutList, RectangleHorizontal, RotateCcw, Users } from "lucide-react";
 import { Button, chip } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
@@ -66,6 +67,8 @@ export function Secoes({ pagina, secoes, className = "" }: { pagina: string; sec
   const [larguras, setLarguras] = useState<Record<string, boolean>>({});
   const [arrastando, setArrastando] = useState<string | null>(null);
   const itensRef = useRef(new Map<string, HTMLLIElement>());
+  const gradeRef = useRef<HTMLDivElement>(null);
+  useEntrada(gradeRef, !organizando);
   const { master } = usePerfil();
   const { data: cfg } = useConfig();
   const invalidar = useInvalidate();
@@ -176,7 +179,7 @@ export function Secoes({ pagina, secoes, className = "" }: { pagina: string; sec
           <LayoutList size={14} aria-hidden /> Organizar
         </button>
       </div>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div ref={gradeRef} className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {lista.map((s) => <div key={s.id} className={`min-w-0 ${s.largo ? "xl:col-span-2" : ""} ${s.soCelular ? "sm:hidden" : s.soComputador ? "max-sm:hidden" : ""}`}>{s.conteudo}</div>)}
       </div>
     </div>

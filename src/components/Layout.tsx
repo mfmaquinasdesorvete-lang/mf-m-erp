@@ -33,6 +33,7 @@ import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
 import { AvisoVersao, ErroTela } from "./ErroTela";
 import { Trilha } from "@/components/Trilha";
+import { carregarGsap } from "@/components/Animar";
 // carregados só para quem usa (contador e financeiro, conta master, quem pergunta à IA): fora do pacote que todos baixam ao entrar
 const AlertaObrigacoes = lazy(() => import("@/components/contador/CalendarioObrigacoes").then((m) => ({ default: m.AlertaObrigacoes })));
 const AlertaContasDoMes = lazy(() => import("@/components/pessoal/ContasDoMes").then((m) => ({ default: m.AlertaContasDoMes })));
@@ -116,6 +117,8 @@ export function Layout() {
   const vis = useVisivel();
   const location = useLocation();
   // trocou de tela (ex.: tocou num aviso do painel): começa do alto, e não no meio da página de antes
+  // GSAP (animações) baixa à parte, quando a tela fica livre: não pesa a abertura
+  useEffect(() => { const ric = window.requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500)); ric(() => { void carregarGsap(); }); }, []);
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); document.querySelector("main")?.scrollTo?.({ top: 0, behavior: "instant" }); }, [location.pathname]);
   const [aberto, setAberto] = useState(false);
   const [criar, setCriar] = useState(false);

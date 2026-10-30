@@ -3,6 +3,7 @@ import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Inbox, RotateCcw, Loader2, MoreHorizontal, X, type LucideIcon } from "lucide-react";
 import { achatar, celulasDa, ordenarLinhas, sentidoNatural, temInterativo, textoDoNo, valorDaCelula } from "@/lib/ordenarColunas";
 import { useModulo } from "@/lib/modulo";
+import { Contagem } from "./Animar";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 
@@ -250,7 +251,7 @@ export function Indicador({ rotulo, valor, sub, icon: Icon, cor = "neutro" }: {
         {Icon && <span className={`float-right mb-1 ml-2 grid h-7 w-7 place-items-center rounded-lg ${c.icone}`} aria-hidden><Icon size={15} /></span>}
         <span className="text-sm font-semibold leading-tight text-slate-700">{rotulo}</span>
       </div>
-      <div className={`num valor-fit mt-0.5 font-bold [--valor-max:1.375rem] ${c.valor}`} style={fitValor(valor)}>{valor}</div>
+      <div className={`num valor-fit mt-0.5 font-bold [--valor-max:1.375rem] ${c.valor}`} style={fitValor(valor)}><Contagem>{valor}</Contagem></div>
       {sub && <div className="text-xs leading-snug text-slate-600">{sub}</div>}
     </div>
   );
@@ -303,7 +304,7 @@ export function Stat({ label, valor, sub, icon: Icon, tom = "neutro", onClick }:
         {Icon && <span className={`float-right mb-1 ml-2 grid h-8 w-8 place-items-center rounded-lg sm:h-9 sm:w-9 ${c.icone}`}><Icon size={17} /></span>}
         <span className="text-xs font-semibold leading-tight text-slate-600">{label}</span>
       </span>
-      <span className={`num valor-fit mt-1 block font-bold tracking-tight [--valor-max:1.375rem] ${tom === "bom" || tom === "info" ? "text-fg" : c.valor}`} style={fitValor(valor)}>{valor}</span>
+      <span className={`num valor-fit mt-1 block font-bold tracking-tight [--valor-max:1.375rem] ${tom === "bom" || tom === "info" ? "text-fg" : c.valor}`} style={fitValor(valor)}><Contagem>{valor}</Contagem></span>
       {sub && <span className="mt-0.5 block text-xs leading-snug text-slate-600">{sub}</span>}
     </Tag>
   );

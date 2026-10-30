@@ -8,6 +8,7 @@ import { diaLocal } from "@/lib/filtroLista";
 import { estiloBrilho, fitValor, Luz } from "@/components/ui";
 import { todosItens, useVisivel } from "@/lib/menu";
 import type { Tela } from "@/lib/permissoes";
+import { Contagem } from "@/components/Animar";
 
 export type Periodo = "hoje" | "semana" | "7d" | "30d" | "mes" | "ano";
 /** `anterior`: para "vs …" nos cartões · `comparado`: para frases ("32% a mais que no mês passado") */
@@ -165,7 +166,7 @@ export function CartaoPainel({ c, anterior }: { c: Cartao; anterior?: string }) 
         <span className="float-right mb-1 ml-2 grid h-9 w-9 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${c.cor} 16%, transparent)`, color: c.cor }}><c.icone size={18} /></span>
         <span className="text-sm font-semibold leading-tight text-slate-600">{c.rotulo}</span>
       </span>
-      <span className="num valor-fit mt-1 block font-bold leading-tight tracking-tight text-fg [--valor-max:1.75rem]" title={typeof c.valor === "string" ? c.valor : undefined} style={fitValor(c.valor)}>{c.valor}</span>
+      <span className="num valor-fit mt-1 block font-bold leading-tight tracking-tight text-fg [--valor-max:1.75rem]" title={typeof c.valor === "string" ? c.valor : undefined} style={fitValor(c.valor)}><Contagem>{c.valor}</Contagem></span>
       <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-snug text-slate-600">
         {c.delta !== undefined && (
           c.delta === null

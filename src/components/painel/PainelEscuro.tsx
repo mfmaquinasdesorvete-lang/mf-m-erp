@@ -3,6 +3,7 @@
 // O fundo não muda com o tema, então as cores aqui são fixas (branco e os tons "neon"), não as do tema.
 import type { CSSProperties, ReactNode } from "react";
 import { X, type LucideIcon } from "lucide-react";
+import { Contagem } from "@/components/Animar";
 
 /**
  * Tons do painel escuro, um por cor (o mesmo verde em todo painel): `cor` (sombra e brilho) e `neon` (anel e barra)
@@ -108,7 +109,7 @@ export function NumeroEscuro({ icone: Icone, rotulo, valor, sub, tom = "cinza", 
       <span className="min-w-0 text-2xs font-bold uppercase leading-tight tracking-wide text-white/80">{rotulo}</span>
       {/* valor comprido ("R$ 1.612.800,00") diminui para caber inteiro no celular, onde o quadro é estreito */}
       <span className="num valor-fit col-span-2 block font-bold leading-tight text-white [--valor-cq:var(--cq-celular)] [--valor-max:1.35rem] lg:col-span-1 lg:col-start-2 lg:[--valor-cq:10cqi]"
-        style={{ "--cq-celular": `${typeof valor === "string" ? Math.min(14, 165 / Math.max(1, valor.length)).toFixed(1) : 14}cqi` } as CSSProperties}>{valor}</span>
+        style={{ "--cq-celular": `${typeof valor === "string" ? Math.min(14, 165 / Math.max(1, valor.length)).toFixed(1) : 14}cqi` } as CSSProperties}><Contagem>{valor}</Contagem></span>
       {sub && <span className="col-span-2 block truncate text-xs text-white/75 lg:col-span-1 lg:col-start-2">{sub}</span>}
     </Tag>
   );
@@ -127,7 +128,7 @@ export function LinhaEscura({ icone: Icone, rotulo, valor, pct, cor, neon, detal
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline justify-between gap-2">
           <span className="min-w-0 truncate text-sm font-bold text-white">{rotulo}</span>
-          <span className="num shrink-0 whitespace-nowrap text-sm font-bold text-white">{valor}</span>
+          <span className="num shrink-0 whitespace-nowrap text-sm font-bold text-white"><Contagem>{valor}</Contagem></span>
         </span>
         <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-white/10">
           <span className="block h-full rounded-full" style={{ width: `${Math.max(3, pct)}%`, background: neon, boxShadow: `0 0 8px ${cor}` }} />
