@@ -122,6 +122,9 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   o aviso `avisar_compras_para_chegar` (dias úteis, 16h43) lembra o que já devia ter chegado.
 - Publicar funções (Actions deploy-supabase.yml): o campo `funcoes` é separado por ESPAÇO; com vírgula nada é publicado
   e a execução ainda sai "success" em ~10 s (aconteceu em 28/10). Conferir a duração ou o log antes de dizer "no ar".
+- CRM (Oportunidades, 30/10): `src/pages/Oportunidades.tsx`, regras e métricas em `src/lib/oportunidades.ts` (com teste);
+  o histórico é gravado pelo banco (trg_oportunidade_historico) e a tela só grava notas (tipo nota); excluir é esconder
+  (excluida_em, só admin). Pedido ligado aprovado/faturado/entregue → oportunidade "ganho" (trg_pedido_ganha_oportunidade).
 - Cobrança automática ao cliente: todo caminho que manda cobrança (régua, aviso diário, gatilho de criação) passa por
   `conta_receber_cobravel`; conta paga a terceiros, de cartão, do Tiny ou sem NF de venda não é cobrada (29/10).
 - Repositório público: nada de nome de cliente, pessoa ou fornecedor em .md, .sql, comentário ou commit (29/10 um nome

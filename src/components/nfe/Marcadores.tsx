@@ -15,7 +15,7 @@ export type TabelaNota = "notas_fiscais" | "nfe_recebidas";
 /** Tabelas com marcadores (public.marcar_registros) além das notas. */
 export type TabelaMarcavel = TabelaNota | "clientes" | "fornecedores" | "produtos" | "transportadoras" | "funcionarios" | "embalagens"
   | "formas_pagamento" | "pedidos" | "ordens_servico" | "pedidos_compra" | "ordens_producao" | "contas_pagar" | "contas_receber" | "propostas_tiny"
-  | "testes_giga";
+  | "testes_giga" | "oportunidades";
 
 export function useMarcadores() {
   return useRows<Marcador>("marcadores", { order: "ordem", ascending: true });

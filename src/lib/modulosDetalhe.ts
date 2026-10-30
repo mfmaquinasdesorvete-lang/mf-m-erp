@@ -194,6 +194,22 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Quem vê: vendas (só as próprias comissões), financeiro e administrador (todas, com o pagamento).",
     ],
   },
+  "/oportunidades": {
+    tags: ["CRM", "FUNIL", "KANBAN"],
+    destaque: "Acompanhar cada contato até virar venda, sem esquecer ninguém.",
+    partes: [
+      "Quadro por etapas: novo contato, em conversa, proposta enviada, ganho e perdido, com quantas e quanto vale cada etapa.",
+      "Cartão: cliente ou contato, o que procura, valor, responsável, marcadores e há quantos dias está parada.",
+      "O que pede ação: novo contato sem resposta, conversa parada e proposta sem resposta aparecem em amarelo ou vermelho.",
+      "Próximo passo: o botão do cartão leva para a etapa seguinte; WhatsApp abre a conversa com o contato.",
+      "Oportunidade: título, cliente ou contato que ainda não é cliente, valor, responsável, previsão e como chegou.",
+      "Perdido: pede o motivo (preço, comprou de outro, sem resposta…), que entra nas métricas.",
+      "Orçamento: abre um orçamento novo em Vendas para o cliente e liga o orçamento ou pedido à oportunidade.",
+      "Notas e histórico: anotações da equipe e tudo o que mudou (etapa, valor, responsável), com quem e quando.",
+      "Métricas: valor no funil, taxa de ganho, conversão de uma etapa para a outra, tempo em cada etapa, por responsável e motivos de perda.",
+      "Quem vê: vendas mexe; financeiro só vê; excluir é do administrador.",
+    ],
+  },
   "/metas": {
     tags: ["METAS", "RANKING", "PROJEÇÃO"],
     destaque: "Saber cedo se a meta do mês vai ser batida e quanto falta.",

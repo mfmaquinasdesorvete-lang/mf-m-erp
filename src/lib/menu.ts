@@ -1,6 +1,6 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
-  ArrowLeftRight, BadgeCheck, FolderOpen, BarChart3, Boxes, CalendarClock, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
+  ArrowLeftRight, BadgeCheck, Columns3, FolderOpen, BarChart3, Boxes, CalendarClock, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, SquareKanban, Store, Target, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench, Zap,
   ScanSearch, Tags,
@@ -36,6 +36,7 @@ export const grupos: Grupo[] = [
     acao: { label: "Venda", dica: "Nova venda ou orçamento", to: "/pedidos", state: { novo: true }, tela: "pedidos", pode: "editar_pedidos" },
     itens: [
       { to: "/painel/vendas", tela: "pedidos", label: "Painel de vendas", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos conversão funil canal vendedor" },
+      { to: "/oportunidades", tela: "pedidos", label: "Oportunidades (CRM)", curto: "CRM", icon: Columns3, busca: "crm oportunidade oportunidades funil kanban lead leads contato novo contato conversa proposta ganho perdido negociação prospecção follow-up" },
       { to: "/pedidos", tela: "pedidos", label: "Venda de Peças", curto: "Vendas", icon: ShoppingCart, busca: "pedido orçamento venda peça peças balcão whatsapp" },
       { to: "/vendas-maquinas", tela: "pedidos", label: "Venda de Máquinas", curto: "Venda máq.", icon: IceCreamCone, busca: "proposta comercial máquina máquinas tiny my frost op nota" },
       { to: "/mercado-livre", tela: "mercadolivre", label: "Loja online e marketplace", curto: "Loja online", icon: Handshake, busca: "loja online vitrine prontos para marketplace cadastros repetidos ean nomes fora do padrão mercado livre marketplace meli mlb anúncio anúncios estoque preço sincronizar conectar conta trava aprovação" },

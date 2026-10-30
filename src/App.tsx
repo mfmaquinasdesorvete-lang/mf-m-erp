@@ -58,6 +58,7 @@ const AcompanhamentoCompras = lazy(() => import("@/pages/AcompanhamentoCompras")
 const Email = lazy(() => import("@/pages/Email"));
 const Comissoes = lazy(() => import("@/pages/Comissoes"));
 const Metas = lazy(() => import("@/pages/Metas"));
+const Oportunidades = lazy(() => import("@/pages/Oportunidades"));
 const Fluxo = lazy(() => import("@/pages/Fluxo"));
 const PainelExpedicao = lazy(() => import("@/pages/paineis/PainelExpedicao"));
 const Margem = lazy(() => import("@/pages/Margem"));
@@ -161,6 +162,8 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "email", tela: "email", element: <Email /> },
   { path: "comissoes", tela: "comissoes", element: <Comissoes /> },
   { path: "metas", tela: "metas", element: <Metas /> },
+  // CRM: oportunidades antes do orçamento (pedido de 30/10), para quem vê Vendas
+  { path: "oportunidades", tela: "pedidos", element: <Oportunidades /> },
   { path: "fluxo", tela: "fluxo", element: <Fluxo /> },
   { path: "expedicao", tela: "expedicao", element: <PainelExpedicao /> },
   { path: "margem", tela: "margem", element: <Margem /> },

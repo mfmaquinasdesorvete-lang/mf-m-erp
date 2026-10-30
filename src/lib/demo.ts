@@ -1656,6 +1656,33 @@ function comercialDemo(db: Db) {
     { id: "v3", nome: "Paulo (representante RS)", tipo: "representante", user_id: null, percentual: 5, base: "faturamento", descontar_frete: true, cpf_cnpj: "33444555000181", pix: "paulo@rep.com.br", ativo: true, created_at: quando(-90) },
   ];
   for (const p of db.pedidos) p.vendedor_id = db.vendedores.find((v) => v.nome === p.vendedor)?.id ?? null;
+  // oportunidades do CRM (exemplo; no sistema real: public.oportunidades e o histórico em public.oportunidade_eventos)
+  db.oportunidades = [
+    { id: "op1", numero: 1, titulo: "Máquina de sorvete expresso para loja nova", cliente_id: null, contato_nome: "Juliana (Açaí da Praça)", contato_whatsapp: "48999001122", contato_email: null,
+      etapa: "novo", etapa_desde: quando(-2), valor: 18000, vendedor_id: "v1", marcadores: [], origem: "Instagram", previsao: null, motivo_perda: null, pedido_id: null, fechada_em: null, created_at: quando(-2), excluida_em: null },
+    { id: "op2", numero: 2, titulo: "Kit de peças e revisão da máquina", cliente_id: "c1", contato_nome: null, contato_whatsapp: null, contato_email: null,
+      etapa: "conversa", etapa_desde: quando(-3), valor: 2400, vendedor_id: "v2", marcadores: [], origem: "WhatsApp", previsao: null, motivo_perda: null, pedido_id: null, fechada_em: null, created_at: quando(-6), excluida_em: null },
+    { id: "op3", numero: 3, titulo: "Segunda máquina para a filial", cliente_id: "c4", contato_nome: null, contato_whatsapp: null, contato_email: null,
+      etapa: "proposta", etapa_desde: quando(-7), valor: 21500, vendedor_id: "v1", marcadores: [], origem: "Cliente antigo", previsao: quando(10).slice(0, 10), motivo_perda: null, pedido_id: null, fechada_em: null, created_at: quando(-15), excluida_em: null },
+    { id: "op4", numero: 4, titulo: "Máquina de açaí", cliente_id: "c5", contato_nome: null, contato_whatsapp: null, contato_email: null,
+      etapa: "ganho", etapa_desde: quando(-4), valor: 16900, vendedor_id: "v1", marcadores: [], origem: "Indicação", previsao: null, motivo_perda: null, pedido_id: null, fechada_em: quando(-4), created_at: quando(-20), excluida_em: null },
+    { id: "op5", numero: 5, titulo: "Máquina usada", cliente_id: null, contato_nome: "Roberto", contato_whatsapp: null, contato_email: null,
+      etapa: "perdido", etapa_desde: quando(-1), valor: 9000, vendedor_id: "v2", marcadores: [], origem: "Site", previsao: null, motivo_perda: "Preço", pedido_id: null, fechada_em: quando(-1), created_at: quando(-9), excluida_em: null },
+  ];
+  db.oportunidade_eventos = [
+    { id: "oe1", oportunidade_id: "op1", tipo: "criada", de: null, para: "novo", texto: null, por_nome: "Carla", criado_em: quando(-2) },
+    { id: "oe2", oportunidade_id: "op2", tipo: "criada", de: null, para: "novo", texto: null, por_nome: "Marcos", criado_em: quando(-6) },
+    { id: "oe3", oportunidade_id: "op2", tipo: "etapa", de: "novo", para: "conversa", texto: null, por_nome: "Marcos", criado_em: quando(-3) },
+    { id: "oe4", oportunidade_id: "op2", tipo: "nota", de: null, para: null, texto: "Pediu o preço do kit com a revisão; ligar na quinta.", por_nome: "Marcos", criado_em: quando(-2) },
+    { id: "oe5", oportunidade_id: "op3", tipo: "criada", de: null, para: "novo", texto: null, por_nome: "Carla", criado_em: quando(-15) },
+    { id: "oe6", oportunidade_id: "op3", tipo: "etapa", de: "novo", para: "conversa", texto: null, por_nome: "Carla", criado_em: quando(-13) },
+    { id: "oe7", oportunidade_id: "op3", tipo: "etapa", de: "conversa", para: "proposta", texto: null, por_nome: "Carla", criado_em: quando(-7) },
+    { id: "oe8", oportunidade_id: "op4", tipo: "criada", de: null, para: "novo", texto: null, por_nome: "Carla", criado_em: quando(-20) },
+    { id: "oe9", oportunidade_id: "op4", tipo: "etapa", de: "novo", para: "proposta", texto: null, por_nome: "Carla", criado_em: quando(-12) },
+    { id: "oe10", oportunidade_id: "op4", tipo: "etapa", de: "proposta", para: "ganho", texto: null, por_nome: "Carla", criado_em: quando(-4) },
+    { id: "oe11", oportunidade_id: "op5", tipo: "criada", de: null, para: "novo", texto: null, por_nome: "Marcos", criado_em: quando(-9) },
+    { id: "oe12", oportunidade_id: "op5", tipo: "etapa", de: "novo", para: "perdido", texto: "Preço", por_nome: "Marcos", criado_em: quando(-1) },
+  ];
   // equipe (cadastro de funcionários): técnicos aparecem na OS; uma pessoa em experiência e uma aniversariante do mês
   const mesAtual = hojeISO().slice(5, 7);
   db.funcionarios = [
