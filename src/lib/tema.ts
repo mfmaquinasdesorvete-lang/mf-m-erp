@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { aparenciaAtual, corValida } from "./aparencia";
 import { aplicarOrdensDoPerfil } from "./ordemSecoes";
 
@@ -10,6 +11,19 @@ export function lerTema(): Tema {
   } catch {
     return "escuro";
   }
+}
+
+/** Página do cliente (ficha, proposta, cotação, área do cliente): sempre clara, seja qual for o tema do ERP.
+ *  O "publica" faz o aplicarTema das preferências (que roda depois, no App) manter o claro; sem ele a ficha
+ *  abria com as letras e os campos do tema escuro sobre o cartão branco (30/10). */
+export function usePaginaClara() {
+  useEffect(() => {
+    const raiz = document.documentElement;
+    const antes = raiz.dataset.theme;
+    raiz.dataset.publica = "1";
+    raiz.dataset.theme = "light";
+    return () => { delete raiz.dataset.publica; if (antes) raiz.dataset.theme = antes; };
+  }, []);
 }
 
 export function aplicarTema(t: Tema) {

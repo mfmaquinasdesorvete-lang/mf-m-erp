@@ -34,6 +34,9 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Largura no Organizar (29/10): cada seção com meia tela ou tela toda no computador; vai na lista da ordem
   ("id|largo" / "id|meia", só quando difere do código), então vale no perfil e no "Usar para toda a equipe".
 
+- Páginas do cliente (ficha, proposta, cotação, área do cliente) sempre claras pela peça `usePaginaClara` (marca
+  "publica"): a ficha abria com as cores do escuro quando quem abria estava logado no tema escuro (30/10).
+
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 

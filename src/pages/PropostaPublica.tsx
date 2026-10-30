@@ -1,5 +1,6 @@
 // Proposta comercial que o cliente abre pelo link (/proposta/<código>), sem login.
 // Mostra a proposta com o layout da empresa e deixa aprovar (vira pedido) ou recusar (com o motivo).
+import { usePaginaClara } from "@/lib/tema";
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -158,12 +159,7 @@ export default function PropostaPublica() {
 }
 
 function Tela({ children }: { children: React.ReactNode }) {
-  // documento do cliente: sempre claro, independente do tema escolhido no ERP
-  useEffect(() => {
-    const antes = document.documentElement.dataset.theme;
-    document.documentElement.dataset.theme = "light";
-    return () => { if (antes) document.documentElement.dataset.theme = antes; };
-  }, []);
+  usePaginaClara(); // documento do cliente: sempre claro, independente do tema escolhido no ERP
   const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-slate-100 px-3 py-6 print:bg-white print:p-0" style={{ colorScheme: "light" }}>

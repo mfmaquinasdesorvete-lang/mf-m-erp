@@ -4,6 +4,7 @@
 // com o rastreio), Notas fiscais (NF-e e NFS-e da MF com o DANFE) e Meus dados, com um Início que resume tudo e
 // "Imprimir tudo". O código do link é secreto: nunca o CNPJ/CPF, que qualquer um poderia adivinhar.
 // A página é sempre clara (o tema escuro do ERP não vale aqui) e com texto forte, para ler bem no celular.
+import { usePaginaClara } from "@/lib/tema";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -378,15 +379,7 @@ function Conta({ c, dia, token }: { c: Aberta; dia: string; token: string }) {
 }
 
 function Tela({ children }: { children: React.ReactNode }) {
-  // página do cliente: sempre clara, independente do tema escolhido no ERP
-  useEffect(() => {
-    const raiz = document.documentElement;
-    const antes = raiz.dataset.theme;
-    // "publica" faz o aplicarTema (preferências do usuário logado, que chegam depois) manter o claro aqui
-    raiz.dataset.publica = "1";
-    raiz.dataset.theme = "light";
-    return () => { delete raiz.dataset.publica; if (antes) raiz.dataset.theme = antes; };
-  }, []);
+  usePaginaClara(); // página do cliente: sempre clara, independente do tema escolhido no ERP
   const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-slate-100 px-3 py-6 print:bg-white print:p-0" style={{ colorScheme: "light" }}>

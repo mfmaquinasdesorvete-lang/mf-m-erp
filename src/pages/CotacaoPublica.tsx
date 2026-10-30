@@ -1,6 +1,7 @@
 // Pedido de cotação que o fornecedor abre pelo link (/cotacao/<código>), sem login: informa preço, prazo e
 // disponibilidade de cada item e as condições (pagamento, frete, validade). Pode corrigir enquanto a cotação
 // estiver aberta, ou avisar que não vai cotar.
+import { usePaginaClara } from "@/lib/tema";
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -42,12 +43,7 @@ export default function CotacaoPublica() {
   const [recusar, setRecusar] = useState(false);
   const [motivo, setMotivo] = useState("");
 
-  // página pública: sempre no tema claro
-  useEffect(() => {
-    const raiz = document.documentElement, antes = raiz.dataset.theme;
-    raiz.dataset.theme = "light";
-    return () => { if (antes) raiz.dataset.theme = antes; };
-  }, []);
+  usePaginaClara(); // página pública: sempre no tema claro
   // preenche com a resposta anterior (para corrigir)
   useEffect(() => {
     if (!c) return;

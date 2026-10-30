@@ -1,6 +1,7 @@
 // Ficha cadastral que o cliente abre pelo link (/ficha/<código>), sem login, em 3 passos:
 // confere os dados e o contato, confere o endereço e assina (nome, CPF e desenho). Pronto: mostra o código de
 // verificação e deixa baixar o comprovante em PDF.
+import { usePaginaClara } from "@/lib/tema";
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -337,12 +338,7 @@ function Cartao({ empresa, children }: { empresa: string; children: ReactNode })
 }
 
 function Tela({ children }: { children: ReactNode }) {
-  // página do cliente: sempre clara, independente do tema escolhido no ERP
-  useEffect(() => {
-    const antes = document.documentElement.dataset.theme;
-    document.documentElement.dataset.theme = "light";
-    return () => { if (antes) document.documentElement.dataset.theme = antes; };
-  }, []);
+  usePaginaClara(); // página do cliente: sempre clara, independente do tema escolhido no ERP
   const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-200 to-slate-100 px-3 py-5 sm:py-10" style={{ colorScheme: "light" }}>
