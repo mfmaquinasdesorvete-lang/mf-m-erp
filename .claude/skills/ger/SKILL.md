@@ -54,6 +54,9 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 - `supabase/migrations/` (a mais nova que mexeu na tabela vale) e `src/lib/__tests__/`.
 
 ## Cuidados conhecidos
+- Comissão no cartão: uma por pedido, com as parcelas em `comissoes.cartao_parcelas`. Para saber se uma parcela já tem
+  comissão use `comissao_cobre_parcela(pedido, conta)` (olha conta_receber_id, cartao_parcelas e as tiradas à mão), nunca só
+  `conta_receber_id`. Comissão com `motivo_edicao` foi mexida pela usuária: o `on conflict` de lancar_comissao não reabre.
 - Importar extrato: a conta vem de contaDoArquivo (número do OFX ou nome do arquivo); nunca usar a primeira conta da lista como padrão (28/10: OFX do cartão de SP caiu no Inter SC).
 - Importar extrato (Conciliacao.tsx, ImportarModal): nunca escolher conta por padrão (bancos[0]). Em 28/10 dois OFX do
   cartão de um funcionário ("Infinit…") caíram no Banco Inter SC. Conta não reconhecida = escolha obrigatória; número do OFX

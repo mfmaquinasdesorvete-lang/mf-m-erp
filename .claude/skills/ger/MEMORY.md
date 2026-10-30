@@ -6,6 +6,8 @@ Vendas, compras, financeiro, assistência e estoque funcionando no ar. O trabalh
 do código" (levar regras e mensagens para Configurações), parado esperando a tabela nova no banco.
 
 ## No ar
+- 30/10 (site 40e3bba): CRM parte 1 (Oportunidades, menu Vendas) publicado; espera ela olhar e dar o ok para a parte 2.
+- 30/10 (migração 199, banco): comissões. Administrador edita qualquer comissão não paga (editar_comissao: vendedor, base, %, valor, descrição, ou "tirar", sempre com motivo em motivo_edicao; a tirada à mão não volta sozinha) e troca o vendedor do pedido pela mesma janela (editar_pedido_aprovado → recalcular_comissoes_pedido). Venda no cartão entra uma vez só: a 1ª parcela do cartão paga lança uma comissão com todas as parcelas do cartão do pedido (cartao_parcelas); #630 (5 parcelas) e #621 (2) viraram uma comissão cada. Pedido #628 ficou sem vendedor (não foi venda da vendedora) e as 4 comissões dele (R$ 1.499,91) saíram. Teste no banco (desfeito): editar 5%, estornar e pagar de novo a parcela 2/5 (continua 1), tirar (não volta), refazer pelo pedido (volta 1).
 - 29/10 (migração 195, rodada no SQL Editor pela usuária): 16 máquinas repetidas unificadas (unificar_equipamentos; a que sai fica em equipamentos_unificados e o gatilho trg_equipamento_nao_recriar impede a importação de recriar). Base comum: a tabela config_ajustes já existe (parte 1 do FAZ), mas a Base comum fica para depois da rodada de fechamento.
 - 29/10 (migração 197, banco): cobrança automática só para conta cobrável também no aviso diário (3 dias antes / 1 dia depois). Regra conta_receber_cobravel: sem cartão, só contas do ERP novo (desde 28/09, sem id_externo do Tiny), sem "terceiros/fornecedor/a identificar/acordo/permuta/não cobrado" (descrição ou marcador), sem entrada igual pendente no extrato desde a semana do vencimento, OS e pedido não cancelados e pedido com NF de venda autorizada. Teste desfeito: 0 cobranças. religados com o ok dela (29/10).
 - 28/10 (site 3505f34, migração 194): nota de compra com "Como chegou: Retirada no local (sem frete)" (marca chegada, `retirada_local`), "À vista no Pix (já pago)" (`nfe_pago_no_pix`: baixa as contas a pagar da nota no Pix na data da nota, sem conta bancária) e nome do produto editável ao cadastrar pela nota + botão Nome. Teste no banco (desfeito) numa nota de compra de 26/10.
@@ -55,6 +57,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Transportadora principal das compras (sem SSW): pedir a ela o EDI OCOREN ou a API de rastreio (TRA), ou importar a planilha de CT-e do portal.
 
 ## Decisões da usuária
+- 30/10: comissão de venda no cartão entra uma vez só (não uma por parcela). O pedido #628 não teve vendedor. Ela edita qualquer comissão (administrador).
 - 29/10: o cliente com 3 máquinas da MF e 1 da My Frost tem 4 máquinas diferentes (anotado "não unificar"); máquina de NF de transferência entre unidades não fica na ficha da própria MF (a da NF 27 saiu e está em equipamentos_unificados).
 - 28/10: os 3 paquímetros digitais com calibração vencida ficam inativos até segunda ordem (inativados, com o motivo na observação).
 - "Produção" fica na área Fábrica e estoque, depois de Produtos e estoque; o quadro antigo de contas a pagar (KanbanPagar) foi apagado (REV, 27/10).

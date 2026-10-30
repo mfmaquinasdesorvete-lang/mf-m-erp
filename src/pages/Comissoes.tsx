@@ -7,6 +7,7 @@ import { PdfViewer } from "@/components/PdfViewer";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
+import { confirmar } from "@/components/Dialogos";
 import { brl, dataBR, hoje, somarDias, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { baixarPlanilha, celula } from "@/lib/exportar";
@@ -24,6 +25,7 @@ import { ajusteTexto, type TabelaPreco } from "@/lib/tabelasPreco";
 type Comissao = {
   id: string; vendedor_id: string; pedido_id: string; descricao: string; base: number; percentual: number; valor: number;
   status: "a_pagar" | "paga" | "cancelada"; conta_pagar_id: string | null; pago_em: string | null; created_at: string;
+  cartao_parcelas?: string[] | null; editada_em?: string | null; motivo_edicao?: string | null;
   pedido?: { numero: number; cliente?: { nome: string } | null } | null;
 };
 const ROTULO: Record<string, string> = { a_pagar: "a pagar", paga: "paga", cancelada: "cancelada" };
@@ -42,6 +44,9 @@ export default function Comissoes() {
 }
 
 function ListaComissoes({ financeiro, userId }: { financeiro: boolean; userId?: string }) {
+  const { papel } = usePerfil();
+  const admin = papel === "admin";
+  const [editar, setEditar] = useState<Comissao | null>(null);
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { data: lista = [], isLoading } = useRows<Comissao>("comissoes", { select: "*, pedido:pedidos(numero, cliente:clientes(nome))" });
   const [vend, setVend] = useState("");
@@ -131,6 +136,7 @@ function ListaComissoes({ financeiro, userId }: { financeiro: boolean; userId?: 
             onChange={(e) => setSel(e.target.checked ? new Set(filtradas.filter(selecionavel).map((c) => c.id)) : new Set())} /></th>}
           <th className="th">Data</th><th className="th">Vendedor</th><th className="th">Pedido</th><th className="th text-right">Base</th>
           <th className="th text-right">%</th><th className="th text-right">Comissão</th><th className="th">Situação</th>
+          {admin && <th className="th"><span className="sr-only">Editar</span></th>}
         </>}>
         {filtradas.map((c) => (
           <tr key={c.id}>
@@ -138,19 +144,117 @@ function ListaComissoes({ financeiro, userId }: { financeiro: boolean; userId?: 
               onChange={(e) => setSel((s) => { const n = new Set(s); if (e.target.checked) n.add(c.id); else n.delete(c.id); return n; })} />}</td>}
             <td className="td">{dataBR(c.created_at)}</td>
             <td className="td">{nome(c.vendedor_id)}</td>
-            <td className="td">#{c.pedido?.numero} · {c.pedido?.cliente?.nome}<div className="text-xs text-slate-500">{c.descricao}</div></td>
+            <td className="td">#{c.pedido?.numero} · {c.pedido?.cliente?.nome}<div className="text-xs text-slate-500">{c.descricao}</div>
+              {c.motivo_edicao && <div className="text-xs text-amber-700">{c.status === "cancelada" ? "tirada" : "editada"} em {dataBR(c.editada_em)}: {c.motivo_edicao}</div>}</td>
             <td className="td num text-right">{brl(c.base)}</td>
             <td className="td num text-right">{Number(c.percentual).toLocaleString("pt-BR")}%</td>
             <td className="td num text-right font-semibold">{brl(c.valor)}</td>
             <td className="td"><Badge value={c.status === "a_pagar" ? (c.conta_pagar_id ? "pendente" : "aberto") : c.status === "paga" ? "pago" : "cancelado"} />
               {c.status === "a_pagar" && c.conta_pagar_id && <div className="text-xs text-slate-500">no contas a pagar</div>}
               {c.pago_em && <div className="text-xs text-slate-500">paga em {dataBR(c.pago_em)}</div>}</td>
+            {admin && <td className="td">{c.status !== "paga" && (
+              <Button variant="ghost" tamanho="mini" onClick={() => setEditar(c)} aria-label={`Editar a comissão do pedido ${c.pedido?.numero ?? ""}`}><Pencil size={13} aria-hidden /> Editar</Button>
+            )}</td>}
           </tr>
         ))}
       </Table>
       {pagar && <PagarModal comissoes={selecionadas} nome={nome(selecionadas[0]?.vendedor_id)} onClose={(ok) => { setPagar(false); if (ok) setSel(new Set()); }} />}
       {pdf && <PdfViewer blob={pdf} nome="comissoes.pdf" titulo="Comissões" onClose={() => setPdf(null)} />}
+      {editar && <EditarComissao c={editar} vendedores={vendedores} onClose={() => setEditar(null)} />}
     </>
+  );
+}
+
+/** Só o administrador: muda vendedor, base, %, valor ou descrição de uma comissão não paga, tira só ela, ou troca o
+ *  vendedor do pedido inteiro (refaz todas as comissões não pagas do pedido). Sempre com o motivo. */
+function EditarComissao({ c, vendedores, onClose }: { c: Comissao; vendedores: Vendedor[]; onClose: () => void }) {
+  const invalidar = useInvalidate();
+  const tirada = c.status === "cancelada";
+  const [vend, setVend] = useState(c.vendedor_id);
+  const [base, setBase] = useState(String(c.base));
+  const [pct, setPct] = useState(String(c.percentual));
+  const [valor, setValor] = useState(String(c.valor));
+  const [valorMexido, setValorMexido] = useState(false);
+  const [descricao, setDescricao] = useState(c.descricao ?? "");
+  const [motivo, setMotivo] = useState("");
+  const [vendPedido, setVendPedido] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const num = (t: string) => Number(t.replace(",", "."));
+  const calculado = Math.round(num(base) * num(pct)) / 100;
+  const valorFinal = valorMexido ? num(valor) : calculado;
+  const semMotivo = motivo.trim().length < 5;
+  const pedido = c.pedido?.numero ? `#${c.pedido.numero}` : "";
+
+  async function rodar(fn: () => PromiseLike<{ error: unknown }>, ok: string) {
+    setOcupado(true);
+    const { error } = await fn();
+    setOcupado(false);
+    if (error) return notifyError(error);
+    notify(ok);
+    invalidar("comissoes", "contas_pagar", "pedidos");
+    onClose();
+  }
+  function salvar(e: FormEvent) {
+    e.preventDefault();
+    if ([num(base), num(pct), valorFinal].some((n) => !Number.isFinite(n) || n < 0)) return notifyError("Confira a base, o % e o valor.");
+    void rodar(() => supabase.rpc("editar_comissao", { p_id: c.id, p_motivo: motivo.trim(), p_dados: {
+      vendedor_id: vend, base: num(base), percentual: num(pct), valor: valorFinal, descricao: descricao.trim() } }), "Comissão alterada.");
+  }
+  async function tirar() {
+    if (!(await confirmar(`Tirar esta comissão de ${brl(c.valor)}? Ela não volta sozinha.`, { titulo: "Tirar comissão", ok: "Tirar", perigo: true }))) return;
+    void rodar(() => supabase.rpc("editar_comissao", { p_id: c.id, p_motivo: motivo.trim(), p_dados: { tirar: true } }), "Comissão tirada.");
+  }
+  async function trocarNoPedido() {
+    const quem = vendPedido === "nenhum" ? "sem vendedor" : `com ${vendedores.find((v) => v.id === vendPedido)?.nome ?? "outro vendedor"}`;
+    if (!(await confirmar(`O pedido ${pedido} fica ${quem} e todas as comissões dele que ainda não foram pagas são refeitas.`, { titulo: "Trocar o vendedor do pedido", ok: "Trocar" }))) return;
+    void rodar(() => supabase.rpc("editar_pedido_aprovado", { p_pedido: c.pedido_id, p_motivo: motivo.trim(),
+      p_dados: { vendedor_id: vendPedido === "nenhum" ? "" : vendPedido } }), "Pedido alterado: comissões refeitas.");
+  }
+
+  return (
+    <Modal open onClose={onClose} title={`Editar comissão · pedido ${pedido}`}>
+      <form onSubmit={salvar} className="space-y-3">
+        <p className="text-sm text-slate-600">{c.descricao} · {c.pedido?.cliente?.nome}</p>
+        {c.conta_pagar_id && <p className="text-sm text-amber-700">Já está numa conta a pagar em aberto: o valor da conta acompanha a mudança.</p>}
+        {tirada ? <p className="text-sm text-slate-600">Esta comissão foi tirada. Para ela voltar, troque o vendedor do pedido aqui embaixo.</p> : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Vendedor">
+                <select className="input" value={vend} onChange={(e) => setVend(e.target.value)} disabled={!!c.conta_pagar_id}>
+                  {vendedores.filter((v) => v.ativo || v.id === c.vendedor_id).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
+                </select>
+              </Field>
+              <Field label="Descrição"><input className="input" value={descricao} onChange={(e) => setDescricao(e.target.value)} maxLength={300} /></Field>
+              <Field label="Base (R$)"><input className="input num" inputMode="decimal" value={base} onChange={(e) => setBase(e.target.value)} required /></Field>
+              <Field label="%"><input className="input num" inputMode="decimal" value={pct} onChange={(e) => setPct(e.target.value)} required /></Field>
+              <Field label="Comissão (R$)" dica={valorMexido ? "valor escrito à mão" : "base × %"}>
+                <input className="input num" inputMode="decimal" value={valorMexido ? valor : calculado.toFixed(2)}
+                  onChange={(e) => { setValorMexido(true); setValor(e.target.value); }} />
+              </Field>
+            </div>
+        )}
+        <Field label="Motivo" obrigatorio dica="Fica gravado na comissão (mínimo 5 letras).">
+          <input className="input" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={500} placeholder="Ex.: não foi venda dela" />
+        </Field>
+        <div className="rounded-md border border-slate-200 p-3">
+          <div className="text-sm font-semibold text-fg">A venda toda não foi deste vendedor?</div>
+          <div className="mt-2 flex flex-wrap items-end gap-2">
+            <select className="input w-auto" value={vendPedido} onChange={(e) => setVendPedido(e.target.value)} aria-label={`Vendedor do pedido ${pedido}`}>
+              <option value="">Vendedor do pedido {pedido}…</option>
+              <option value="nenhum">Nenhum (sem comissão)</option>
+              {vendedores.filter((v) => v.ativo && v.id !== c.vendedor_id).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
+            </select>
+            <Button type="button" variant="secondary" disabled={!vendPedido || semMotivo || ocupado} onClick={trocarNoPedido}>Trocar no pedido</Button>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">Refaz todas as comissões do pedido que ainda não foram pagas.</p>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          {!tirada && <Button type="button" variant="secondary" tom="perigo" disabled={semMotivo || ocupado} onClick={tirar}>Tirar esta comissão</Button>}
+          <div className="flex-1" />
+          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+          {!tirada && <Button disabled={semMotivo || ocupado} carregando={ocupado}>Salvar</Button>}
+        </div>
+      </form>
+    </Modal>
   );
 }
 

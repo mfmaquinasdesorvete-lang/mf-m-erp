@@ -4525,6 +4525,17 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     sel.forEach((c) => (c.conta_pagar_id = conta.id));
     return { data: conta.id, error: null };
   },
+  editar_comissao: ({ p_id, p_dados, p_motivo }) => {
+    const c = db.comissoes.find((x) => x.id === p_id);
+    if (!c) return erro("comissão não encontrada");
+    if (c.status === "paga") return erro("comissão já paga: não dá para mudar");
+    if (String(p_motivo ?? "").trim().length < 5) return erro("escreva o motivo (mínimo 5 letras)");
+    const marca = { editada_em: quando(0), motivo_edicao: String(p_motivo).trim() };
+    if (p_dados.tirar) Object.assign(c, { status: "cancelada", conta_pagar_id: null }, marca);
+    else Object.assign(c, { vendedor_id: p_dados.vendedor_id ?? c.vendedor_id, base: r2(Number(p_dados.base ?? c.base)), percentual: Number(p_dados.percentual ?? c.percentual),
+      valor: r2(Number(p_dados.valor ?? c.valor)), descricao: p_dados.descricao || c.descricao }, marca);
+    return { data: null, error: null };
+  },
   marcar_senha_trocada: () => {
     const u = db.usuarios_erp.find((x) => x.user_id === sessao?.user.id);
     if (u) u.trocar_senha = false;
