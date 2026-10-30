@@ -2,9 +2,9 @@
 Atualizado em 28/10/2026.
 
 ## Estado agora
-- 29/10 08:41: 2º resumo mandado. Nada da lista feito ainda (SQL, conector, deploy key, T1); 119 'voce'; para-conferir
-  mostrados 1 a 6, nenhum conferido. Auditor: 1 novo (taxa 0% InfinitePay SC). Fiscal novo no topo: guias 09/2026 do
-  Presumido (contador refaz) e inutilizar 4–398 da série 1 SP até 10/11. Próximo: 30/10 08:40.
+- 30/10 08:41: 3º resumo. Feito desde ontem: SQL Editor (8 partes) e 16 páginas do ELO. Pendente: conector, deploy
+  key, duas etapas, rosto (0 fatores), T1 (Tiny 16/10), inutilização SP (prazo 10/11). 121 'voce'. Para-conferir
+  mostrados 1 a 9, nenhum conferido. Próximo: 31/10 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 
@@ -79,7 +79,7 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Decisão dela (FIS): testar a NF-e em lote emitindo de verdade (b369f5d6).
 
 ## Próximos passos
-0. Resumo diário 08:40 (send_later, a tarefa agendada tem o roteiro). Itens para conferir já mostrados: 1 a 6. Topo do resumo de 28/10
+0. Resumo diário 08:40 (send_later, a tarefa agendada tem o roteiro). Itens para conferir já mostrados: 1 a 9. Topo do resumo de 28/10
    (pedido do ELO, lista do FIS em 5827327): 1) 14 pedidos entregues sem nota (9 de outubro já pagos e 5 do Tiny,
    um de máquina): emitir a NF-e pelo pedido; 2) notas com valor menor que a venda; 3) parcelamento do Simples
    antigo sem pagamento depois de 10/2025 (conferir no e-CAC); 4) certidões vencidas. Depois a virada do Tiny e as
