@@ -1,5 +1,5 @@
 # MEMORY — CAR (ERP Line – Minha carteira (pessoal))
-Atualizado em 27/10/2026.
+Atualizado em 30/10/2026.
 
 ## Estado agora
 Painel pessoal (Retaguarda → Pessoal, só a conta master) completo: resumo, encontro de contas, extratos por mês,
@@ -15,6 +15,8 @@ contas do mês, controle sem cobrança e a ficha das empresas. O que falta depen
   no meio da tela antes de vencer (5695963). Primeira conta: o DAS de um MEI da família.
 - Trava de valor: a voz não lê telefone/documento como valor e o banco recusa |valor| ≥ 10 milhões
   (14733e6, migração 20261101000162).
+- Período "Semana" e a carteira abre nele (ae9bf6b); "próximo" das Contas do mês sem nada pago começa no mês
+  desde (a892713). No ar em 29/10.
 - Cartão "Controle (não vou cobrar)" (pessoal_controle): valores só para acompanhar, fora dos saldos (e90d5a7).
 - Conta encerrada com as vendas por dia de uma loja que usou a maquininha de um familiar (dados, sem código novo).
 
@@ -26,7 +28,6 @@ contas do mês, controle sem cobrança e a ficha das empresas. O que falta depen
 - Dizer se uma conta antiga (extrato só de 2024) ainda existe, para encerrar ou acertar o saldo.
 - Dizer o que passou para a conta de um familiar em 23/09.
 - Explicar as saídas de 2024 que ainda não têm explicação (35 de 68) e de quem são 2 pagamentos da conta da loja.
-- Autorizar a publicação da carteira abrindo em "Esta semana" (ae9bf6b).
 - Importar extratos que faltam: conta da loja (março, setembro, outubro), conta do familiar (dez/jan/fev).
 - Cadastrar os secrets do Meu Pluggy no Supabase.
 - CNPJ de uma empresa ainda a abrir, para Minhas empresas.
