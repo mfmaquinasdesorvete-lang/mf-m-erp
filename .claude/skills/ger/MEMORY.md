@@ -79,6 +79,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Funções do Supabase: inter, nfe-recebidas-sync, infinitepay, proposta-enviar.
 
 ## Próximos passos
+- Depois da rodada de fechamento (ou se ela pedir antes), sugestões do DSG para Fornecedores (auditoria 30/10, B4–B5): aviso "Já existe: … abrir" ao digitar CNPJ repetido, comparando só os números (o índice fornecedores_cnpj_key compara o texto e o erro do banco sai cru), e blocos fechados ou passo a passo no cadastro novo no computador.
 - a8d2634a: funções publicadas em 27/10; na próxima nota de fornecedor conferir se `nfe_recebidas.xml` ficou guardado e o à vista / a prazo veio do XML, e marcar feito.
 - DANFE no menu das vendas só aparece para nota emitida pelo ERP (as do Tiny não têm danfe_url).
 - Teste da rodada de fechamento (CNF, 27/10): 17 testados (14 passaram, 3 voltaram); faltam 122 "feito" sem teste. Daqui o site não abre (rede): testar pelo banco de produção e pelo código no site.zip.
