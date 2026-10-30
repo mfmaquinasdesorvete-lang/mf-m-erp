@@ -116,7 +116,7 @@ export function Layout() {
   const vis = useVisivel();
   const location = useLocation();
   // trocou de tela (ex.: tocou num aviso do painel): começa do alto, e não no meio da página de antes
-  useEffect(() => { window.scrollTo({ top: 0 }); document.querySelector("main")?.scrollTo?.({ top: 0 }); }, [location.pathname]);
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); document.querySelector("main")?.scrollTo?.({ top: 0, behavior: "instant" }); }, [location.pathname]);
   const [aberto, setAberto] = useState(false);
   const [criar, setCriar] = useState(false);
   const [busca, setBusca] = useState("");

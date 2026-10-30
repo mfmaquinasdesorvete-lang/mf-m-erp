@@ -85,7 +85,7 @@ export default function Loja() {
 
   useEffect(() => {
     document.title = produto ? `${produto.nome} · ${empresa?.nome ?? ""}` : `${empresa?.nome ?? "Loja"} · Loja`;
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: "instant" });
   }, [produto, empresa, pagina]);
 
   return (

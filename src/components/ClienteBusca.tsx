@@ -44,7 +44,7 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, carregando: 
     const t = setTimeout(() => { const v = (consulta ?? "").trim(); setConsulta(null); campo.current?.blur(); onNovo(v); }, 600);
     return () => clearTimeout(t);
   }, [onNovo, carregando, aberto, docCompleto, achados.length, consulta]);
-  useEffect(() => { lista.current?.querySelector<HTMLElement>(`[data-i="${ativo}"]`)?.scrollIntoView({ block: "nearest" }); }, [ativo]);
+  useEffect(() => { lista.current?.querySelector<HTMLElement>(`[data-i="${ativo}"]`)?.scrollIntoView({ block: "nearest", behavior: "instant" }); }, [ativo]);
 
   const rotulo = escolhido ? `${rotuloCliente(escolhido)}${escolhido.cpf_cnpj ? ` · ${docFormat(escolhido.cpf_cnpj)}` : ""}` : "";
   const escolher = (c: T | null) => { onChange(c?.id ?? "", c); setConsulta(null); campo.current?.blur(); };

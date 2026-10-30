@@ -30,7 +30,7 @@ export function ProdutoBusca<T extends ProdutoBuscavel & { kit?: boolean | null 
     [aberto, produtos, consulta]);
 
   useEffect(() => { setAtivo(0); }, [consulta]);
-  useEffect(() => { lista.current?.querySelector<HTMLElement>(`[data-i="${ativo}"]`)?.scrollIntoView({ block: "nearest" }); }, [ativo]);
+  useEffect(() => { lista.current?.querySelector<HTMLElement>(`[data-i="${ativo}"]`)?.scrollIntoView({ block: "nearest", behavior: "instant" }); }, [ativo]);
   // no fim de um formulário comprido a lista abriria fora da tela
   useEffect(() => { if (aberto) painel.current?.scrollIntoView({ block: "nearest" }); }, [aberto]);
 

@@ -37,6 +37,9 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Páginas do cliente (ficha, proposta, cotação, área do cliente) sempre claras pela peça `usePaginaClara` (marca
   "publica"): a ficha abria com as cores do escuro quando quem abria estava logado no tema escuro (30/10).
 
+- Área de toque no celular (botões de ícone, mini e chips) e rolagem suave no site, com troca de tela e setas
+  do teclado instantâneas (30/10).
+
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 

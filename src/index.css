@@ -234,6 +234,13 @@ h1, h2, h3 { text-wrap: balance; }
   .link-discreto { @apply font-semibold text-slate-500 hover:text-fg hover:underline max-sm:py-1.5; }
   /* botão pequeno (ações dentro de linhas e cartões); as cores vêm de Button (variant/tom) ou de .botao-mini-neutro */
   .botao-mini { @apply inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-botao px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 max-sm:min-h-8; }
+  /* área de toque no celular (30/10, regra 9 da auditoria): botões de ícone, mini e chips têm 28 a 32 px de desenho;
+     uma área invisível em volta leva o toque para perto de 44 px sem mudar o desenho (só em tela de toque).
+     O lado é menor que o alto para não invadir o vizinho quando estão juntos numa fila. */
+  @media (pointer: coarse) {
+    .botao-icone, .botao-icone-perigo, .botao-mini, .chip { position: relative; }
+    .botao-icone::after, .botao-icone-perigo::after, .botao-mini::after, .chip::after { content: ""; position: absolute; inset: -6px -3px; }
+  }
   .botao-mini-neutro { @apply border border-slate-300 bg-surface text-slate-700 shadow-sm hover:bg-slate-50; }
   /* chip de filtro ou de escolha (o mesmo de ChipsSituacao): .chip + .chip-ativo, .chip-neutro ou uma cor própria */
   .chip { @apply inline-flex shrink-0 items-center gap-1.5 rounded-chip border px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 max-sm:min-h-8; }
@@ -296,6 +303,9 @@ h1, h2, h3 { text-wrap: balance; }
 select option { background: rgb(var(--campo)); color: rgb(var(--fg)); }
 @keyframes entrar { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+/* rolagem suave ao ir até uma seção (30/10); some para quem pede menos movimento. Troca de tela e as setas do
+   teclado nas buscas pedem "instant" no código, para não ficarem lentas. */
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 
 /* Tabelas no celular: cada linha vira um cartão "rótulo → valor" (ver Table em ui.tsx) */
 @media (max-width: 767px) {

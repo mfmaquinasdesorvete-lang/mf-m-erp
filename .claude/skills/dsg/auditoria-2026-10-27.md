@@ -21,7 +21,7 @@ Situação: ✅ atende · 🟡 em parte · 🔴 falta.
 ## O que fazer, em ordem
 
 1. **Estados (regra 7):** trocar os 86 "Carregando…" e 20 "Nenhum … encontrado" pelas peças; erro com "Tentar de novo" nas listas que não são cadastro. (DSG)
-2. **Toque (regra 9):** botões de ícone, mini e chips com área de toque de 40 a 44 px no celular, sem aumentar o desenho (área invisível em volta). (DSG)
+2. ~~Toque (regra 9)~~: feito em 30/10: área invisível em volta de botões de ícone, mini e chips só em tela de toque (+12 px no alto, +6 px no lado), sem mudar o desenho. Junto: rolagem suave no site (some para quem pede menos movimento).
 3. **Trava de clique duplo (regra 11):** `carregando` em todo botão que grava. (DSG nas peças; cada chat nas suas telas)
 4. ~~Letras no celular (regra 4)~~: feito em 27/10 (texto 14 px, rótulos 12 px no celular), com o sim da usuária.
 5. **Botões feitos à mão (regra 1):** baixar de 356 aos poucos, começando pelas telas mais usadas. (DSG + chats donos)
