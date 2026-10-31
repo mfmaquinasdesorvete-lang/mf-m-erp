@@ -13,6 +13,9 @@
   fazer, em 1 ou 2 frases simples>');`. Aparece no meio da tela com som e a voz lê o resumo; o botão abre o chat.
   E mandar também a notificação no celular dela (ferramenta PushNotification, carregar com ToolSearch), começando
   pelo nome do chat: "<chat>: <o que ela precisa fazer>" (até 200 letras, sem valores nem dados pessoais).
+- Gravação no banco que pede aprovação (decisão de 31/10: continua pedindo, é o mais seguro): antes de gravar, avisar
+  no ERP (`aviso_claude`) e no celular (PushNotification) "<chat>: abra este chat para aprovar a gravação no banco", e
+  esperar 1 a 2 minutos antes de mandar a gravação. Se o pedido expirar, não repetir sem novo aviso.
 - Um chat publica por vez (vários chats trabalham ao mesmo tempo). Depois do "Pode publicar":
   1. Pegar a trava: `select public.publicacao_comecar('<nome do chat>', '<o que vai ao ar>');` (guarda o id).
      Se der "Outro chat está publicando", esperar uns 3 minutos e tentar de novo; não publicar sem a trava.
