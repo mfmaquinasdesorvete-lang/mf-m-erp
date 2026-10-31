@@ -144,3 +144,5 @@ bate e mostra as provas. Só leitura: nunca altera lançamento, baixa, pagamento
   lançamentos, não o DTSTART–DTEND do OFX: mês sem movimento parece "buraco" para o auditor mesmo com o extrato do banco.
 - A rodada diária lê com a chave de serviço (todas as unidades) e grava só em `auditor_rodadas`/`auditor_achados`;
   a tela continua lendo com o login de quem abre. Achado novo = chave que nunca apareceu (não repetir alerta).
+- Na Conciliação, a lista de contas da tela é só da unidade escolhida; a janela de importar recebe todas as contas
+  (senão o extrato de SP aberto na tela de SC não acha a conta certa). O OFX da InfinitePay traz o número sem o dígito.
