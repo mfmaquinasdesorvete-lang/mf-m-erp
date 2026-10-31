@@ -71,6 +71,9 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Prazo: os 2 botões do Tiny antes da virada de 09/11.
 - Acompanhar (31/10, via CNF): TRA marcar os envios #25 (pedido #615) e #26 (pedido #616) como "Cliente retirou" no mesmo
   dia e deixar mais curta a tela do frete de um envio. O TRA responde ao FAZ.
+- Acompanhar (31/10, via CNF): ENT auditar o quadro de pedidos de outubro (Vendas, "Este mês") × recebimentos e envios
+  (faturados de ago/set aparecendo em outubro; 7 aprovados com só R$ 5 a receber; #615/#616 em "Aguardando cotação").
+  O ENT responde ao FAZ.
 
 ## Dossiê MF SC (28/10, pelo ELO)
 - Juntar no ERP tudo da MF SC desde 28/06/2022. FIS coordena (pedido 21a33e7d) com TIN, GER e ENT; eles me mandam o
