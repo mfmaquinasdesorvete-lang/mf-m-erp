@@ -8,6 +8,9 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { confirmar } from "@/components/Dialogos";
+import { ReciboModal, type Recibo } from "@/components/financeiro/Recibos";
+import { MEIOS } from "@/lib/formasPagamento";
+import { useQuery } from "@tanstack/react-query";
 import { brl, dataBR, hoje, somarDias, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { baixarPlanilha, celula } from "@/lib/exportar";
@@ -53,7 +56,7 @@ function ListaComissoes({ financeiro, userId }: { financeiro: boolean; userId?: 
   const [status, setStatus] = useState("a_pagar");
   const [mes, setMes] = useState("");
   const [sel, setSel] = useState<Set<string>>(new Set());
-  const [pagar, setPagar] = useState(false);
+  const [pagar, setPagar] = useState<Comissao[] | null>(null);
   const [pdf, setPdf] = useState<Blob | null>(null);
   const { data: cfg } = useConfig();
   const { atual, unidades } = useUnidade();
@@ -99,13 +102,23 @@ function ListaComissoes({ financeiro, userId }: { financeiro: boolean; userId?: 
       {!financeiro && !minhas && <p className="mb-3 text-sm text-slate-500">Seu usuário não está ligado a um cadastro de vendedor. Peça ao financeiro para ligar em Comissões → Vendedores.</p>}
       {financeiro && porVendedor.length > 0 && (
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {porVendedor.slice(0, 8).map(([id, v]) => (
-            <button key={id} type="button" className="cartao p-4 text-left hover:border-brand" onClick={() => { setVend(id); setStatus("a_pagar"); }}>
-              <div className="font-semibold text-fg">{nome(id)}</div>
-              <div className="num mt-1 text-lg font-bold">{brl(v.aPagar)}</div>
-              <div className="text-xs text-slate-500">a pagar · {brl(v.pagas)} já pago</div>
-            </button>
-          ))}
+          {porVendedor.slice(0, 8).map(([id, v]) => {
+            // o que dá para pagar agora: a pagar e ainda fora de uma conta a pagar
+            const abertas = lista.filter((c) => c.vendedor_id === id && selecionavel(c));
+            return (
+              <div key={id} className={`cartao flex flex-col gap-2 p-4 ${vend === id ? "!border-fg ring-2 ring-fg/20" : ""}`}>
+                <button type="button" className="linha-clicavel -mx-1.5 px-1.5 py-0.5 text-left" aria-pressed={vend === id}
+                  onClick={() => { setVend(vend === id ? "" : id); setStatus("a_pagar"); }} title="Ver só as comissões desta pessoa">
+                  <div className="font-semibold text-fg">{nome(id)}</div>
+                  <div className="num mt-1 text-lg font-bold">{brl(v.aPagar)}</div>
+                  <div className="text-xs text-slate-500">a pagar · {brl(v.pagas)} já pago</div>
+                </button>
+                {abertas.length > 0 && (
+                  <Button className="w-full" onClick={() => setPagar(abertas)}><Wallet size={16} /> Pagar {brl(abertas.reduce((s, c) => s + Number(c.valor), 0))}</Button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
       <div className="mb-3 flex flex-wrap items-end gap-2">
@@ -122,7 +135,7 @@ function ListaComissoes({ financeiro, userId }: { financeiro: boolean; userId?: 
         <div className="flex-1" />
         <Button variant="secondary" onClick={imprimir}><Printer size={16} /> Imprimir</Button>
         <Button variant="secondary" onClick={exportar} disabled={!filtradas.length}><FileDown size={16} /> Exportar</Button>
-        {financeiro && <Button onClick={() => setPagar(true)} disabled={!selecionadas.length || new Set(selecionadas.map((c) => c.vendedor_id)).size > 1}>
+        {financeiro && <Button variant="secondary" onClick={() => setPagar(selecionadas)} disabled={!selecionadas.length || new Set(selecionadas.map((c) => c.vendedor_id)).size > 1}>
           <Wallet size={16} /> Pagar {selecionadas.length ? brl(selecionadas.reduce((s, c) => s + Number(c.valor), 0)) : ""}
         </Button>}
       </div>
@@ -158,7 +171,8 @@ function ListaComissoes({ financeiro, userId }: { financeiro: boolean; userId?: 
           </tr>
         ))}
       </Table>
-      {pagar && <PagarModal comissoes={selecionadas} nome={nome(selecionadas[0]?.vendedor_id)} onClose={(ok) => { setPagar(false); if (ok) setSel(new Set()); }} />}
+      {pagar && <PagarModal comissoes={pagar} nome={nome(pagar[0]?.vendedor_id)} onClose={(ok) => { setPagar(null); if (ok) setSel(new Set()); }} />}
+      {!financeiro && minhas && <MeusRecibos />}
       {pdf && <PdfViewer blob={pdf} nome="comissoes.pdf" titulo="Comissões" onClose={() => setPdf(null)} />}
       {editar && <EditarComissao c={editar} vendedores={vendedores} onClose={() => setEditar(null)} />}
     </>
@@ -258,32 +272,116 @@ function EditarComissao({ c, vendedores, onClose }: { c: Comissao; vendedores: V
   );
 }
 
+/** Pagar as comissões de uma pessoa (pedido de 31/10): escolhe quais, e se já pagou (dia e conta de onde saiu: dá a
+ *  baixa, emite o recibo e avisa a pessoa) ou se é para agendar no contas a pagar. */
 function PagarModal({ comissoes, nome, onClose }: { comissoes: Comissao[]; nome: string; onClose: (ok: boolean) => void }) {
+  const [marcadas, setMarcadas] = useState(() => new Set(comissoes.map((c) => c.id)));
+  const [jaPago, setJaPago] = useState(true);
+  const [data, setData] = useState(hoje());
   const [venc, setVenc] = useState(somarDias(5));
+  const [conta, setConta] = useState("");
+  const [forma, setForma] = useState("Pix");
   const [ocupado, setOcupado] = useState(false);
+  const [recibo, setRecibo] = useState<Recibo | null>(null);
+  const { data: bancos = [] } = useRows<{ id: string; nome: string; ativo: boolean }>("contas_bancarias", { order: "nome", ascending: true });
   const invalidar = useInvalidate();
-  const total = comissoes.reduce((s, c) => s + Number(c.valor), 0);
-  async function gerar(e: FormEvent) {
+  const escolhidas = comissoes.filter((c) => marcadas.has(c.id));
+  const total = escolhidas.reduce((s, c) => s + Number(c.valor), 0);
+  const alternar = (id: string) => setMarcadas((m) => { const n = new Set(m); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+
+  async function confirmarPagamento(e: FormEvent) {
     e.preventDefault();
+    if (!escolhidas.length) return notifyError("Marque ao menos uma comissão.");
+    if (jaPago && !conta) return notifyError("Escolha a conta de onde saiu o pagamento.");
     setOcupado(true);
-    const { error } = await supabase.rpc("gerar_pagamento_comissoes", { p_ids: comissoes.map((c) => c.id), p_vencimento: venc || hoje() });
-    setOcupado(false);
-    if (error) return notifyError(error);
-    notify("Lançado no contas a pagar. Ao dar baixa lá, as comissões ficam pagas.");
-    invalidar("comissoes", "contas_pagar");
+    const { data: r, error } = await supabase.rpc("pagar_comissoes", {
+      p_ids: escolhidas.map((c) => c.id), p_data: jaPago ? data : venc, p_conta_bancaria: jaPago ? conta : null, p_forma: forma, p_ja_pago: jaPago });
+    if (error) { setOcupado(false); return notifyError(error); }
+    invalidar("comissoes", "contas_pagar", "recibos");
+    const res = r as { situacao: string; recibo_id?: string; recibo_numero?: number };
+    if (res.situacao === "paga" && res.recibo_id) {
+      const { data: rec } = await supabase.from("recibos").select("*").eq("id", res.recibo_id).single();
+      setOcupado(false);
+      notify(`Pago e lançado no financeiro. Recibo nº ${res.recibo_numero} emitido e ${nome} avisado(a).`);
+      if (rec) return setRecibo(rec as Recibo);
+    } else {
+      setOcupado(false);
+      notify(res.situacao === "aprovacao" ? "Lançado no contas a pagar, mas a conta foi para Aprovações: dê a baixa depois de aprovar."
+        : "Lançado no contas a pagar. Ao dar baixa lá, as comissões ficam pagas.");
+    }
     onClose(true);
   }
+
+  if (recibo) return <ReciboModal rascunho={recibo} onClose={() => onClose(true)} />;
   return (
     <Modal open onClose={() => onClose(false)} title={`Pagar comissões · ${nome}`}>
-      <form onSubmit={gerar} className="space-y-3">
-        <p className="text-sm">{comissoes.length} {pl(comissoes.length, "comissão", "comissões")}, total <b className="num">{brl(total)}</b>. Vai virar uma conta no <b>contas a pagar</b> (categoria comissões).</p>
-        <Field label="Vencimento"><input type="date" className="input" value={venc} onChange={(e) => setVenc(e.target.value)} required /></Field>
+      <form onSubmit={confirmarPagamento} className="space-y-3">
+        <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200">
+          {comissoes.map((c) => (
+            <label key={c.id} className="flex cursor-pointer items-start gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-0">
+              <input type="checkbox" className="mt-0.5 h-4 w-4" checked={marcadas.has(c.id)} onChange={() => alternar(c.id)} />
+              <span className="min-w-0 flex-1">#{c.pedido?.numero} · {c.pedido?.cliente?.nome}<span className="block text-xs text-slate-500">{c.descricao}</span></span>
+              <span className="num font-semibold">{brl(c.valor)}</span>
+            </label>
+          ))}
+        </div>
+        <p className="text-sm">{escolhidas.length} {pl(escolhidas.length, "comissão", "comissões")}, total <b className="num">{brl(total)}</b>. Pagou outro valor? Desmarque ou use Editar na comissão antes.</p>
+        <Tabs value={jaPago ? "pago" : "agendar"} onChange={(v) => setJaPago(v === "pago")}
+          options={[{ value: "pago", label: "Já paguei" }, { value: "agendar", label: "Agendar no contas a pagar" }]} />
+        {jaPago ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Field label="Pago em"><input type="date" className="input" value={data} max={hoje()} onChange={(e) => setData(e.target.value)} required /></Field>
+            <Field label="Saiu de">
+              <select className="input" value={conta} onChange={(e) => setConta(e.target.value)} required>
+                <option value="">Escolha a conta…</option>
+                {bancos.filter((b) => b.ativo).map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
+              </select>
+            </Field>
+            <Field label="Forma">
+              <select className="input" value={forma} onChange={(e) => setForma(e.target.value)}>
+                {MEIOS.map(([, rotulo]) => <option key={rotulo} value={rotulo}>{rotulo}</option>)}
+              </select>
+            </Field>
+          </div>
+        ) : (
+          <Field label="Vencimento"><input type="date" className="input" value={venc} onChange={(e) => setVenc(e.target.value)} required /></Field>
+        )}
+        <p className="text-xs text-slate-500">{jaPago
+          ? "Lança no contas a pagar já pago, emite o recibo e avisa a pessoa (ela vê o recibo na tela de Comissões dela)."
+          : "Vira uma conta no contas a pagar (categoria comissões); ao dar baixa lá, as comissões ficam pagas."}</p>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={() => onClose(false)}>Cancelar</Button>
-          <Button disabled={ocupado}>{ocupado ? "Gerando…" : "Gerar conta a pagar"}</Button>
+          <Button disabled={ocupado || !escolhidas.length} carregando={ocupado}>{jaPago ? "Registrar pagamento e emitir recibo" : "Lançar no contas a pagar"}</Button>
         </div>
       </form>
     </Modal>
+  );
+}
+
+/** Para quem vende: os recibos das comissões pagas (pedido de 31/10). */
+function MeusRecibos() {
+  const { data: recibos = [], isLoading } = useQuery({
+    queryKey: ["recibos", "meus_recibos_comissao"],
+    queryFn: async () => { const { data, error } = await supabase.rpc("meus_recibos_comissao"); if (error) throw error; return (data ?? []) as Recibo[]; },
+  });
+  const [aberto, setAberto] = useState<Recibo | null>(null);
+  if (isLoading || !recibos.length) return null;
+  return (
+    <section className="mt-4" aria-label="Meus recibos de comissão">
+      <h2 className="mb-2 text-sm font-bold text-fg">Meus recibos de comissão</h2>
+      <Table head={<><th className="th">Nº</th><th className="th">Pago em</th><th className="th">Referente</th><th className="th text-right">Valor</th><th className="th"><span className="sr-only">Abrir</span></th></>}>
+        {recibos.map((r) => (
+          <tr key={r.id}>
+            <td className="td num">{r.numero}</td>
+            <td className="td">{dataBR(r.data_pagamento)}</td>
+            <td className="td text-sm">{r.referente}</td>
+            <td className="td num text-right font-semibold">{brl(r.valor)}</td>
+            <td className="td"><Button variant="ghost" tamanho="mini" onClick={() => setAberto(r)}><Printer size={13} aria-hidden /> Ver recibo</Button></td>
+          </tr>
+        ))}
+      </Table>
+      {aberto && <ReciboModal rascunho={aberto} onClose={() => setAberto(null)} />}
+    </section>
   );
 }
 

@@ -4532,6 +4532,27 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     sel.forEach((c) => (c.conta_pagar_id = conta.id));
     return { data: conta.id, error: null };
   },
+  pagar_comissoes: ({ p_ids, p_data, p_conta_bancaria, p_forma, p_ja_pago }) => {
+    const r = rpcs.gerar_pagamento_comissoes({ p_ids, p_vencimento: p_data }) as { data: string | null; error: unknown };
+    if (r.error || !r.data) return r;
+    const conta = db.contas_pagar.find((c) => c.id === r.data)!;
+    if (!p_ja_pago) return { data: { conta_id: conta.id, total: conta.valor, situacao: "agendada" }, error: null };
+    Object.assign(conta, { status: "pago", data_pagamento: p_data, valor_pago: conta.valor, conta_bancaria_id: p_conta_bancaria });
+    const minhas = db.comissoes.filter((c) => c.conta_pagar_id === conta.id);
+    minhas.forEach((c) => Object.assign(c, { status: "paga", pago_em: p_data }));
+    const v = db.vendedores.find((x) => x.id === minhas[0]?.vendedor_id);
+    const peds = [...new Set(minhas.map((c) => db.pedidos.find((p) => p.id === c.pedido_id)?.numero).filter(Boolean))].sort((a, b) => a - b);
+    const rec = { id: uid(), numero: Math.max(0, ...(db.recibos ?? []).map((x) => Number(x.numero) || 0)) + 1, tipo: "pagamento", unidade_id: U_SC,
+      conta_receber_id: null, conta_pagar_id: conta.id, pagador_nome: "MF MÁQUINAS LTDA", pagador_doc: "00000000000100", recebedor_nome: v?.nome ?? "",
+      recebedor_doc: null, valor: conta.valor, referente: `Comissões de vendas: ${peds.map((n) => `#${n}`).join(", ")}`, forma_pagamento: p_forma,
+      data_pagamento: p_data, cidade: "São José/SC", observacoes: null, cancelado_em: null, cancelado_motivo: null, created_at: quando(0), de_funcionario: false };
+    (db.recibos ??= []).push(rec);
+    return { data: { conta_id: conta.id, total: conta.valor, situacao: "paga", recibo_id: rec.id, recibo_numero: rec.numero }, error: null };
+  },
+  meus_recibos_comissao: () => {
+    const meus = new Set(db.comissoes.filter((c) => db.vendedores.find((v) => v.id === c.vendedor_id)?.user_id === sessao?.user.id).map((c) => c.conta_pagar_id));
+    return { data: (db.recibos ?? []).filter((r) => r.conta_pagar_id && meus.has(r.conta_pagar_id) && !r.cancelado_em), error: null };
+  },
   editar_comissao: ({ p_id, p_dados, p_motivo }) => {
     const c = db.comissoes.find((x) => x.id === p_id);
     if (!c) return erro("comissão não encontrada");
