@@ -71,9 +71,10 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Prazo: os 2 botões do Tiny antes da virada de 09/11.
 - Acompanhar (31/10, via CNF): TRA marcar os envios #25 (pedido #615) e #26 (pedido #616) como "Cliente retirou" no mesmo
   dia e deixar mais curta a tela do frete de um envio. O TRA responde ao FAZ.
-- Acompanhar (31/10, via CNF): ENT auditar o quadro de pedidos de outubro (Vendas, "Este mês") × recebimentos e envios
-  (faturados de ago/set aparecendo em outubro; 7 aprovados com só R$ 5 a receber; #615/#616 em "Aguardando cotação").
-  O ENT responde ao FAZ.
+- 31/10: ENT auditou o quadro de outubro (pedido 0f75a2ae). Seguem com os donos: GER (12 faturados antigos → entregue,
+  cancelar #619 refeito como #630, #626 pago em dinheiro), MKT (#633), FIS (NF 438, notas com erro #625 e #610, entregues
+  sem nota), TRA (#616 cancelado com envio entregue, #3, #36 em trânsito desde setembro). Dela: extratos da InfinitePay SC
+  desde 29/10 e do Mercado Pago SP desde 05/2026 (entram no resumo).
 
 ## Dossiê MF SC (28/10, pelo ELO)
 - Juntar no ERP tudo da MF SC desde 28/06/2022. FIS coordena (pedido 21a33e7d) com TIN, GER e ENT; eles me mandam o
