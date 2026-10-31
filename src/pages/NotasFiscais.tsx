@@ -279,7 +279,8 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
     ...marcadores.map((m) => ({ tipo: "Marcador", rotulo: m.nome, aplicar: () => setMarcador(m.id) })),
     ...ufsDaLista.map((u) => ({ tipo: "UF", rotulo: u, aplicar: () => filtros.setF({ ...f, uf: u }) })),
   ];
-  const totalLista = filtrada.filter((n) => n.status !== "cancelada").reduce((t, n) => t + Number(n.valor_total ?? 0), 0);
+  // mesma regra dos cartões: só a autorizada de produção vale (rejeitada, denegada, pendente e teste não somam)
+  const totalLista = filtrada.filter((n) => situacaoEmitida(n).chave === "autorizada" && n.ambiente !== "homologacao").reduce((t, n) => t + Number(n.valor_total ?? 0), 0);
   const COR_VISAO: Record<string, string> = { pendentes: "bg-amber-500", autorizadas: "bg-emerald-500", canceladas: "bg-slate-400", teste: "bg-sky-500" };
 
   return (
@@ -298,7 +299,7 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
             filtros.setF({ ...f, numDe: String(e.numDe ?? ""), numAte: String(e.numAte ?? ""), valorMin: String(e.valorMin ?? ""), valorMax: String(e.valorMax ?? ""), uf: String(e.uf ?? "") }); },
         }}
         ligados={aba === "excluidas" ? [] : ligados} sugestoes={sugestoes}
-        resultado={aba === "excluidas" ? undefined : <><b className="num text-fg">{filtrada.length}</b> {pl(filtrada.length, "nota", "notas")} · <b className="num text-fg">{brl(totalLista)}</b> sem canceladas</>} />
+        resultado={aba === "excluidas" ? undefined : <><b className="num text-fg">{filtrada.length}</b> {pl(filtrada.length, "nota", "notas")} · <b className="num text-fg">{brl(totalLista)}</b> autorizadas</>} />
       {/* Emitir NF-e e o "Mais" ao lado do título da página (no celular a busca fica numa linha só) */}
       <AcoesNoTopo>
           {!leitura && pode("emitir_nfe") && <Button className="md:order-last" onClick={() => setJanela("emitir")}><Send size={16} /> Emitir NF-e</Button>}
