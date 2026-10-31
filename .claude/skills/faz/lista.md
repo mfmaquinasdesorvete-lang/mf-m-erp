@@ -45,10 +45,6 @@ Envio já estão prontos no ERP).
    Secrets `BRASPRESS_USUARIO` e `BRASPRESS_SENHA`.
 4. Depois, no ERP: Fretes → transportadora → **Testar conexão**.
 
-## 3. Chaves do Meu Pluggy nos secrets do Supabase (CAR)
-**Por que importa:** sem elas o painel pessoal não puxa os extratos sozinho (a função já está no ar).
-**Onde:** no painel do Meu Pluggy, pegue o Client ID e o Client Secret da sua aplicação pessoal. Cole em
-Supabase → **Edge Functions → Secrets**: `PLUGGY_PESSOAL_CLIENT_ID` e `PLUGGY_PESSOAL_CLIENT_SECRET`.
 
 ## 4. Olist: programar o envio diário do extrato OFX para o e-mail do ERP (ENT)
 **Por que importa:** o último extrato da Olist no ERP é de 08/10; o ERP já importa sozinho o OFX que chega no e-mail.

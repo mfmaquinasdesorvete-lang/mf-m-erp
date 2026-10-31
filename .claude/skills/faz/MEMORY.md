@@ -21,7 +21,7 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
    vale o "feito" dela). Item 8 agora com o passo do WebAuthn no Supabase Auth → MFA (o SEG confere).
 1. (feito 29/10) SQL Editor, 8 partes: conferido no banco; chats avisados (GER, FUN, ELO, PRD, REV, IAD).
 2. Secrets das transportadoras (TRA, 23/10): `MELHORENVIO_TOKEN`, `RODONAVES_USUARIO/SENHA`, `BRASPRESS_USUARIO/SENHA`.
-3. Secrets do Meu Pluggy (CAR, 22/10): `PLUGGY_PESSOAL_CLIENT_ID/SECRET`.
+3. (saiu 31/10) Meu Pluggy: ela desistiu; o CAR propõe outro caminho para os extratos pessoais.
 4. Olist: envio diário do OFX para o e-mail do ERP (ENT, 23/10). Conferir: extrato Olist novo depois de 08/10.
 5. Inter SP: chaves da API em Configurações → Bancos (ENT, 23/10), se a conta existir. Conferir `inter_conexoes`.
 6. WhatsApp oficial na Meta (IAD e GER, 23/10).
