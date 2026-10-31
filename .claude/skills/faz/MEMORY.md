@@ -30,6 +30,7 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 9. Conectar o Gmail do contador (FIS).
 
 ## Já resolvido
+- 31/10 à noite: Hostinger reconectada no claude.ai (conferido pela lista de sites).
 - 31/10: conector Supabase — ela escolheu "deixar como está" (pede aprovação); regra no CLAUDE.md (1bf9d5a): avisar
   no ERP e no celular antes de gravar e esperar 1–2 min. Item 0 fechado.
 - 29/10: arquivo do SQL Editor rodado (1ª vez deu erro 23505 em giga_retestes na parte 7 e desfez tudo; corrigido em
