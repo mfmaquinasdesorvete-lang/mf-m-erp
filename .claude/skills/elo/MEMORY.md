@@ -2,7 +2,7 @@
 Atualizado em 27/10/2026.
 
 ## Estado agora
-São 22 chats ativos (REV, AUD e FAZ, os mais novos, em 27/10), cada um com sigla, skill e memória. Desde 24/10 a fila de publicação confere a Hostinger
+São 22 chats ativos (REV, ENT e FAZ, os mais novos, em 27/10), cada um com sigla, skill e memória. Desde 24/10 a fila de publicação confere a Hostinger
 antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dependente do código.
 
 ## No ar
@@ -34,10 +34,10 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
 - IAD: "Pode publicar" do Resumir com IA dos documentos.
 
 ## Decisões da usuária
-- 28/10: auditor financeiro roda sozinho todo dia (AUD, 07:03, no ar); Dossiê da MF SC desde a abertura (FIS coordena, pedido 21a33e7d); extrato nunca cai em conta por padrão (GER consertou e publicou).
-- 27/10 (pelo GER): títulos das sessões numerados "NN ícone SIGLA · Nome — o que faz" (01 ELO … 22 DOC), mesma
+- 28/10: auditor financeiro roda sozinho todo dia (ENT, 07:03, no ar); Dossiê da MF SC desde a abertura (FIS coordena, pedido 21a33e7d); extrato nunca cai em conta por padrão (GER consertou e publicou).
+- 27/10 (pelo GER): títulos das sessões numerados "NN ícone SIGLA · Nome — o que faz" (01 ELO … 22 REV), mesma
   ordem em `chats_claude.ordem`; o `nome` não muda. Chat novo usa o próximo número.
-- Auditor Financeiro IA (27/10): chat AUD, só leitura, começando pela MF; sorveterias depois, com o SOR.
+- Auditor Financeiro IA (27/10): chat ENT, só leitura, começando pela MF; sorveterias depois, com o SOR.
 - Um chat por assunto. Chats e skills curtos, sem dados da empresa no repositório.
 - O ELO pode publicar o site pelos outros chats quando a Hostinger deles cair, sempre com o "Pode publicar".
 - Nome das pessoas: o do cadastro do ERP. O texto original do banco e da nota fica como veio.

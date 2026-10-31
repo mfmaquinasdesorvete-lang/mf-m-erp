@@ -113,9 +113,8 @@ Atualizado em 25/10/2026 pelo ELO.
 | Sigla | Assunto |
 |---|---|
 | ELO | organiza os chats e escreve as skills |
-| GER | tudo o que não tem outro dono: vendas, OS, máquinas, estoque, compras, produção, financeiro |
+| GER | tudo o que não tem outro dono: vendas, OS, máquinas, estoque, compras, produção, financeiro; o que sobrou do Tiny (juntou o TIN em 31/10) |
 | FIS | impostos, notas fiscais, contador |
-| TIN | importações do Tiny |
 | MYF | My Frost, a empresa anterior |
 | SOR | lojas My Frost Sorveterias e Yozzy |
 | MKT | Mercado Livre e outros canais online |
@@ -127,10 +126,7 @@ Atualizado em 25/10/2026 pelo ELO.
 | DSG | visual (design system) |
 | SEG | segurança |
 | CAR | carteira pessoal |
-| ENT | entradas nas contas da MF |
+| ENT | entradas nas contas da MF e Auditor Financeiro IA (juntou o AUD em 31/10) |
 | IAD | IA do dia a dia |
-| CNF | conferência dos pedidos |
-| DOC | documentos em Markdown (`docs/`) |
-| AUD | Auditor Financeiro IA da MF (só leitura) |
-| FAZ | o que só a usuária faz no Supabase, GitHub e Hostinger (lista e cobrança) |
-| REV | revisão: velocidade, links e itens mortos, repetidos |
+| FAZ | acompanhamento dos pedidos e o que só a usuária faz nos painéis (juntou o CNF em 31/10) |
+| REV | revisão: velocidade, links e itens mortos, repetidos; documentos .md (juntou o DOC em 31/10) |

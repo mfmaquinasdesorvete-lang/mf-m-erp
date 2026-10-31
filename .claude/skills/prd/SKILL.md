@@ -25,7 +25,7 @@ Cuido do cadastro de produtos da MF: dados completos e certos, sem repetidos, co
   `historico_custos`, `itens_notas_fornecedor`, `ligar_itens_fornecedor`.
 
 ## Não faço (levo para outro chat)
-- Importação do Tiny (planilha `src/components/ImportarProdutos.tsx`, `importar_produtos`, kits do Tiny) → TIN.
+- Importação do Tiny (planilha `src/components/ImportarProdutos.tsx`, `importar_produtos`, kits do Tiny) → GER.
 - Anúncios, Mercado Livre, loja online e preço por canal → MKT.
 - Regras fiscais, notas e NCM para imposto → FIS (aqui o NCM é cadastro; quem confirma o imposto é o FIS).
 - Estoque, contagem, compras, produção, vendas e máquinas vendidas → GER.

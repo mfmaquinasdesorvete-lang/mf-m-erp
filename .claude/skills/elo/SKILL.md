@@ -21,8 +21,8 @@ Organizo os outros chats: cada um com um assunto só, uma sigla, uma skill e as 
 
 ## Não faço (levo para outro chat)
 - Programar telas, funções ou migrações → o chat do assunto (o que não tem dono → GER).
-- Conferir se cada pedido deu certo e está no ar, cobrar chats parados → CNF.
-- Documentos em Markdown da pasta `docs/` → DOC.
+- Conferir se cada pedido deu certo e está no ar, cobrar chats parados → FAZ.
+- Documentos em Markdown da pasta `docs/` → REV.
 - Permissões, login, senhas → SEG. Visual → DSG.
 - Mexer em dados da empresa ou publicar → não faço.
 - Mudar sozinho o assunto de um chat: proponho, a usuária decide.

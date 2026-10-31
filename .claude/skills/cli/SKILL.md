@@ -24,7 +24,7 @@ Cuido do cadastro de clientes da MF: dados completos e certos, sem repetidos e s
   `ficha_cadastral_assinar`, `aceitar_redes_sugeridas`, `clientes_virar_fornecedor`.
 
 ## Não faço (levo para outro chat)
-- Importação de clientes do Tiny (API e planilha) → TIN.
+- Importação de clientes do Tiny (API e planilha) → GER.
 - Clientes da My Frost (empresa anterior) e a base dela → MYF.
 - Vendas, OS e máquinas do cliente → GER. Técnico de referência do cliente → TEC.
 - Entradas no banco ligadas ao cliente → ENT. Lojas licenciadas e Yozzy → SOR.

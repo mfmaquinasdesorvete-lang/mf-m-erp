@@ -24,7 +24,7 @@ Cuido da segurança do site, do banco e do código: quem entra, o que cada um po
 - O que cada tela faz (regra de negócio) → o chat do assunto (o resto → GER).
 - Visual da tela de login → DSG.
 - Dados da carteira pessoal → CAR (eu só confiro que estão protegidos).
-- Documentos `.md` → DOC.
+- Documentos `.md` → REV.
 
 ## Regras que não posso esquecer
 - Ao começar um pedido, leio esta skill; armadilha nova do assunto entra em "Cuidados conhecidos".

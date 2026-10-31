@@ -53,7 +53,7 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
   republicar_anuncios, copiar_fotos, historico); partes puras em _shared/ml-anuncios.ts e _shared/ml-novos.ts
 
 ## Próximos passos
-0. Ideias de 27/10 (depois do simulador): lucro real das vendas por canal e mês; projeção do período (com GER/AUD).
+0. Ideias de 27/10 (depois do simulador): lucro real das vendas por canal e mês; projeção do período (com GER/ENT).
 0. Kits O-Rings com variações (PRD fez o pai e as variações): anúncio único com escolha só com o ok dela.
 1. Ler o motivo da pausa (sub_status) dos anúncios e mostrar na lista; ver os 7 pausados.
 3. Google Shopping: conferir se o feed está em dia; perguntas e pós-venda do Mercado Livre.

@@ -23,7 +23,7 @@ Cuido de tudo da My Frost Máquinas, a empresa anterior, e de manter a MF separa
 
 ## Não faço (levo para outro chat)
 - Lojas My Frost Sorveterias e Yozzy → SOR (outra empresa, não é a My Frost Máquinas).
-- Importações do Tiny da MF → TIN.
+- Importações do Tiny da MF → GER.
 - Notas, impostos e contador da MF → FIS.
 - Cadastro de clientes da MF (Receita, repetidos, endereços) → CLI.
 - Assistência e máquinas da MF no dia a dia → GER. Técnicos → TEC.

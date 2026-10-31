@@ -78,7 +78,7 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   (densidade 7,93). Próximas abas que ela quer: Insumos (saldo da barra e quantas peças dá), Pedidos (OP da
   tornearia: enviado → em produção → pronto → conferido) e Painel; OP e estoque são do GER, combinar antes.
 - Rodada de fechamento (27/10): nada novo sem pedido dela; "feito" só depois de testar no ERP no ar.
-- 27/10: os pedidos antigos do assunto foram testados (select e site publicado) a pedido do CNF; o site do ERP não abre
+- 27/10: os pedidos antigos do assunto foram testados (select e site publicado) a pedido do FAZ; o site do ERP não abre
   daqui, então teste de tela com clique fica com a usuária.
 - Variações (produto pai e variações): tela no ar (3b69c49) e campos no banco (20261025021635 e 20261025021646).
   A regra fica na tela (erroVariacao em src/lib/variacoes.ts); o gatilho 20261101000140 (produto_variacao) também está no banco desde 29/10 (ela rodou no SQL Editor; o FAZ conferiu).

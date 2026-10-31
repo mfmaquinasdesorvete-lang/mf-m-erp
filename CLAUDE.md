@@ -47,7 +47,6 @@
   para o certo):
   - FIS "ERP Line – Fiscal e contábil": impostos, apuração, notas fiscais, configuração da NF/NFS-e/CT-e,
     parcelamentos, contador.
-  - TIN "ERP Line – Importações do Tiny": tudo o que vem do Tiny (API, planilhas, backups) da MF.
   - MYF "ERP Line – My Frost": tudo da My Frost (empresa anterior): base antiga, clientes e máquinas dela, notas e XML,
     propostas, advogado, auditoria fiscal das notas dela e a separação MF × My Frost.
   - SOR "ERP Line – My Frost Sorveterias e Yozzy": as lojas My Frost Sorveterias (licenciadas e próprias) e as Yozzy:
@@ -61,11 +60,11 @@
     pagamentos e comunicação). O resto da assistência e das máquinas fica no "continuação".
   - CLI "ERP Line – Cadastro de clientes": o cadastro de clientes da MF (dados completos e certos, conferência com a Receita,
     IE baixada, repetidos e unificação, endereços, marcadores, cliente desde, Ficha 360). Importação do Tiny fica no
-    "Importações do Tiny"; clientes da My Frost no "My Frost".
+    "continuação"; clientes da My Frost no "My Frost".
   - PRD "ERP Line – Cadastro de produtos": o cadastro de produtos da MF (peças, componentes e máquinas como produto;
     NCM, custo, categoria, marca, EAN, fotos, medidas, fornecedores do produto, kits e composição, repetidos e unificação,
     qualidade do cadastro, formação de preço e tabelas de preço). Estoque, compras e produção ficam no "continuação";
-    importação do Tiny no "Importações do Tiny"; anúncios no "Marketplaces".
+    importação do Tiny no "continuação"; anúncios no "Marketplaces".
   - FUN "ERP Line – Funcionários (RH)": os funcionários da MF (cadastro, pasta de documentos de cada um, admissão e
     desligamento, salários e pagamentos lançados, férias e ponto, a área de Funcionários no menu). A parte fiscal da folha
     (eSocial, INSS, FGTS, DCTFWeb) fica no "Fiscal e contábil"; funcionários das lojas My Frost Sorveterias e Yozzy ficam no
@@ -74,22 +73,19 @@
   - SEG "ERP Line – Segurança": segurança do site, do banco e do código (permissões, login, senhas, testes de segurança).
   - CAR "ERP Line – Minha carteira (pessoal)": a carteira pessoal da usuária (Retaguarda → Pessoal), comprovantes,
     gastos pessoais e o encontro de contas com as empresas. Dados pessoais não saem desse chat.
-  - ENT "ERP Line – Entradas nas contas da MF": de onde veio cada entrada nos bancos da MF (vendas, clientes,
-    licenciados, cartão, Olist, InfinitePay, Inter, Mercado Pago) e a ligação com pedido, nota ou conta a receber.
+  - ENT "ERP Line – Entradas e auditor financeiro" (juntou o AUD em 31/10): de onde veio cada entrada nos bancos da MF
+    e a ligação com pedido, nota ou conta a receber; e o Auditor Financeiro IA (só leitura, rodada diária): cruza vendas,
+    recebimentos, contas, extratos e taxas, acha o que não bate e mostra as provas. O lançamento e a correção ficam no
+    "continuação"; as sorveterias entram depois, com o SOR.
   - IAD "ERP Line – IA do dia a dia (ideias)": as ideias da usuária para a IA do trabalho do dia a dia.
   - GER "ERP Line – continuação (22/10)": todo o resto (vendas, máquinas, cadastros, financeiro, produção, banco);
-    o cadastro de produtos é do PRD.
-  - CNF "ERP Line – Conferência dos pedidos": confere se o que foi pedido a cada chat deu certo e está no ar, cobra os
-    chats parados e mostra o painel. Quando ele cobrar, responder a ele com send_message (o que deu certo, o que falta).
-  - DOC "ERP Line – Documentos (.md)": documentos em Markdown na pasta docs/ (módulos, processos, guias), gerados a partir
-    do código e sem dados da empresa (o repositório é público).
-  - AUD "ERP Line – Auditor financeiro": o Auditor Financeiro IA da MF, só leitura: cruza vendas, recebimentos, contas,
-    extratos e taxas, acha o que não bate e mostra as provas; fila de alertas. A origem das entradas fica no ENT e o
-    lançamento e a correção no "continuação"; as sorveterias entram depois, com o SOR.
-  - FAZ "ERP Line – O que só você faz": a lista do que só a usuária pode fazer no Supabase (SQL Editor, secrets), no
+    o cadastro de produtos é do PRD. Também o que sobrou do Tiny (juntou o TIN em 31/10).
+  - FAZ "ERP Line – Acompanhamento e o que só você faz" (juntou o CNF em 31/10): confere se o que foi pedido a cada chat
+    deu certo e está no ar, cobra os chats parados e mostra o painel (quando ele cobrar, responder com send_message); e a lista do que só a usuária pode fazer no Supabase (SQL Editor, secrets), no
     GitHub (Actions) e na Hostinger; explica o passo a passo, confere se foi feito e cobra. Quando um chat precisar dela
     num desses painéis, anotar em "Esperando a usuária" da sua MEMORY.md para o FAZ achar.
-  - REV "ERP Line – Revisão (velocidade, links e repetidos)": audita o ERP todo: o que está lento (site e banco),
+  - REV "ERP Line – Revisão (velocidade, links e repetidos)" (juntou o DOC em 31/10; também cuida dos documentos .md da
+    pasta docs/, sem dados da empresa): audita o ERP todo: o que está lento (site e banco),
     links, botões, telas e código mortos, e telas, menus e funções repetidas. Leva cada conserto ao chat dono; clientes
     e produtos repetidos (dados) ficam no CLI e no PRD.
   - ELO "ERP Line – chat principal": o CEO dos chats; organiza os outros e escreve as skills deles (agente em
@@ -103,3 +99,4 @@
   - Ao abrir um chat novo, acrescentar a linha dele na tabela chats_claude (nome, sigla, o que faz, exemplos, sessao =
     "session_…", cor, ordem), que aparece em Sobre → Chats, e pedir ao ELO a skill dele; chat encerrado fica com ativo = false.
     Título da sessão: "NN ícone SIGLA · Nome — o que faz", com o próximo número (mesmo número na ordem).
+    Desde 31/10 são 18 chats (CNF entrou no FAZ, AUD no ENT, TIN no GER, DOC no REV); a usuária quer no máximo 20.

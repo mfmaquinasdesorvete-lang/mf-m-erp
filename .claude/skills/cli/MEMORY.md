@@ -26,7 +26,7 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
 
 ## Em andamento
 - Nada novo (rodada de fechamento: função nova só se ela pedir).
-- Pedido do CNF e do ELO (27/10): 22 pedidos testados e com "Testado em 27/10: …" gravado no detalhe (um update só),
+- Pedido do FAZ e do ELO (27/10): 22 pedidos testados e com "Testado em 27/10: …" gravado no detalhe (um update só),
   incluindo 7e3b667c, cd15f506, bef6b62e e o 23cf9fcf (dados fiscais), que virou "feito". a681f43c (licença e comodato
   da Yozzy Natal) é do SOR.
 

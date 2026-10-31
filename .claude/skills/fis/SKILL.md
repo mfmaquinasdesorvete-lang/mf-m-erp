@@ -31,7 +31,7 @@ Cuido de impostos, apuração, notas fiscais (NF-e, NFS-e, configuração do CT-
 - Plano fiscal das lojas My Frost Sorveterias e Yozzy → SOR.
 - NF do pedido do Mercado Livre (o fluxo do canal) → MKT.
 - CT-e e faturas das transportadoras (cadastro, rastreio, conferência do frete) → TRA.
-- Notas recebidas que vieram do Tiny → TIN. Entradas nos bancos → ENT.
+- Notas recebidas que vieram do Tiny → GER. Entradas nos bancos → ENT.
 - Contas a pagar e a receber, DRE, estoque e compras → GER.
 - Cadastro dos funcionários (documentos, salários lançados, férias) → FUN.
 

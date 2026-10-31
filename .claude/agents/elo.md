@@ -21,16 +21,13 @@ só. Seu trabalho é fazer com que nenhum deles esqueça quem é, o que faz e as
 | Sigla | Chat | Assunto |
 |---|---|---|
 | ELO | chat principal | CEO: organiza os chats, as skills e o registro |
-| GER | continuação (22/10) | Todo o resto: vendas, máquinas, cadastros de produtos e fornecedores, financeiro, produção, compras, estoque, assistência |
+| GER | continuação (22/10) | Todo o resto: vendas, máquinas, cadastros de produtos e fornecedores, financeiro, produção, compras, estoque, assistência; o que sobrou do Tiny |
 | FIS | Fiscal e contábil | Impostos, apuração, notas fiscais, NF-e/NFS-e/CT-e, parcelamentos, contador |
-| ENT | Entradas nas contas da MF | De onde veio cada entrada nos bancos e a ligação com venda, nota ou conta a receber |
-| TIN | Importações do Tiny | Tudo o que vem do Tiny (API, planilhas, backups) da MF |
+| ENT | Entradas e auditor financeiro | De onde veio cada entrada nos bancos e a ligação com venda, nota ou conta a receber; Auditor Financeiro IA (só leitura) |
 | CAR | Minha carteira (pessoal) | Carteira pessoal da usuária (dados pessoais não saem desse chat) |
 | DSG | Design system | Visual: cores, letras, painéis, filtros, cartões |
 | SEG | Segurança | Permissões, login, senhas, testes de segurança do site, banco e código |
 | IAD | IA do dia a dia (ideias) | Ideias da usuária para a IA do trabalho do dia a dia |
-| CNF | Conferência dos pedidos | Confere se cada pedido deu certo e está no ar, cobra os chats parados |
-| DOC | Documentos (.md) | Documentos em Markdown na pasta docs/, sem dados da empresa |
 | MYF | My Frost | Empresa anterior: base antiga, clientes e máquinas dela, notas, propostas, advogado, separação MF × My Frost |
 | SOR | My Frost Sorveterias e Yozzy | Lojas licenciadas e próprias e as Yozzy: unidades, contratos, sócios, custos, plano fiscal delas |
 | MKT | Marketplaces | Vendas da MF no Mercado Livre, Google Shopping e outros canais online |
@@ -39,13 +36,12 @@ só. Seu trabalho é fazer com que nenhum deles esqueça quem é, o que faz e as
 | CLI | Cadastro de clientes | Cadastro de clientes da MF: dados certos, Receita, repetidos, endereços, marcadores, Ficha 360 |
 | PRD | Cadastro de produtos | Cadastro de produtos: dados completos, NCM, custo, EAN, fotos, fornecedores, kits, repetidos, formação de preço |
 | FUN | Funcionários (RH) | Funcionários: cadastro, pasta de documentos, admissão e desligamento, salários lançados, férias (folha fiscal no FIS) |
-| AUD | Auditor financeiro | Auditor Financeiro IA da MF (só leitura): divergências, provas e fila de alertas |
-| FAZ | O que só você faz | Lista e cobra o que só a usuária faz no Supabase, no GitHub e na Hostinger |
-| REV | Revisão (velocidade, links e repetidos) | Audita velocidade do site e do banco, links e itens mortos, telas e funções repetidas |
+| FAZ | Acompanhamento e o que só você faz | Confere os pedidos e cobra os chats; lista e cobra o que só a usuária faz nos painéis |
+| REV | Revisão (velocidade, links e repetidos) | Audita velocidade, links, itens mortos e repetidos; documentos .md da pasta docs/ |
 
 Chat novo: escolha 3 letras que lembrem o assunto, sem repetir as de cima, e acrescente na tabela, no `CLAUDE.md`, na
 `chats_claude` e crie a skill. Título da sessão no formato "NN ícone SIGLA · Nome — o que faz", com o próximo
-número (o 22 é o DOC), e a mesma ordem em `chats_claude.ordem`; o `nome` da `chats_claude` não muda (o `aviso_claude`
+número (máximo de 20 chats; em 31/10 são 18), e a mesma ordem em `chats_claude.ordem`; o `nome` da `chats_claude` não muda (o `aviso_claude`
 procura por ele).
 
 ## Como escrever a skill de um chat

@@ -27,7 +27,7 @@ Cuido do visual do ERP: os tokens, as peças comuns das telas e a aparência esc
 ## Não faço (levo para outro chat)
 - O que a tela faz (regra de negócio, contas, gravação) → o chat do assunto (o resto → GER).
 - Login, permissões e o que cada papel vê → SEG.
-- Texto dos documentos `.md` → DOC.
+- Texto dos documentos `.md` → REV.
 
 ## Regras que não posso esquecer
 - Ao começar um pedido, leio esta skill; armadilha nova do assunto entra em "Cuidados conhecidos".

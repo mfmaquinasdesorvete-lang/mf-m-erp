@@ -40,7 +40,7 @@ guias e os parcelamentos que chegam na caixa do contador.
 - Dossiê da empresa (pedido de 28/10 pelo ELO, histórico da MF SC desde a abertura): tela no Painel do contador
   (aba Dossiê; lib/dossie.ts; função dossie_empresa; unidades.aberta_em) e o pacote do contador agora pega a NF-e
   pelo mês de emissão do XML (notas_emitidas_no_mes). Montado, falta publicar e testar no ar. Depois: lista do que
-  falta com o FAZ, importar o que chegar (TIN, GER, ENT).
+  falta com o FAZ, importar o que chegar (GER, GER, ENT).
 - Onde o cliente pagou (pedido de 28/10): no pedido aprovado, só o financeiro registra quanto o cliente pagou e onde
   (conta da MF, direto a fornecedor da MF numa NF de compra, conta da sócia, outro). Baixa as parcelas sem e-mail
   nem cobrança, lança a comissão e dá a baixa na conta a pagar da NF do fornecedor (o resto da NF vira conta aberta).
@@ -82,7 +82,7 @@ Lista em ordem de risco entregue em 27/10 (planilha "fiscal pendente em ordem de
      balanços e a folha de 06/2022 a 07/2024.
   4. Bancos: extratos OFX da Unicred depois de 04/2025 e antes de 01/2025, InfinitePay antes de 08/2024, OLIST antes
      de 04/2025, Sicoob (conta encerrada) do período em que existiu.
-- Números da série 1 da SC sem nota no ERP (levantado pelo TIN em 28/10): 16 sem rastro e 10 só no Tiny sem XML
+- Números da série 1 da SC sem nota no ERP (levantado pelo GER em 28/10): 16 sem rastro e 10 só no Tiny sem XML
   (provável rejeição). Nenhuma inutilização registrada no ERP. Ela confere na SEFAZ SC (consulta de inutilizações)
   e no Tiny; o que não estiver inutilizado, inutilizar pelo ERP (Notas → Conformidade) com o ok dela e do contador.
   Ela acha que nenhum foi inutilizado. Sobram 16 sem rastro e as 10 do Tiny.

@@ -72,7 +72,7 @@ Cuido das transportadoras e dos fretes: do cadastro e da cotação até a entreg
 - Zebra: PDF pelo driver funciona em qualquer uma; direto (ZPL) só com o Browser Print instalado.
 - A São Miguel não usa o SSW (tem sistema próprio); Aceville, MIR e Norte Brasil responderam no SSW.
 - Rodonaves e Olist Envios são empresas diferentes (corrigido pela usuária em 23/10): a Rodonaves é contratada direto,
-  com API própria (usuário e senha da MF). Chamada nova à API do Tiny passa pelo chat TIN.
+  com API própria (usuário e senha da MF). Chamada nova à API do Tiny passa pelo chat GER.
 - Braspress: cotação e rastreio pela API própria (Basic com usuário e senha da Braspress); o rastreio grava nos mesmos
   campos `rastreio_*` do envio com a fonte "Braspress".
 - Cotação por CEP e produtos (`frete-cotar`): volumes saem do peso do produto e das medidas da embalagem (ou do
