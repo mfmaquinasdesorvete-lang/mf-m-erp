@@ -177,6 +177,24 @@ export function EnvioForm({ envioId, inicial, novaOcorrencia, onClose }: { envio
     carregado.refetch();
   }
 
+  // "Cliente retirou": fecha o envio na hora, sem cotação nem frete da MF (retirado na fábrica)
+  const retira = transportadoras.find((x) => x.tipo === "retira" && x.ativo);
+  const [dataRetirada, setDataRetirada] = useState(() => hoje());
+  async function clienteRetirou() {
+    if (!id || !(await confirmar(`Marcar como "Cliente retirou" em ${dataBR(dataRetirada)}? O envio fecha como entregue, sem cotação e sem frete da MF.`, { ok: "Cliente retirou" }))) return;
+    setOcupado(true);
+    try {
+      const { error } = await supabase.from("envios").update({
+        status: "entregue", modalidade: "retira", pagador: "cliente", transportadora_id: retira?.id ?? null, transportadora_nome: retira ? null : "Cliente retirou",
+        coletado_em: dataRetirada, entregue_em: dataRetirada, sem_comprovante_motivo: "Cliente retirou na fábrica",
+      }).eq("id", id);
+      if (error) throw error;
+      notify("Envio fechado: cliente retirou");
+      invalidar("envios", "pedidos");
+      carregado.refetch();
+    } catch (err) { notifyError(err); } finally { setOcupado(false); }
+  }
+
   async function darBaixaPedido() {
     if (!e.pedido_id) return;
     const { error } = await supabase.from("pedidos").update({ status: "entregue" }).eq("id", e.pedido_id);
@@ -208,7 +226,16 @@ export function EnvioForm({ envioId, inicial, novaOcorrencia, onClose }: { envio
           {id && podeEditar && !fechado && <Button type="button" variant="ghost" className="ml-auto !text-red-600" onClick={cancelarEnvio}><X size={15} /> Cancelar envio</Button>}
         </div>
 
-        {falta.length > 0 && !fechado && (
+        {id && podeEditar && !fechado && (
+          <div className="cartao flex flex-wrap items-end gap-3 p-3">
+            <span className="min-w-0 flex-1 basis-56"><b className="block text-fg">O cliente retirou na fábrica?</b>
+              <span className="text-xs text-slate-600">Fecha o envio na hora, sem cotação e sem frete da MF.</span></span>
+            <Field label="Retirou em"><input className="input" type="date" value={dataRetirada} onChange={(x) => setDataRetirada(x.target.value)} /></Field>
+            <Button type="button" variant="secondary" disabled={ocupado || !dataRetirada} onClick={clienteRetirou}><PackageCheck size={15} /> Cliente retirou</Button>
+          </div>
+        )}
+
+        {falta.length > 0 && !fechado && e.modalidade !== "retira" && (
           <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900">
             <AlertTriangle size={16} className="mt-0.5 shrink-0" />
             <div><b>Para pedir a cotação falta:</b> {falta.join(", ")}.</div>
@@ -290,64 +317,69 @@ export function EnvioForm({ envioId, inicial, novaOcorrencia, onClose }: { envio
             </div>
           </Secao>
 
+          <details className="rounded-cartao border border-slate-200 p-3" open={!id}>
+            <summary className="cursor-pointer text-sm font-bold text-fg">Mais dados do envio <span className="font-normal text-slate-500">(valor e seguro, prazo e modalidade, equipamento e restrições, quem paga e observações)</span></summary>
+            <div className="mt-3 space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
-            <Secao n={3} titulo="Valor da mercadoria e seguro">
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Valor da mercadoria (R$)"><input className="input" inputMode="decimal" value={e.valor_mercadoria ?? ""} onChange={(x) => set({ valor_mercadoria: x.target.value as unknown as number })} /></Field>
-                <label className="mt-6 flex items-center gap-2"><input type="checkbox" checked={!!e.seguro} onChange={(x) => set({ seguro: x.target.checked })} /> Precisa de seguro</label>
+              <Secao n={3} titulo="Valor da mercadoria e seguro">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Valor da mercadoria (R$)"><input className="input" inputMode="decimal" value={e.valor_mercadoria ?? ""} onChange={(x) => set({ valor_mercadoria: x.target.value as unknown as number })} /></Field>
+                  <label className="mt-6 flex items-center gap-2"><input type="checkbox" checked={!!e.seguro} onChange={(x) => set({ seguro: x.target.checked })} /> Precisa de seguro</label>
+                </div>
+              </Secao>
+              <Secao n={5} titulo="Prazo e modalidade combinados com o cliente">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Entregar até"><input className="input" type="date" value={e.prazo_desejado ?? ""} onChange={(x) => set({ prazo_desejado: x.target.value })} /></Field>
+                  <Field label="Modalidade do frete">
+                    <select className="input" value={e.modalidade ?? "cif"} onChange={(x) => set({ modalidade: x.target.value, pagador: x.target.value === "fob" || x.target.value === "retira" ? "cliente" : x.target.value === "terceiros" ? "terceiro" : "empresa" })}>
+                      {MODALIDADES.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+                    </select>
+                    {(e.modalidade ?? "cif") === "cif" && (
+                      <span className="mt-1 block text-xs text-slate-500">O normal da MF: a gente contrata com o nosso convênio (mais barato), paga a transportadora (boleto ou na hora) e o cliente paga o frete junto com a peça.</span>
+                    )}
+                  </Field>
+                </div>
+              </Secao>
+            </div>
+  
+            <Secao n={4} titulo="Equipamento, embalagem e restrições de carga e descarga">
+              <Field label="Tipo de equipamento">
+                <input className="input" list="tipos-equipamento" value={e.tipo_equipamento ?? ""} onChange={(x) => set({ tipo_equipamento: x.target.value })} placeholder="Ex.: Máquina de sorvete expresso MF-300" />
+                <datalist id="tipos-equipamento">{sugestoesEquip.map((s) => <option key={s} value={s} />)}</datalist>
+              </Field>
+              <div className="mt-3 grid gap-1.5 sm:grid-cols-3">
+                {RESTRICOES.map(([k, r]) => (
+                  <label key={k} className="flex items-center gap-2">
+                    <input type="checkbox" checked={(e.restricoes ?? []).includes(k)}
+                      onChange={(x) => set({ restricoes: x.target.checked ? [...(e.restricoes ?? []), k] : (e.restricoes ?? []).filter((y) => y !== k) })} /> {r}
+                  </label>
+                ))}
               </div>
+              <Field label="Outras restrições ou instruções" className="mt-3"><input className="input" value={e.restricoes_obs ?? ""} onChange={(x) => set({ restricoes_obs: x.target.value })} placeholder="Ex.: recebe só das 8h às 11h; portão de 2,5 m" /></Field>
             </Secao>
-            <Secao n={5} titulo="Prazo e modalidade combinados com o cliente">
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Entregar até"><input className="input" type="date" value={e.prazo_desejado ?? ""} onChange={(x) => set({ prazo_desejado: x.target.value })} /></Field>
-                <Field label="Modalidade do frete">
-                  <select className="input" value={e.modalidade ?? "cif"} onChange={(x) => set({ modalidade: x.target.value, pagador: x.target.value === "fob" || x.target.value === "retira" ? "cliente" : x.target.value === "terceiros" ? "terceiro" : "empresa" })}>
-                    {MODALIDADES.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+  
+            <Secao n={6} titulo="Quem paga, valor cobrado do cliente e a que se liga">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Field label="Quem paga o frete">
+                  <select className="input" value={e.pagador ?? "empresa"} onChange={(x) => set({ pagador: x.target.value })}>
+                    {PAGADORES.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
                   </select>
-                  {(e.modalidade ?? "cif") === "cif" && (
-                    <span className="mt-1 block text-xs text-slate-500">O normal da MF: a gente contrata com o nosso convênio (mais barato), paga a transportadora (boleto ou na hora) e o cliente paga o frete junto com a peça.</span>
-                  )}
                 </Field>
+                <Field label="Valor cobrado do cliente (R$)">
+                  <input className="input" inputMode="decimal" value={e.valor_cobrado_cliente ?? ""} placeholder={pedido.data ? String(pedido.data.frete ?? 0) : "0,00"}
+                    onChange={(x) => set({ valor_cobrado_cliente: x.target.value as unknown as number })} />
+                </Field>
+                <Field label="Centro de custo">
+                  <select className="input" value={e.centro_custo_id ?? ""} onChange={(x) => set({ centro_custo_id: x.target.value || null })}>
+                    <option value="">—</option>{centros.filter((c) => c.ativo !== false || c.id === e.centro_custo_id).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                  </select>
+                </Field>
+                <Field label="Pedido relacionado"><input className="input" readOnly value={pedido.data ? `#${pedido.data.numero}` : "— (envio avulso)"} /></Field>
               </div>
+              <Field label="Observações" className="mt-3"><textarea className="input" rows={2} value={e.observacoes ?? ""} onChange={(x) => set({ observacoes: x.target.value })} /></Field>
             </Secao>
-          </div>
-
-          <Secao n={4} titulo="Equipamento, embalagem e restrições de carga e descarga">
-            <Field label="Tipo de equipamento">
-              <input className="input" list="tipos-equipamento" value={e.tipo_equipamento ?? ""} onChange={(x) => set({ tipo_equipamento: x.target.value })} placeholder="Ex.: Máquina de sorvete expresso MF-300" />
-              <datalist id="tipos-equipamento">{sugestoesEquip.map((s) => <option key={s} value={s} />)}</datalist>
-            </Field>
-            <div className="mt-3 grid gap-1.5 sm:grid-cols-3">
-              {RESTRICOES.map(([k, r]) => (
-                <label key={k} className="flex items-center gap-2">
-                  <input type="checkbox" checked={(e.restricoes ?? []).includes(k)}
-                    onChange={(x) => set({ restricoes: x.target.checked ? [...(e.restricoes ?? []), k] : (e.restricoes ?? []).filter((y) => y !== k) })} /> {r}
-                </label>
-              ))}
             </div>
-            <Field label="Outras restrições ou instruções" className="mt-3"><input className="input" value={e.restricoes_obs ?? ""} onChange={(x) => set({ restricoes_obs: x.target.value })} placeholder="Ex.: recebe só das 8h às 11h; portão de 2,5 m" /></Field>
-          </Secao>
-
-          <Secao n={6} titulo="Quem paga, valor cobrado do cliente e a que se liga">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Field label="Quem paga o frete">
-                <select className="input" value={e.pagador ?? "empresa"} onChange={(x) => set({ pagador: x.target.value })}>
-                  {PAGADORES.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
-                </select>
-              </Field>
-              <Field label="Valor cobrado do cliente (R$)">
-                <input className="input" inputMode="decimal" value={e.valor_cobrado_cliente ?? ""} placeholder={pedido.data ? String(pedido.data.frete ?? 0) : "0,00"}
-                  onChange={(x) => set({ valor_cobrado_cliente: x.target.value as unknown as number })} />
-              </Field>
-              <Field label="Centro de custo">
-                <select className="input" value={e.centro_custo_id ?? ""} onChange={(x) => set({ centro_custo_id: x.target.value || null })}>
-                  <option value="">—</option>{centros.filter((c) => c.ativo !== false || c.id === e.centro_custo_id).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                </select>
-              </Field>
-              <Field label="Pedido relacionado"><input className="input" readOnly value={pedido.data ? `#${pedido.data.numero}` : "— (envio avulso)"} /></Field>
-            </div>
-            <Field label="Observações" className="mt-3"><textarea className="input" rows={2} value={e.observacoes ?? ""} onChange={(x) => set({ observacoes: x.target.value })} /></Field>
-          </Secao>
+          </details>
 
           {id && (
             <Secao n={8} titulo="Execução: transportadora, coleta, rastreio e entrega">
@@ -449,9 +481,9 @@ export function EnvioForm({ envioId, inicial, novaOcorrencia, onClose }: { envio
 
       {id && (
         <div className="mt-5 space-y-4 border-t border-slate-100 pt-4 text-sm">
-          <Cotacoes envio={(salvo ?? { ...e, id }) as Envio} transportadoras={transportadoras} podeEditar={podeEditar && !fechado} podeAdicional={podeEditar && status !== "cancelado"}
+          {salvo?.modalidade !== "retira" && <Cotacoes envio={(salvo ?? { ...e, id }) as Envio} transportadoras={transportadoras} podeEditar={podeEditar && !fechado} podeAdicional={podeEditar && status !== "cancelado"}
             pedidoOrcamento={pedido.data?.status === "orcamento"} nomeUsuario={nomeUsuario}
-            onMudou={() => { carregado.refetch(); invalidar("envios", "pedidos", "envio_cotacoes"); }} />
+            onMudou={() => { carregado.refetch(); invalidar("envios", "pedidos", "envio_cotacoes"); }} />}
           <Ocorrencias envioId={id} podeEditar={podeEditar} abrirNova={!!novaOcorrencia} nomeUsuario={nomeUsuario} />
           <Anexos entidade="geral" id={id} titulo="Comprovante de entrega, CT-e e fotos" />
         </div>
