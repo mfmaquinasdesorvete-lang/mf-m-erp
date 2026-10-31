@@ -53,6 +53,11 @@ guias e os parcelamentos que chegam na caixa do contador.
   No ar em 29/10 (site e função); falta o teste: Validar uma nota emitida no ar.
 
 ## Esperando a usuária
+- NF 438 (pedido #619, autorizada em 27/10): o pedido foi refeito como #630 com outro redutor, então a nota não
+  serve ao #630 e passou o prazo de 24 h. Ela vai ver se as peças saíram. Se não saíram: o contador escolhe entre
+  cancelar fora do prazo na SEF/SC ou fazer uma NF de entrada para anular, e depois sai uma NF nova pelo #630.
+  Auditoria do ENT de 31/10: #3 sem nota válida (4 canceladas), #610 e #625 rejeitadas por IE, 9 pedidos de outubro
+  sem nota (ela emite pelo pedido quando despachar).
 - 19 máquinas da nota da MF ao lado de uma do mesmo modelo vinda da My Frost (proposta ou lista), no mesmo cliente:
   ela diz se são a mesma máquina (o GER unifica). A máquina da NF 27 (transferência SC→SP) está no cadastro da própria MF.
 - Pedido #628: link antigo descartado e registrados a NF do fornecedor paga pelo cliente e as entradas na conta da
