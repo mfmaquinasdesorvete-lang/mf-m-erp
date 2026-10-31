@@ -71,10 +71,9 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Prazo: os 2 botões do Tiny antes da virada de 09/11.
 - 31/10: TRA fez e publicou (dd72e33b feito, c4f6883d): envios #25 e #26 entregues (conferido no banco), tela do envio
   com "Cliente retirou" no topo. Para ela conferir na tela (item 31 do para-conferir).
-- 31/10: ENT auditou o quadro de outubro (pedido 0f75a2ae). Seguem com os donos: GER (12 faturados antigos → entregue,
-  cancelar #619 refeito como #630, #626 pago em dinheiro), MKT (#633), FIS (NF 438, notas com erro #625 e #610, entregues
-  sem nota), TRA (#616 cancelado com envio entregue, #3, #36 em trânsito desde setembro). Dela: extratos da InfinitePay SC
-  desde 29/10 e do Mercado Pago SP desde 05/2026 (entram no resumo).
+- 31/10: quadro de outubro consertado pelo ENT (0f75a2ae feito; conferido: #36 entregue, #616 cancelado). Falta: FIS
+  decidir a NF 438 com ela e o contador (depois o GER cancela o #619) e as notas a emitir; dela: extratos da InfinitePay SC
+  depois de 28/10 e do Mercado Pago SP depois de 05/2026 (no resumo). Item 32 do para-conferir: Vendas "Este mês".
 
 ## Dossiê MF SC (28/10, pelo ELO)
 - Juntar no ERP tudo da MF SC desde 28/06/2022. FIS coordena (pedido 21a33e7d) com TIN, GER e ENT; eles me mandam o
