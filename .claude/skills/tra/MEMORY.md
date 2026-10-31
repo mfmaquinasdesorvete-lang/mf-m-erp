@@ -28,6 +28,10 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
   retirou" (fecha como entregue, retira, pagador cliente, sem cotação); seções 3 a 6 recolhidas em "Mais dados do
   envio"; cotações escondidas quando é retira. Envios #25 e #26 já fechados como "Cliente retirou" no banco.
 
+- Auditoria do ENT (31/10), com o ok dela: envio #26 passou do pedido #616 (cancelado, repetido) para o #617; envio #1
+  (vazio, pedido #3 entregue) cancelado; envio #19 (Loggi, pedido #36) fechado como entregue sem data real. O pedido #36
+  segue "faturado" (status do pedido é do GER).
+
 ## Esperando a usuária
 - E-mails enviados por ela pela conta da MF (28/10): usuário de API da Rodonaves e tabelas de frete atualizadas
   (São Miguel, Rodonaves, Braspress, Aceville, Norte Brasil, MIR). Esperando as respostas; as tabelas que chegarem
