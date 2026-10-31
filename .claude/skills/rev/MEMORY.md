@@ -14,6 +14,7 @@ com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 ## Em andamento
 - 31/10: achados da segunda rodada enviados ao GER (1, 2, 3, 5, 6, 7, 8), SEG (4 e 10), SOR (5) e ENT (6, auditor); esperando as respostas. O teste bancoSeguranca está vermelho pela função do GER (conta_receber_pix_do_dia).
 - Respostas 31/10: ENT anotou o índice do auditor para a próxima publicação do banco; SEG disse que vigiar_sistema() é do GER (monitor), repassado ao GER; SOR escreveu a migração 20261101000205 (regras e índice de licenciados_marcas), falta aplicar com a aprovação da usuária.
+- GER respondeu (31/10): função do Pix virou security invoker e os índices de oportunidades e equipamentos_unificados foram criados (migração 205, conferido no banco; bancoSeguranca passa); apagou prazoPagar; kgDaBarra fica (usado no teste). Vai fazer os select das listas e depois a centavos(). A Auditoria financeira é do ENT agora: enviada ao ENT.
 - 31/10: o DOC foi juntado ao REV (os documentos de docs/ agora são meus; título da sessão atualizado).
 - 27/10: achados enviados ao GER (1, 2, 7, 6, 14, 11, 12), CLI (3), SEG (4 e 10) e CAR (8 e 9); esperando as respostas.
 - GER respondeu (27/10): pega a Auditoria financeira e as listas sem `select:` (clientes e produtos primeiro); `centavos()` numa troca separada com teste; rotas, menu e o que apagar dependem da usuária.

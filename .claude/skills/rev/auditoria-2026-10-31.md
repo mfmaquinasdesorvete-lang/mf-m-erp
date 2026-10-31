@@ -39,6 +39,7 @@ Comparação com a primeira rodada (`auditoria-2026-10-27.md`), depois de 311 en
 | 7 | Arredondamento de centavos copiado: subiu de 46 para 53 cópias | vários | média | A `centavos()` única em `lib/format.ts` que o GER combinou | GER |
 | 8 | Funções novas ainda sem uso (podem ser de trabalho em andamento) | `lib/tornearia.ts` (`kgDaBarra`), `lib/tiposPagar.ts` (`prazoPagar`) | baixa | Usar ou apagar | GER / PRD |
 | 9 | Conferência com a Receita: 144 ms em média por minuto, mas a checagem sozinha leva 7 ms; o resto é o trabalho real (~1.300 CNPJs na fila) | cron `erp-clientes-receita` | info | Nada a fazer até a fila acabar | — |
+| 11 | Números de migração repetidos: 8 (ex.: dois `20261101000205`, do GER e do SOR). Não quebra nada, porque as migrações são aplicadas direto no banco e o arquivo é só o registro, mas confunde quem lê a lista | `supabase/migrations/` | baixa | Ao criar migração, conferir o último número com `git pull` antes | todos (ELO avisa) |
 | 10 | Duas regras de acesso para a mesma ação (76 casos, 51 tabelas): sem mudança | advisor | baixa | O SEG faz aos poucos | SEG |
 
 ## Conferido e sem problema
