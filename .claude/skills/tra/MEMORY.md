@@ -22,12 +22,11 @@ As transportadoras com API (Rodonaves, Braspress, Melhor Envio) esperam o acesso
 
 ## Em andamento
 - Rodada de fechamento (desde 27/10): nada novo sem pedido dela; só terminar, consertar e testar.
-- Pronto e não publicado: frete do pedido (FreteVenda) baixa só peso e medidas dos produtos do pedido (dabb127).
-  Gastos com frete conta também a categoria "correios" (envio pago pelos Correios, 28/10, a pedido do GER).
+- Publicado em 31/10 (index-g--VbHes.js): frete do pedido (FreteVenda) baixa só peso e medidas dos produtos do pedido;
+  Gastos com frete conta também a categoria "correios" (a pedido do GER).
   Envio mais curto (31/10, pedido via FAZ): cartão "O cliente retirou na fábrica?" com a data e o botão "Cliente
   retirou" (fecha como entregue, retira, pagador cliente, sem cotação); seções 3 a 6 recolhidas em "Mais dados do
   envio"; cotações escondidas quando é retira. Envios #25 e #26 já fechados como "Cliente retirou" no banco.
-  Os três vão ao ar na próxima publicação do site que ela autorizar.
 
 ## Esperando a usuária
 - E-mails enviados por ela pela conta da MF (28/10): usuário de API da Rodonaves e tabelas de frete atualizadas
