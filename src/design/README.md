@@ -298,7 +298,7 @@ em passos ou abas).
 | Padrão | Como montar |
 |---|---|
 | **Cadastro** | `CrudPage` com `campos`. Longo (mais de ~10 campos) → `passos` ou `secao`. Obrigatório com `required`. Aviso de repetido antes de salvar (ex.: "Já cadastrados parecidos") |
-| **Lista com busca** | `PageHeader` + `BarraFiltros` + `Table` (ou cartões) + `RodapeLista`. Estados com `Carregando` / `Vazio` / `ErroLista` |
+| **Lista com busca** | `PageHeader` + `BarraFiltros` + `Table` (ou cartões) + `RodapeLista`. Estados com `Carregando` / `Vazio` / `ErroLista`. Barra (31/10): **Visão · busca · período · Filtros**, nessa ordem. Situação entra em `visoes` (no lugar dos chips); o que está ligado vai em `ligados` (pílulas com ×); `sugestoes` para a busca oferecer os filtros; `resultado` com quantas e quanto. Os outros filtros vão em `filtros` (abrem no painel ao lado ou de baixo), cada um com rótulo |
 | **Painel de área** | `CabecalhoPainel` + `Secoes` (a pessoa organiza) + `Stat` + `ListaAtencao` (o que pede atenção vem primeiro) |
 | **Ação que não se desfaz** | `confirmar(texto, { perigo: true, ok: "Excluir" })` → `Button carregando` → `notify` |
 | **Erro de formulário** | Mensagem no campo (`Field erro`), foco no primeiro campo com erro e, se o erro estiver fora da tela, aviso com o nome do campo |

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { noPeriodoOuPendente, SEM_PERIODO, semanaAtual, type Periodo } from "@/lib/filtroLista";
 import { SeloCidade } from "@/components/SeloCidade";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -225,6 +225,15 @@ export default function Assistencia() {
         </>}
         nFiltros={(marcador ? 1 : 0) + (mostrarFinalizadas ? 1 : 0)}
         onLimpar={() => { setBusca(""); setMarcador(""); setMostrarFinalizadas(false); setPeriodo(SEM_PERIODO); }}
+        // barra nova (31/10): o que está ligado em pílulas e a busca sugere os filtros
+        ligados={[
+          ...(marcador ? [{ rotulo: "Marcador", valor: marcadores.find((m) => m.id === marcador)?.nome ?? "marcador", tirar: () => setMarcador("") }] : []),
+          ...(mostrarFinalizadas && modo === "lista" ? [{ rotulo: "Mostrando", valor: "entregues e canceladas", tirar: () => setMostrarFinalizadas(false) }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...marcadores.map((m) => ({ tipo: "Marcador", rotulo: m.nome, aplicar: () => setMarcador(m.id) })),
+          ...(modo === "lista" ? [{ tipo: "Mostrar", rotulo: "Entregues e canceladas", aplicar: () => setMostrarFinalizadas(true) }] : []),
+        ] satisfies SugestaoFiltro[]}
         direita={
           <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 text-sm font-semibold" role="group" aria-label="Ver como">
             {([["quadro", "Quadro", Columns3], ["lista", "Lista", List], ["video", "Vídeo chamadas", Video]] as const).map(([v, l, I]) => (

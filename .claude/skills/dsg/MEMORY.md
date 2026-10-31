@@ -51,6 +51,10 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
   Secoes); baixa à parte quando a tela fica livre; desliga com reduzir movimento. Cuidado: o React monta duas vezes
   em modo de desenvolvimento, e a limpeza da animação precisa deixar a próxima montagem animar.
 
+- Barra de filtros nova (31/10, aprovada na proposta YBkemVWvgNHmoW1XEGfJxV): Visão (prontas com contagem + salvas no
+  perfil "visoes:<página>"), busca que sugere filtros, período, Filtros em painel lateral/de baixo, pílulas e resultado.
+  Ligada em Notas emitidas, Vendas (lista) e OS; as outras 37 telas ganharam só o painel novo e passam às partes novas aos poucos.
+
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 

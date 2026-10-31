@@ -34,7 +34,7 @@ import { operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 import { CamposNota, camposEmUso, CartoesNotas, useFiltrosNotas } from "@/components/nfe/FiltrosNotas";
 import { partesDaSaida } from "@/lib/analistaFiscal";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { noPeriodoOuPendente } from "@/lib/filtroLista";
 import { FILTRO_VAZIO, passaFiltro } from "@/lib/filtroNotas";
 import { useComprasMarketplace } from "@/lib/comprasMarketplace";
@@ -262,13 +262,43 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
     ...(podeFin ? [{ valor: "excluidas", rotulo: "Excluídas", n: excluidas.length }] : []),
   ].filter((a) => a.n > 0 || ["todas", "pendentes", "autorizadas", "canceladas"].includes(a.valor) || a.valor === aba);
 
+  // barra de filtros nova (31/10): situação vira "Visão", o que está ligado vira pílula e a busca sugere filtros
+  const f = filtros.f;
+  const nomeMarcador = (id: string) => marcadores.find((m) => m.id === id)?.nome ?? "marcador";
+  const ligados: FiltroLigado[] = [
+    ...(marcador ? [{ rotulo: "Marcador", valor: nomeMarcador(marcador), tirar: () => setMarcador("") }] : []),
+    ...(etapa ? [{ rotulo: "Etapa", valor: FILTROS_EMITIDAS.find((x) => x.valor === etapa)?.rotulo ?? etapa, tirar: () => setEtapa("") }] : []),
+    ...(f.numDe || f.numAte ? [{ rotulo: "Nº", valor: `${f.numDe || "…"} a ${f.numAte || "…"}`, tirar: () => filtros.setF({ ...f, numDe: "", numAte: "" }) }] : []),
+    ...(f.valorMin || f.valorMax ? [{ rotulo: "Valor", valor: `${f.valorMin ? `de R$ ${f.valorMin}` : ""}${f.valorMin && f.valorMax ? " " : ""}${f.valorMax ? `até R$ ${f.valorMax}` : ""}`, tirar: () => filtros.setF({ ...f, valorMin: "", valorMax: "" }) }] : []),
+    ...(f.uf ? [{ rotulo: "UF", valor: f.uf, tirar: () => filtros.setF({ ...f, uf: "" }) }] : []),
+  ];
+  const ufsDaLista = [...new Set(data.map((n) => String(n.payload?.uf_destinatario ?? "")).filter(Boolean))].sort();
+  const sugestoes: SugestaoFiltro[] = [
+    ...abas.map((a) => ({ tipo: "Situação", rotulo: a.rotulo, aplicar: () => { setAba(a.valor); setSel(new Set()); } })),
+    ...FILTROS_EMITIDAS.map((x) => ({ tipo: "Etapa", rotulo: x.rotulo, aplicar: () => setEtapa(x.valor) })),
+    ...marcadores.map((m) => ({ tipo: "Marcador", rotulo: m.nome, aplicar: () => setMarcador(m.id) })),
+    ...ufsDaLista.map((u) => ({ tipo: "UF", rotulo: u, aplicar: () => filtros.setF({ ...f, uf: u }) })),
+  ];
+  const totalLista = filtrada.filter((n) => n.status !== "cancelada").reduce((t, n) => t + Number(n.valor_total ?? 0), 0);
+  const COR_VISAO: Record<string, string> = { pendentes: "bg-amber-500", autorizadas: "bg-emerald-500", canceladas: "bg-slate-400", teste: "bg-sky-500" };
+
   return (
     <>
       <BarraFiltros busca={busca} onBusca={buscar} placeholder="Buscar nº, nome, CNPJ ou chave"
         periodo={aba === "excluidas" ? undefined : filtros.f} onPeriodo={aba === "excluidas" ? undefined : (p) => filtros.setF({ ...filtros.f, ...p })} rotuloData="Emissão"
-        filtros={aba === "excluidas" ? undefined : <><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_EMITIDAS} /><CamposNota f={filtros.f} onChange={filtros.setF} comUf /></>}
+        filtros={aba === "excluidas" ? undefined : <><label className="text-xs font-semibold text-slate-600">Marcador<FiltroMarcador valor={marcador} onChange={setMarcador} /></label><label className="text-xs font-semibold text-slate-600">Etapa<FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_EMITIDAS} /></label><CamposNota f={filtros.f} onChange={filtros.setF} comUf /></>}
         nFiltros={(marcador ? 1 : 0) + (etapa ? 1 : 0) + camposEmUso(filtros.f)}
-        onLimpar={() => { buscar(""); setMarcador(""); setEtapa(""); filtros.setF(FILTRO_VAZIO); }} />
+        onLimpar={() => { buscar(""); setMarcador(""); setEtapa(""); filtros.setF(FILTRO_VAZIO); }}
+        visoes={{
+          lista: abas.map((a) => ({ id: a.valor, nome: a.rotulo, n: a.n, cor: COR_VISAO[a.valor] })),
+          ativa: aba, escolher: (v) => { setAba(v); setSel(new Set()); },
+          pagina: "notas-emitidas",
+          estado: { aba, marcador, etapa, numDe: f.numDe, numAte: f.numAte, valorMin: f.valorMin, valorMax: f.valorMax, uf: f.uf },
+          aplicar: (e) => { setAba(String(e.aba ?? "todas")); setMarcador(String(e.marcador ?? "")); setEtapa(String(e.etapa ?? "")); setSel(new Set());
+            filtros.setF({ ...f, numDe: String(e.numDe ?? ""), numAte: String(e.numAte ?? ""), valorMin: String(e.valorMin ?? ""), valorMax: String(e.valorMax ?? ""), uf: String(e.uf ?? "") }); },
+        }}
+        ligados={aba === "excluidas" ? [] : ligados} sugestoes={sugestoes}
+        resultado={aba === "excluidas" ? undefined : <><b className="num text-fg">{filtrada.length}</b> {pl(filtrada.length, "nota", "notas")} · <b className="num text-fg">{brl(totalLista)}</b> sem canceladas</>} />
       {/* Emitir NF-e e o "Mais" ao lado do título da página (no celular a busca fica numa linha só) */}
       <AcoesNoTopo>
           {!leitura && pode("emitir_nfe") && <Button className="md:order-last" onClick={() => setJanela("emitir")}><Send size={16} /> Emitir NF-e</Button>}
@@ -292,7 +322,6 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
           </MaisAcoes>
         </AcoesNoTopo>
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
-      <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
       <CartoesNotas tipo="emitidas" ativo={aba !== "excluidas"} periodo={filtros.f} notas={filtrada.map((n) => { const p = partesDaSaida(n, { paraOutraUnidade: n.destinatario_doc ? raizesUnidades.has(digitos(n.destinatario_doc).slice(0, 8)) : null, estornada: !!n.chave && estornadas.has(n.chave) }); return { valor: Number(n.valor_total ?? 0), situacao: situacaoEmitida(n).chave, venda: p.venda, transferencia: p.transferencia, teste: n.ambiente === "homologacao" }; })} />
       <div className="mb-2"><LegendaEvolucao tipo="emitidas" /></div>
       {data.some((n) => n.status === "contingencia") && (

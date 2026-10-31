@@ -55,7 +55,7 @@ import { maximoDesconto, rotuloRegra, type RegraDesconto } from "@/lib/descontos
 import { confirmar, escolherConflito } from "@/components/Dialogos";
 import { gravarSincronizado, NOME_CAMPO } from "@/lib/sincronizacao";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
-import { BarraFiltros, ChipsSituacao, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, RodapeLista, useSelecao, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { AplicarMarcadores } from "@/components/nfe/Marcadores";
 import { diaDaVenda, diaLocal, noPeriodo, noPeriodoOuPendente, rotuloPeriodo, SEM_PERIODO, semanaAtual, somar, type Periodo } from "@/lib/filtroLista";
 import { urlFotoProduto } from "@/lib/catalogo";
@@ -372,6 +372,26 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         onLimpar={() => { setDestaque(null); navigate(location.pathname, { replace: true, state: null }); }} />}
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nº, cliente, CPF ou CNPJ…"
         periodo={periodo} onPeriodo={setPeriodo} rotuloData="Data" nFiltros={nFiltros} onLimpar={limparFiltros}
+        // barra nova (31/10): situação vira "Visão" na lista (no quadro as colunas já são as situações), filtros em pílulas
+        visoes={quadro ? undefined : {
+          lista: STATUS.map((st) => ({ id: st, nome: st === "todos" ? "Todas as vendas" : area === "maquinas" && st === "orcamento" ? "Propostas" : ROTULO_STATUS[st],
+            n: st === "todos" ? semSituacao.length : semSituacao.filter((x) => x.status === st).length, cor: COR_VISAO_STATUS[st] })),
+          ativa: filtro, escolher: (v) => setFiltro(v as (typeof STATUS)[number]),
+          pagina: `vendas-${area ?? "pecas"}`,
+          estado: { filtro, marcador, formaEnvio, situacaoTiny, soLicenciados },
+          aplicar: (e) => { setFiltro((e.filtro as (typeof STATUS)[number]) ?? "todos"); setMarcador(String(e.marcador ?? "")); setFormaEnvio(String(e.formaEnvio ?? "")); setSituacaoTiny(String(e.situacaoTiny ?? "")); setSoLicenciados(!!e.soLicenciados); },
+        }}
+        ligados={[
+          ...(marcador ? [{ rotulo: "Marcador", valor: marcadores.find((m) => m.id === marcador)?.nome ?? "marcador", tirar: () => setMarcador("") }] : []),
+          ...(formaEnvio ? [{ rotulo: "Envio", valor: formaEnvio, tirar: () => setFormaEnvio("") }] : []),
+          ...(situacaoTiny ? [{ rotulo: "Tiny", valor: situacaoTiny === "-" ? "feitos no ERP" : situacaoTiny, tirar: () => setSituacaoTiny("") }] : []),
+          ...(soLicenciados ? [{ rotulo: "Clientes", valor: "Licenciados My Frost", tirar: () => setSoLicenciados(false) }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...(quadro ? [] : STATUS.filter((st) => st !== "todos").map((st) => ({ tipo: "Situação", rotulo: ROTULO_STATUS[st], aplicar: () => setFiltro(st) }))),
+          ...marcadores.map((m) => ({ tipo: "Marcador", rotulo: m.nome, aplicar: () => setMarcador(m.id) })),
+          ...formasEnvio.map(([r]) => ({ tipo: "Envio", rotulo: r, aplicar: () => setFormaEnvio(r) })),
+        ] satisfies SugestaoFiltro[]}
         filtros={<>
           <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
           {formasEnvio.length > 0 && (
@@ -395,8 +415,6 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
             </button>
           )}
         </>} />
-      {!quadro && <ChipsSituacao valor={filtro} onChange={setFiltro} cores={CORES_STATUS}
-        opcoes={STATUS.map((st) => ({ value: st, label: area === "maquinas" && st === "orcamento" ? "Propostas" : ROTULO_STATUS[st], n: st === "todos" ? semSituacao.length : semSituacao.filter((x) => x.status === st).length }))} />}
       {vePagamento && <ChipsPagamento valor={pagamento} onChange={setPagamento} lista={quadro ? filtrados : semPagamento} info={info} />}
       {vePagamento && !destaque && <ResumoDoPeriodo r={resumo} outra={resumoOutra} area={area} periodo={rotuloPeriodo(periodo, dia)} />}
 
@@ -566,13 +584,9 @@ function ChipsPagamento({ valor, onChange, lista, info }: {
 }
 
 /** Cor de cada situação nos filtros (a mesma dos selos da lista); fundo sólido não muda com o tema. */
-const CORES_STATUS: Partial<Record<(typeof STATUS)[number], { ponto: string; ativo: string }>> = {
-  todos: { ponto: "bg-slate-400", ativo: "bg-solido-cinza" },
-  orcamento: { ponto: "bg-purple-500", ativo: "bg-fixo-violet-600" },
-  aprovado: { ponto: "bg-sky-500", ativo: "bg-solido-azul" },
-  faturado: { ponto: "bg-indigo-500", ativo: "bg-fixo-indigo-700" },
-  entregue: { ponto: "bg-emerald-500", ativo: "bg-solido-verde" },
-  cancelado: { ponto: "bg-red-500", ativo: "bg-solido-vermelho" },
+/** Bolinha de cada situação na lista de visões (a mesma cor das colunas do quadro). */
+const COR_VISAO_STATUS: Partial<Record<(typeof STATUS)[number], string>> = {
+  orcamento: "bg-purple-500", aprovado: "bg-sky-500", faturado: "bg-indigo-500", entregue: "bg-emerald-500", cancelado: "bg-red-500",
 };
 
 /** Cor da situação que veio do Tiny, pelo nome (entregue, faturado, cancelado…). */

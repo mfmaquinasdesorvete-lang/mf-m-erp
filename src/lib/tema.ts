@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { aparenciaAtual, corValida } from "./aparencia";
 import { aplicarOrdensDoPerfil } from "./ordemSecoes";
+import { aplicarVisoesDoPerfil } from "./visoesSalvas";
 
 export type Tema = "escuro" | "claro";
 const CHAVE = "mf-erp-tema";
@@ -91,6 +92,7 @@ export function aplicarDestaque(d: Destaque) {
 /** Aplica a aparência salva no perfil do usuário (vale em qualquer aparelho). */
 export function aplicarPreferencias(p: { tema?: string; destaque?: string; fundo?: string } | null | undefined) {
   aplicarOrdensDoPerfil(p as Record<string, unknown> | null | undefined);
+  aplicarVisoesDoPerfil(p as Record<string, unknown> | null | undefined);
   // fundo4: a escolha feita depois do escuro liso (fundo3 era a do Aurora, fundo2 a do visual de aplicativo)
   const f = (p as { fundo4?: string } | null | undefined)?.fundo4;
   if (f && FUNDOS.includes(f as Fundo)) aplicarFundo(f as Fundo);
