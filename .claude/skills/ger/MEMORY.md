@@ -60,6 +60,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Transportadora principal das compras (sem SSW): pedir a ela o EDI OCOREN ou a API de rastreio (TRA), ou importar a planilha de CT-e do portal.
 
 ## Decisões da usuária
+- 30/10 (pelo ELO): venda no Pix que vence no dia da aprovação ganha 1 dia a mais na cobrança: o aviso de vencida sai 2 dias depois (conta_receber_pix_do_dia, migração 204). O resto da cobrança fica igual.
 - 30/10: comissão de venda no cartão entra uma vez só (não uma por parcela). O pedido #628 não teve vendedor. Ela edita qualquer comissão (administrador).
 - 29/10: o cliente com 3 máquinas da MF e 1 da My Frost tem 4 máquinas diferentes (anotado "não unificar"); máquina de NF de transferência entre unidades não fica na ficha da própria MF (a da NF 27 saiu e está em equipamentos_unificados).
 - 28/10: os 3 paquímetros digitais com calibração vencida ficam inativos até segunda ordem (inativados, com o motivo na observação).
