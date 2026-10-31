@@ -69,6 +69,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Proposta do CNF ainda sem resposta: os 123 'voce' por tipo (tela ~35, arquivo/acesso ~30, decidir ~25, botão no
   ERP ~10, painel ~10, pessoal ~10) num painel, um item por linha. Perguntar com botões.
 - Prazo: os 2 botões do Tiny antes da virada de 09/11.
+- Acompanhar (31/10, via CNF): TRA marcar os envios #25 (pedido #615) e #26 (pedido #616) como "Cliente retirou" no mesmo
+  dia e deixar mais curta a tela do frete de um envio. O TRA responde ao FAZ.
 
 ## Dossiê MF SC (28/10, pelo ELO)
 - Juntar no ERP tudo da MF SC desde 28/06/2022. FIS coordena (pedido 21a33e7d) com TIN, GER e ENT; eles me mandam o
