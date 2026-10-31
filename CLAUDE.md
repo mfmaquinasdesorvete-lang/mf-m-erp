@@ -1,6 +1,8 @@
 # Instruções para o Claude
 
 - Responder sempre em português do Brasil.
+- Terminar toda resposta à usuária com a data e a hora de Brasília, na última linha: `📅 dd/mm/aaaa · hh:mm`
+  (pegar a hora certa com `TZ=America/Sao_Paulo date '+%d/%m/%Y · %H:%M'`).
 - Publicação (site na Hostinger ou funções do Supabase): pedir a autorização com a pergunta de botões
   (AskUserQuestion), primeira opção "Pode publicar" e a outra "Ainda não", com uma linha do que vai ao ar.
   Não pedir para digitar "pode publicar".
