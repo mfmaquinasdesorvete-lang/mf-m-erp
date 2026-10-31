@@ -7,6 +7,8 @@ Auditoria a fundo das entradas feita em 23 e 24/10. Cerca de 300 entradas saíra
 pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliquem a entrada.
 
 ## No ar
+- Auditoria financeira mais leve (31/10, site 74377c7): só as colunas e o histórico que as regras usam (~3,5 MB em
+  vez de ~6,8 MB); índice `auditor_achados (ultima_rodada)` (migração 20261101000206). Falta ela abrir e conferir.
 - Data de abertura da conta (contas_bancarias.aberta_em / aberta_em_so_ano): no cartão e no cadastro
   (migração 20261101000191; publicado em 28/10, site 2581db4). Olist sem data: a usuária confirma.
 - Link de pagamento (28/10, migração 20261101000192): o link do pedido dá baixa em todas as parcelas; sem taxa
@@ -57,7 +59,6 @@ pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliqu
 - Funções do Supabase: `inter` (extrato e saldo do Inter SC), e-mail com OFX (`_shared/extrato-email.ts`).
 
 ## Próximos passos
-- Na próxima publicação do banco: índice `auditor_achados (ultima_rodada)` (chave sem índice, pedido do REV em 31/10).
 1. Quando chegarem extratos novos: conferir duplicados pelo identificador e ligar as entradas às vendas.
 2. Ligar as entradas grandes conforme ela for respondendo.
 3. Com o relatório de vendas do cartão, fechar os depósitos da InfinitePay e da Olist.
