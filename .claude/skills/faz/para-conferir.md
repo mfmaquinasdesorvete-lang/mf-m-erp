@@ -42,3 +42,4 @@ Telas (depois dos 20; os chats não abrem o ERP no ar)
 28. bd20c739 · "Desde" e siglas no modo Lista dos técnicos · TEC
 29. 926bbada · Pasta com todos os extratos e o LEIA-ME (22/10): abrir e conferir o conteúdo · ELO
 30. FUN · Recibos de funcionário: aparecem só em Funcionários → Recibos e não no Financeiro (29/10, com o login dela) · Funcionários
+31. dd72e33b · Envio: cartão "O cliente retirou na fábrica?" no topo e o resto recolhido (envios #25 e #26) · Fretes

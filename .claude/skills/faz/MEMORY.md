@@ -69,8 +69,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Proposta do CNF ainda sem resposta: os 123 'voce' por tipo (tela ~35, arquivo/acesso ~30, decidir ~25, botão no
   ERP ~10, painel ~10, pessoal ~10) num painel, um item por linha. Perguntar com botões.
 - Prazo: os 2 botões do Tiny antes da virada de 09/11.
-- Acompanhar (31/10, via CNF): TRA marcar os envios #25 (pedido #615) e #26 (pedido #616) como "Cliente retirou" no mesmo
-  dia e deixar mais curta a tela do frete de um envio. O TRA responde ao FAZ.
+- 31/10: TRA fez e publicou (dd72e33b feito, c4f6883d): envios #25 e #26 entregues (conferido no banco), tela do envio
+  com "Cliente retirou" no topo. Para ela conferir na tela (item 31 do para-conferir).
 - 31/10: ENT auditou o quadro de outubro (pedido 0f75a2ae). Seguem com os donos: GER (12 faturados antigos → entregue,
   cancelar #619 refeito como #630, #626 pago em dinheiro), MKT (#633), FIS (NF 438, notas com erro #625 e #610, entregues
   sem nota), TRA (#616 cancelado com envio entregue, #3, #36 em trânsito desde setembro). Dela: extratos da InfinitePay SC
