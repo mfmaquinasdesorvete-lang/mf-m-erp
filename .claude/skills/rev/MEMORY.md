@@ -35,10 +35,9 @@ com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 - Ainda não enviados: PRD (2 e 6), FIS, TRA e MKT (9), DSG (16).
 
 ## Esperando a usuária
-- Nada.
-
 - Abrir Financeiro → Auditoria financeira no ar e ver se as exceções aparecem como antes (o ENT deixou a tela mais leve em 31/10).
 - Aprovar no Supabase a migração do SOR das marcas das sorveterias (20261101000205_licenciados_marcas_rapido), quando ele pedir.
+
 ## Decisões da usuária
 - Apagar o que está morto só com a confirmação dela.
 - 27/10: autorizou apagar o que a auditoria achou sem uso. Apagados: KanbanPagar.tsx, BotaoFiltros e PainelFiltros, grupoInfo, notifyDesfazer, motivoNaoPagar, COLUNAS_PAGAR/colunaPagar, IconeTeste/IconeDevolucao, CAMPOS_GRUPO, embedVideo, comoSaiu, aplicarAumento, atendimentosMyFrost (e TIPOS_ATENDIMENTO), resumoMes, lerSerieMF, nomeComVariacao (com os testes deles). VISOES_PAGAR ficou: o teste do naVisaoPagar usa o tipo dele.
