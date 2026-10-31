@@ -34,6 +34,7 @@ describe("conta do extrato pelo arquivo (pedido de 28/10)", () => {
     { id: "uni", nome: "Unicred MF SC", banco: "unicred", numero: "999888" },
   ];
   it("acha pelo número da conta do OFX", () => expect(contaDoArquivo("x.ofx", "264412645", contas)).toBe("fab"));
+  it("acha pelo número sem o dígito (OFX da InfinitePay, 31/10)", () => expect(contaDoArquivo("Infinite Fa 31-10.ofx", "26441264", contas)).toBe("fab"));
   it("\"Infinit fa\" não cai na primeira conta: Infinit + fa é ambíguo entre as duas InfinitePay → pede para escolher", () =>
     expect(contaDoArquivo("Infinit fa.ofx", null, contas)).toBeNull());
   it("acha pelo nome do titular", () => expect(contaDoArquivo("Infinit Fabiano 27.ofx", null, contas)).toBe("fab"));
@@ -50,6 +51,7 @@ describe("trava de conta errada (pedido de 28/10)", () => {
   it("bloqueia quando o número do arquivo não bate com a conta", () =>
     expect(conferirContaDoExtrato({ conta: "264412645", linhas: cartao }, inter).bloqueio).toMatch(/264412645.*Banco Inter SC/));
   it("passa quando o número bate", () => expect(conferirContaDoExtrato({ conta: "264412645", linhas: cartao }, fab)).toEqual({ bloqueio: null, avisos: [] }));
+  it("passa quando o OFX vem sem o dígito da conta", () => expect(conferirContaDoExtrato({ conta: "26441264", linhas: cartao }, fab).bloqueio).toBeNull());
   it("arquivo sem número numa conta do Inter com compras do cartão InfinitePay: dois avisos", () => {
     const r = conferirContaDoExtrato({ conta: null, linhas: cartao }, inter);
     expect(r.bloqueio).toBeNull();

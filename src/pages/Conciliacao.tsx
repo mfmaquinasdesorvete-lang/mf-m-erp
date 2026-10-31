@@ -357,7 +357,8 @@ export default function Conciliacao() {
       </Table>}
 
       {editConta && <ContaBancariaModal conta={editConta} onClose={() => setEditConta(null)} />}
-      {importar && <ImportarModal bancos={bancos.filter((b) => b.ativo)} contaInicial={contaSel} onClose={() => setImportar(false)} />}
+      {/* todas as contas, não só as da unidade escolhida: o extrato de SP aberto na tela de SC achava a conta certa (31/10) */}
+      {importar && <ImportarModal bancos={contasTodas.filter((b) => b.ativo)} contaInicial={contaSel} onClose={() => setImportar(false)} />}
       {tratar && <TratarModal lanc={tratar} bancos={contasTodas} receber={receber} pagar={pagar} lancamentos={lancamentos} onClose={() => setTratar(null)} />}
       {desfazer && <DesfazerModal lanc={desfazer} onClose={() => setDesfazer(null)} />}
     </div>
@@ -566,6 +567,9 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
   const semMovimento = !linhas.length && res?.formato === "ofx" && !!res.periodoInicio && !!res.periodoFim;
   const contaEscolhida = bancos.find((b) => b.id === conta);
   const trava = res ? conferirContaDoExtrato({ conta: res.conta, linhas }, contaEscolhida) : { bloqueio: null, avisos: [] };
+  // conta errada: diz qual é a certa pelo número do arquivo (só quando uma conta bate sozinha)
+  const idCerta = trava.bloqueio && res ? contaDoArquivo("", res.conta, bancos) : null;
+  const contaCerta = idCerta && idCerta !== conta ? bancos.find((b) => b.id === idCerta) : undefined;
   const podeImportar = !!res && (!!linhas.length || semMovimento) && !trava.bloqueio && (!trava.avisos.length || confirmado);
   async function enviar() {
     if (!res || !podeImportar) return;
@@ -626,7 +630,15 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
           </div>
         )}
         {res && trava.bloqueio && conta && (
-          <div role="alert" className="rounded-xl border-2 border-red-400 bg-red-50 p-3 text-sm font-semibold text-red-800">{trava.bloqueio}</div>
+          <div role="alert" className="rounded-xl border-2 border-red-400 bg-red-50 p-3 text-sm font-semibold text-red-800">
+            {trava.bloqueio}
+            {contaCerta && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 font-normal">
+                <span>Pelo número, ele é da “<b>{contaCerta.nome}</b>”.</span>
+                <Button tamanho="mini" onClick={() => { setConta(contaCerta.id); setConfirmado(false); }}>Usar a {contaCerta.nome}</Button>
+              </div>
+            )}
+          </div>
         )}
         {res && !trava.bloqueio && trava.avisos.length > 0 && (
           <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">

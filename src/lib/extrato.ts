@@ -129,6 +129,11 @@ function hash(s: string) {
 
 type ContaParaReconhecer = { id: string; nome: string; numero?: string | null; banco?: string | null; etiqueta?: string | null };
 const so = (s: string | null | undefined) => String(s ?? "").replace(/\D/g, "");
+/** Mesmo número de conta: um termina no outro, com ou sem o dígito verificador (o OFX da InfinitePay vem sem ele). */
+function mesmaConta(a: string, b: string): boolean {
+  if (a.length < 4 || b.length < 4) return false;
+  return [a, a.slice(0, -1)].some((x) => [b, b.slice(0, -1)].some((y) => x.length >= 4 && y.length >= 4 && (x.endsWith(y) || y.endsWith(x))));
+}
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 // palavras que não ajudam a achar a conta ("banco", "conta", a sigla da unidade…)
 const GENERICAS = new Set(["banco", "conta", "extrato", "cartao", "pagamento", "pagamentos", "sc", "sp", "mf"]);
@@ -142,7 +147,7 @@ const GENERICAS = new Set(["banco", "conta", "extrato", "cartao", "pagamento", "
 export function contaDoArquivo(nomeArquivo: string, numeroOfx: string | null | undefined, contas: ContaParaReconhecer[]): string | null {
   const n = so(numeroOfx);
   if (n.length >= 4) {
-    const porNumero = contas.filter((c) => { const d = so(c.numero); return d.length >= 4 && (n.endsWith(d) || d.endsWith(n)); });
+    const porNumero = contas.filter((c) => mesmaConta(n, so(c.numero)));
     if (porNumero.length === 1) return porNumero[0].id;
   }
   const arq = semAcento(nomeArquivo).replace(/infinit(e|epay)?/g, "infinite");
@@ -164,7 +169,7 @@ export function conferirContaDoExtrato(
   if (!conta) return { bloqueio: "Escolha a conta deste extrato.", avisos: [] };
   const avisos: string[] = [];
   const doArquivo = so(r.conta), daConta = so(conta.numero);
-  if (doArquivo.length >= 4 && daConta.length >= 4 && !doArquivo.endsWith(daConta) && !daConta.endsWith(doArquivo)) {
+  if (doArquivo.length >= 4 && daConta.length >= 4 && !mesmaConta(doArquivo, daConta)) {
     return { bloqueio: `Este arquivo é da conta ${r.conta}, não da “${conta.nome}” (${conta.numero}). Escolha a conta certa.`, avisos };
   }
   if (doArquivo.length >= 4 && daConta.length < 4) avisos.push(`O arquivo é da conta ${r.conta} e a “${conta.nome}” não tem o número cadastrado para conferir.`);
