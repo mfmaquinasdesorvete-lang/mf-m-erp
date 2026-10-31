@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FILTRO_VAZIO, filtrosEmUso, passaFiltro, periodoDoAtalho, valorDigitado } from "../filtroNotas";
+import { FILTRO_VAZIO, passaFiltro, periodoDoAtalho, valorDigitado } from "../filtroNotas";
 
 const nota = { data: "2026-10-08T10:00:00Z", numero: "431", valor: 30, uf: "SC" };
 
@@ -22,7 +22,6 @@ describe("passaFiltro", () => {
     expect(passaFiltro(nota, { ...FILTRO_VAZIO, valorMin: "R$ 31,00" })).toBe(false);
     expect(passaFiltro(nota, { ...FILTRO_VAZIO, uf: "sp" })).toBe(false);
   });
-  it("conta os filtros em uso", () => expect(filtrosEmUso({ ...FILTRO_VAZIO, de: "2026-01-01", numDe: "1", uf: "SC" })).toBe(3));
 });
 
 describe("valorDigitado", () => {

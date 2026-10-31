@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { naVisaoPagar, PASSOS_PAGAR, passoPagar, situacaoPagar, soltarNaColuna, VISOES_PAGAR, type ContaDecisao } from "../programacao";
+import { naVisaoPagar, PASSOS_PAGAR, passoPagar, situacaoPagar, VISOES_PAGAR, type ContaDecisao } from "../programacao";
 
 const HOJE = "2026-10-16";
 const conta = (x: Partial<ContaDecisao & { data_pagamento: string | null }>) =>
@@ -63,20 +63,5 @@ describe("quadro (Kanban) das contas a pagar", () => {
     expect(passoPagar(conta({ fornecedor: { bloqueado: true } }), HOJE)).toBe("nao_pagar");
     expect(passoPagar(conta({ status: "pago", data_pagamento: "2026-10-10" }), HOJE)).toBe("pagas");
     expect(passoPagar(conta({ status: "cancelado" }), HOJE)).toBeNull();
-  });
-
-  it("arrastar faz a ação da coluna, com as travas de aprovação, golpe e pagamento", () => {
-    const livre = conta({ decisao: null });
-    expect(soltarNaColuna(livre, "hoje", HOJE)).toEqual({ acao: "pagar_hoje" });
-    expect(soltarNaColuna(livre, "programadas", HOJE)).toEqual({ acao: "agendar" });
-    expect(soltarNaColuna(livre, "nao_pagar", HOJE)).toEqual({ acao: "nao_pagar" });
-    expect(soltarNaColuna(livre, "pagas", HOJE)).toEqual({ acao: "registrar" });
-    expect(soltarNaColuna(livre, "decidir", HOJE)).toBeNull();
-    expect(soltarNaColuna(conta({ decisao: "nao_pagar" }), "decidir", HOJE)).toEqual({ acao: "limpar" });
-    expect(soltarNaColuna(conta({ revisao: "em_revisao" }), "hoje", HOJE)).toHaveProperty("motivo");
-    expect(soltarNaColuna(livre, "atrasadas", HOJE)).toHaveProperty("motivo");
-    expect(soltarNaColuna(conta({ decisao: "pagar", pagar_em: "2026-10-12" }), "hoje", HOJE)).toEqual({ acao: "pagar_hoje" });
-    expect(soltarNaColuna(conta({ fornecedor: { bloqueado: true } }), "hoje", HOJE)).toHaveProperty("motivo");
-    expect(soltarNaColuna(conta({ status: "pago" }), "decidir", HOJE)).toHaveProperty("motivo");
   });
 });

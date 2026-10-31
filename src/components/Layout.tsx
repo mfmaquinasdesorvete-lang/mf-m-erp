@@ -21,7 +21,6 @@ import { corValida, useAparencia } from "@/lib/aparencia";
 import { useConfig } from "@/lib/useConfig";
 import { corDoDegrade, IconeArea } from "@/components/IconeArea";
 import { Button, Field, Modal, useFecharComEsc } from "./ui";
-import { MeusAvisos } from "./Avisos";
 import { MeuRosto } from "./Rosto";
 import { EscolherVerComo } from "./VerComo";
 import { usaRosto } from "@/lib/rosto";
@@ -38,6 +37,7 @@ import { carregarGsap } from "@/components/Animar";
 const AlertaObrigacoes = lazy(() => import("@/components/contador/CalendarioObrigacoes").then((m) => ({ default: m.AlertaObrigacoes })));
 const AlertaContasDoMes = lazy(() => import("@/components/pessoal/ContasDoMes").then((m) => ({ default: m.AlertaContasDoMes })));
 const PerguntarIA = lazy(() => import("./PerguntarIA").then((m) => ({ default: m.PerguntarIA })));
+const MeusAvisos = lazy(() => import("./Avisos").then((m) => ({ default: m.MeusAvisos })));
 
 // versão gravada na montagem do site (vite.config.ts); na prévia sem git fica vazia
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
@@ -503,7 +503,7 @@ export function Layout() {
 
       {trocarSenha && <AlterarSenha onClose={() => setTrocarSenha(false)} />}
       {aparencia && <Aparencia onClose={() => setAparencia(false)} />}
-      {meusAvisos && <MeusAvisos onClose={() => setMeusAvisos(false)} />}
+      {meusAvisos && <Suspense fallback={null}><MeusAvisos onClose={() => setMeusAvisos(false)} /></Suspense>}
       {cotarFrete && (
         <Modal open title="Cotação rápida de frete" onClose={() => setCotarFrete(false)} wide>
           <Suspense fallback={<p className="text-sm text-slate-500">Carregando…</p>}><CotacaoRapida /></Suspense>

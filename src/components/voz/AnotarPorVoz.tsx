@@ -6,7 +6,7 @@
 // iPhone pelo ícone da tela inicial: a Apple não deixa o ERP ouvir; a janela abre no campo com a dica do 🎤 do teclado.
 // Imagem junto (📎 ou colar): comprovante, nota, etiqueta ou foto da máquina; a IA lê os dados dela e, ao confirmar, a
 // imagem fica anexada no registro escolhido (OS, compra, cliente) ou nos documentos da empresa.
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, ImagePlus, Loader2, Mic, RotateCcw, Sparkles, X } from "lucide-react";
@@ -20,10 +20,11 @@ import {
   acharPessoa, ouvir, suportaVoz, TIPOS, tiposPermitidos, vozBloqueada, type CandidatoVoz, type RespostaVoz, type TipoVoz,
 } from "@/lib/anotacoesVoz";
 import { ehPergunta, reconhecer, type Pronta } from "@/lib/respostasProntas";
-import { PerguntarIA } from "@/components/PerguntarIA";
 import { MascoteIA } from "./MascoteIA";
 import { RespostaPronta } from "@/components/RespostaPronta";
 import { reduzir } from "@/lib/fotos";
+// a janela da IA só carrega quando alguém pergunta (fora do pacote que todos baixam ao entrar)
+const PerguntarIA = lazy(() => import("@/components/PerguntarIA").then((m) => ({ default: m.PerguntarIA })));
 
 type Etapa = "ouvindo" | "texto" | "entendendo" | "confirmar" | "gravando" | "resposta";
 const SEM_REGISTRO = "";
@@ -159,7 +160,7 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
   }
 
   // pergunta livre: a janela vira o Perguntar à IA com o que foi dito
-  if (perguntaLivre) return <PerguntarIA inicial={perguntaLivre} onClose={onClose} />;
+  if (perguntaLivre) return <Suspense fallback={null}><PerguntarIA inicial={perguntaLivre} onClose={onClose} /></Suspense>;
   const ouvindo = etapa === "ouvindo";
   return (
     <Modal open onClose={() => { microfone.current?.cancelar(); onClose(); }} title="Anotar ou perguntar por voz">

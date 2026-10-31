@@ -34,9 +34,6 @@ export function passaFiltro(n: DadosNota, f: FiltroNota): boolean {
   return true;
 }
 
-export const filtrosEmUso = (f: FiltroNota) =>
-  [f.de || f.ate, f.numDe || f.numAte, f.valorMin || f.valorMax, f.uf].filter(Boolean).length;
-
 export type Atalho = "hoje" | "semana" | "7d" | "mes" | "mes_passado" | "ano";
 export const ATALHOS: { id: Atalho; rotulo: string }[] = [
   { id: "hoje", rotulo: "Hoje" }, { id: "semana", rotulo: "Esta semana" }, { id: "7d", rotulo: "7 dias" }, { id: "mes", rotulo: "Este mês" },

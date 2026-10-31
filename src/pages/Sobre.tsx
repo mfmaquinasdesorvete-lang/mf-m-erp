@@ -6,10 +6,10 @@
 // - O que mudou: as versões dia a dia, o checklist dos pedidos, as telas alteradas e o código;
 // - Equipe e ideias: as ideias, a rodada de trabalho em curso (VISUALIZE) e o handoff (financeiro e contador).
 // O endereço continua ?aba=… (os links antigos abrem a aba certa). Cada aba começa pelos indicadores, depois os filtros e as ações.
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Activity, AlertTriangle, BookOpen, Boxes, CalendarDays, ClipboardCopy, ExternalLink, Eye, History, LayoutDashboard, LayoutGrid, Lightbulb, Lock, Search, Settings, Sparkles, type LucideIcon } from "lucide-react";
-import { Button, Card, chip, PageHeader, Stat, Tabs } from "@/components/ui";
+import { Button, Card, Carregando, chip, PageHeader, Stat, Tabs } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { grupos, grupoDaRota, itensForaDoMenu, useVisivel, type Item } from "@/lib/menu";
@@ -17,24 +17,26 @@ import { ONDE_ABRE, PAGINAS_POR_LINK, SOBRE_AREAS, SOBRE_TELAS } from "@/lib/mod
 import { versoesDoHistorico } from "@/lib/atualizacoes";
 import { auditarMenu } from "@/lib/auditoriaMenu";
 import { pl } from "@/lib/format";
-import { Handoff } from "@/components/sobre/Handoff";
-import { ModulosCartoes } from "@/components/sobre/ModulosCartoes";
-import { Ideias } from "@/components/sobre/Ideias";
-import { Esquemas } from "@/components/sobre/Esquemas";
-import { Sistemas } from "@/components/sobre/Sistemas";
-import { Rodada } from "@/components/sobre/Rodada";
-import { Monitor } from "@/components/sobre/Monitor";
-import { Seguranca } from "@/components/sobre/Seguranca";
-import { PedidosChecklist } from "@/components/sobre/PedidosChecklist";
-import { TelasAlteradas } from "@/components/sobre/TelasAlteradas";
-import { CodigoErp } from "@/components/sobre/CodigoErp";
-import { DesignSystem } from "@/components/sobre/DesignSystem";
-import { Chats } from "@/components/sobre/Chats";
-import { PaginasClaude } from "@/components/sobre/PaginasClaude";
 import { ResumoSobre } from "@/components/sobre/ResumoSobre";
 import { ItemModal, type InicialItem } from "@/components/sobre/ItemProjeto";
 import { copiar } from "@/components/sobre/Guardanapo";
 import { HISTORICO } from "@/lib/historicoGit";
+
+// cada aba carrega só quando é aberta (o Sobre tinha ~500 KB com todas juntas)
+const Handoff = lazy(() => import("@/components/sobre/Handoff").then((m) => ({ default: m.Handoff })));
+const ModulosCartoes = lazy(() => import("@/components/sobre/ModulosCartoes").then((m) => ({ default: m.ModulosCartoes })));
+const Ideias = lazy(() => import("@/components/sobre/Ideias").then((m) => ({ default: m.Ideias })));
+const Esquemas = lazy(() => import("@/components/sobre/Esquemas").then((m) => ({ default: m.Esquemas })));
+const Sistemas = lazy(() => import("@/components/sobre/Sistemas").then((m) => ({ default: m.Sistemas })));
+const Rodada = lazy(() => import("@/components/sobre/Rodada").then((m) => ({ default: m.Rodada })));
+const Monitor = lazy(() => import("@/components/sobre/Monitor").then((m) => ({ default: m.Monitor })));
+const Seguranca = lazy(() => import("@/components/sobre/Seguranca").then((m) => ({ default: m.Seguranca })));
+const PedidosChecklist = lazy(() => import("@/components/sobre/PedidosChecklist").then((m) => ({ default: m.PedidosChecklist })));
+const TelasAlteradas = lazy(() => import("@/components/sobre/TelasAlteradas").then((m) => ({ default: m.TelasAlteradas })));
+const CodigoErp = lazy(() => import("@/components/sobre/CodigoErp").then((m) => ({ default: m.CodigoErp })));
+const DesignSystem = lazy(() => import("@/components/sobre/DesignSystem").then((m) => ({ default: m.DesignSystem })));
+const Chats = lazy(() => import("@/components/sobre/Chats").then((m) => ({ default: m.Chats })));
+const PaginasClaude = lazy(() => import("@/components/sobre/PaginasClaude").then((m) => ({ default: m.PaginasClaude })));
 
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
 const ULTIMA = versoesDoHistorico(HISTORICO)[0] ?? null;
@@ -96,21 +98,23 @@ export default function Sobre() {
       </nav>
       {grupo.abas.length > 1 && <Tabs value={aba} onChange={setAba} options={grupo.abas} />}
       {aba === "resumo" && <ResumoSobre ehAdmin={ehAdmin} podeHandoff={podeHandoff} ultima={ULTIMA} onIrAba={setAba} />}
-      {aba === "modulos" && <ModulosCartoes onIdeia={setIdeia} onAuditoria={() => setAba("esquemas")} />}
-      {aba === "chats" && ehAdmin && <Chats />}
-      {aba === "paginas" && ehAdmin && <PaginasClaude />}
-      {aba === "sistemas" && <Sistemas onIdeia={setIdeia} />}
-      {aba === "monitor" && ehAdmin && <Monitor />}
-      {aba === "seguranca" && ehAdmin && <Seguranca />}
-      {aba === "rodada" && podeHandoff && <Rodada versao={VERSAO} onIdeia={setIdeia} onPendencia={setPendencia} />}
-      {aba === "pedidos" && <PedidosChecklist />}
-      {aba === "telas" && <TelasAlteradas />}
-      {aba === "codigo" && <CodigoErp />}
-      {aba === "design" && <DesignSystem />}
-      {aba === "atualizacoes" && <Atualizacoes />}
-      {aba === "esquemas" && <Esquemas />}
-      {aba === "ideias" && <Ideias />}
-      {aba === "handoff" && podeHandoff && <Handoff versao={VERSAO} onIrAba={setAba} />}
+      <Suspense fallback={<Carregando linhas={3} />}>
+        {aba === "modulos" && <ModulosCartoes onIdeia={setIdeia} onAuditoria={() => setAba("esquemas")} />}
+        {aba === "chats" && ehAdmin && <Chats />}
+        {aba === "paginas" && ehAdmin && <PaginasClaude />}
+        {aba === "sistemas" && <Sistemas onIdeia={setIdeia} />}
+        {aba === "monitor" && ehAdmin && <Monitor />}
+        {aba === "seguranca" && ehAdmin && <Seguranca />}
+        {aba === "rodada" && podeHandoff && <Rodada versao={VERSAO} onIdeia={setIdeia} onPendencia={setPendencia} />}
+        {aba === "pedidos" && <PedidosChecklist />}
+        {aba === "telas" && <TelasAlteradas />}
+        {aba === "codigo" && <CodigoErp />}
+        {aba === "design" && <DesignSystem />}
+        {aba === "atualizacoes" && <Atualizacoes />}
+        {aba === "esquemas" && <Esquemas />}
+        {aba === "ideias" && <Ideias />}
+        {aba === "handoff" && podeHandoff && <Handoff versao={VERSAO} onIrAba={setAba} />}
+      </Suspense>
       {ideia && <ItemModal tipo="ideia" inicial={ideia} onClose={() => setIdeia(null)} />}
       {pendencia && <ItemModal tipo="pendencia" inicial={pendencia} onClose={() => setPendencia(null)} />}
     </div>

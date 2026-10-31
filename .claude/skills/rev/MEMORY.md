@@ -1,7 +1,8 @@
 # MEMORY — REV (ERP Line – Revisão: velocidade, links e repetidos)
-Atualizado em 29/10/2026.
+Atualizado em 31/10/2026.
 
 ## Estado agora
+31/10: segunda rodada feita, relatório em `.claude/skills/rev/auditoria-2026-10-31.md` (10 achados). Pacote de entrada 724 KB (era 918 em 27/10), Sobre 169 KB ao abrir. Falta publicar.
 Primeira auditoria geral feita em 27/10: relatório em `.claude/skills/rev/auditoria-2026-10-27.md` (17 achados,
 com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 
@@ -10,6 +11,7 @@ com o chat dono de cada um). Dois consertos de velocidade feitos e publicados.
 - 27/10: site com o pacote de entrada mais leve e o Sobre sem o histórico repetido (index-Com_oaXI.js, conferido na Hostinger).
 
 ## Em andamento
+- 31/10: achados da segunda rodada a enviar ao GER (1, 2, 3, 7, 8), SEG (4), SOR (5), AUD e o chat da unificação de máquinas (6).
 - 27/10: achados enviados ao GER (1, 2, 7, 6, 14, 11, 12), CLI (3), SEG (4 e 10) e CAR (8 e 9); esperando as respostas.
 - GER respondeu (27/10): pega a Auditoria financeira e as listas sem `select:` (clientes e produtos primeiro); `centavos()` numa troca separada com teste; rotas, menu e o que apagar dependem da usuária.
 - CAR fez (27/10, migração 20261101000174): as 9 regras da carteira com (select auth.uid()) e os 5 índices; conferido pelo REV no banco (0 regras sem select, 9 regras).

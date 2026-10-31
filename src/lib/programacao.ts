@@ -176,24 +176,3 @@ export function situacaoPagar(c: ContaLista, hoje: string): { texto: string; tom
   if (n === 0) return { texto: "Vence hoje", tom: "decidir", sub: "a decidir" };
   return { texto: "A decidir", tom: "decidir", sub: n <= 7 ? `vence em ${n} ${n === 1 ? "dia" : "dias"}` : null };
 }
-
-// ---------------------------------------------------------------------------------------------------------------
-// Quadro (Kanban): uma coluna por passo. Arrastar para outra coluna faz a ação que a coluna pede, com as mesmas
-// travas da lista (aprovação, golpe, motivo do "não pagar"); "atrasadas" não recebe conta (é o dia que passou).
-
-
-export type AcaoArrastar = "limpar" | "pagar_hoje" | "agendar" | "nao_pagar" | "registrar";
-/** O que acontece ao soltar a conta na coluna: a ação, ou o motivo de não poder (null = mesma coluna, nada a fazer). */
-export function soltarNaColuna(c: ContaLista, destino: PassoPagar, hoje: string): { acao: AcaoArrastar } | { motivo: string } | null {
-  const origem = passoPagar(c, hoje);
-  if (!origem || origem === destino) return null;
-  if (c.status !== "aberto") return { motivo: "Conta já paga: para desfazer, use \"Estornar o pagamento\" no menu da conta" };
-  if (c.fornecedor?.bloqueado) return { motivo: "Fornecedor marcado como golpe: a conta fica em \"Não pagar\"" };
-  if (destino === "decidir") return { acao: "limpar" };
-  if (destino === "nao_pagar") return { acao: "nao_pagar" };
-  if (destino === "atrasadas") return { motivo: "A conta fica atrasada sozinha quando o dia programado passa. Para pagar hoje, solte em \"Pagar hoje\"" };
-  if (aguardaAprovacao(c)) return { motivo: TEXTO_FALTA_APROVAR };
-  if (destino === "hoje") return { acao: "pagar_hoje" };
-  if (destino === "programadas") return { acao: "agendar" };
-  return { acao: "registrar" };
-}

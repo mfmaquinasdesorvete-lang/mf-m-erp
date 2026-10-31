@@ -62,6 +62,9 @@ Audito o ERP inteiro: o que está lento, o que está morto (link, botão, tela, 
   `src/lib/historicoGit.ts`.
 - Tabela "sem uso no código" pode ser usada só por função do banco: conferir `pg_proc.prosrc` e as views antes de chamar de morta.
 - Não cortar colunas de cliente e produto na emissão da NF-e (EmitirNfe, ComplianceFiscal): as conferências de `_shared/nfe-*` leem muitos campos e o corte só falha na SEFAZ. Lá, só com uma constante coberta por teste (FIS).
+- Antes de medir o build, `npm ci` se o package-lock mudou (em 31/10 o build falhou por falta do gsap) e conferir a data do `dist/index.html`: build que falha deixa os números antigos na pasta.
+- Componente estático no `App.tsx` (ex.: o microfone `AnotarPorVoz`) também puxa o que importa para o pacote de entrada: o lazy só no `Layout` não basta.
+- Média alta de um cron com `chamar_funcao(...) where <checagem>` pode ser o trabalho real e não a checagem: medir a checagem sozinha com `explain analyze`.
 
 ## Também faço — antes chat DOC (juntado ao REV em 31/10/2026)
 O chat DOC foi encerrado e o assunto dele passou para este chat. Abaixo, a skill/memória dele como estava; o que falar "eu" ou "DOC" agora é o REV.
