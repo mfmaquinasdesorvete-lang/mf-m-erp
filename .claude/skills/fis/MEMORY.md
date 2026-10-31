@@ -1,5 +1,5 @@
 # MEMORY — FIS (ERP Line – Fiscal e contábil)
-Atualizado em 29/10/2026 (transportadora e etiquetas pela NF).
+Atualizado em 31/10/2026 (Corrigir e reenviar busca os dados pela NF).
 
 ## Estado agora
 A emissão da NF-e, o DIFAL, as certidões e a previsão de imposto por máquina estão no ar. O que falta depende
@@ -22,6 +22,10 @@ guias e os parcelamentos que chegam na caixa do contador.
   Nota direta com transportadora; Carta de correção → "Trocar a transportadora" (texto em src/lib/cartaCorrecao.ts; a
   última carta substitui as anteriores, por isso a nova começa com o texto dela; o servidor troca no pedido e na
   expedição não despachada); botão Etiquetas na nota do pedido. Falta o teste dela.
+- Corrigir e reenviar pela NF (pedido de 29/10): no ar em 31/10 (site 82ff394, funções nfe-emitir e nfe-consultar).
+  Buscar pela Receita e Buscar IE dentro da correção; opção de salvar no cadastro do cliente (só depois de autorizada);
+  troca de contribuinte tira o DIFAL e recalcula a base do IBS/CBS (_shared/nfe-contribuinte.ts); contribuinte sem IE
+  não envia. Falta o teste dela (nota recusada por IE: Corrigir e reenviar → Buscar IE → Salvar e reenviar).
 - Teste dos itens fiscais (29/10, rodada de fechamento): 6 testados no ar, 5 esperando o teste dela (obrigações,
   Analista em fichas, Validador, abas das notas, certidões) e 9 com defeito consertados (dossiê com XML da Focus,
   DIFAL só com a base do ICMS e com as notas do ERP pelo payload, máquinas da nota com todos os itens, sem transferência
