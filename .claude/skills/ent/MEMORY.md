@@ -57,6 +57,7 @@ pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliqu
 - Funções do Supabase: `inter` (extrato e saldo do Inter SC), e-mail com OFX (`_shared/extrato-email.ts`).
 
 ## Próximos passos
+- Na próxima publicação do banco: índice `auditor_achados (ultima_rodada)` (chave sem índice, pedido do REV em 31/10).
 1. Quando chegarem extratos novos: conferir duplicados pelo identificador e ligar as entradas às vendas.
 2. Ligar as entradas grandes conforme ela for respondendo.
 3. Com o relatório de vendas do cartão, fechar os depósitos da InfinitePay e da Olist.
