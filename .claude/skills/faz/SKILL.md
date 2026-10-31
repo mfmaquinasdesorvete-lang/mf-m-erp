@@ -61,6 +61,7 @@ ou na Hostinger (e em outros painéis, como bancos e Anthropic). Explico o passo
 - Migração aplicada pelo MCP ganha outro número em `schema_migrations`: conferir a tabela, não o número.
 - As funções do Supabase sobem pelo GitHub Actions da branch `paineis-no-ar` (a `main` é antiga).
 - Desde 29/10 o MCP do Supabase pede a confirmação dela para toda gravação (até update no `pedidos_checklist`) e o
-  cartão não chega: escrita vira parte do arquivo do SQL Editor. Leitura segue normal.
+  cartão não chega: escrita vira parte do arquivo do SQL Editor. Leitura segue normal. Desde 31/10 (decisão dela): antes
+  de gravar, avisar no ERP e no celular "FAZ: abra este chat para aprovar a gravação no banco" e esperar 1–2 min.
 - O SQL Editor roda o arquivo como um bloco só: se uma parte dá erro, desfaz todas. Antes de pôr parte nova, conferir
   por leitura os índices únicos e os gatilhos das tabelas que ela mexe.

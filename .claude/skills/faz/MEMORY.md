@@ -15,8 +15,6 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Cobrar e conferir as 9 tarefas abaixo.
 
 ## Esperando a usuária (conferido no banco em 27/10)
-0b. Escolher a permissão de gravação do conector Supabase (SEG, 29/10): deixar "pedir aprovação" ou "Sempre
-   permitir" só em execute_sql e apply_migration. Conferir: uma gravação simples minha passa sem cartão.
 0c. GitHub Deploy key da Hostinger (só leitura) para o repositório virar privado (SEG, 29/10; esconde os nomes antigos
    dos commits). Conferir com o SEG.
 0d. Segurança fase 1 (SEG, 29/10): duas etapas no GitHub, Supabase, Hostinger e nas 2 contas Google (só ela vê;
@@ -32,6 +30,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 9. Conectar o Gmail do contador (FIS).
 
 ## Já resolvido
+- 31/10: conector Supabase — ela escolheu "deixar como está" (pede aprovação); regra no CLAUDE.md (1bf9d5a): avisar
+  no ERP e no celular antes de gravar e esperar 1–2 min. Item 0 fechado.
 - 29/10: arquivo do SQL Editor rodado (1ª vez deu erro 23505 em giga_retestes na parte 7 e desfez tudo; corrigido em
   769d2cd). Conferido: 8 partes, unificadas = 16, ainda_com_par = 3. Avisados GER, FUN, ELO, PRD, REV e IAD.
 - 28/10: FIS publicou o site (44e8ea8, com e529b35 e c289b2c), index.html conferido por ele.

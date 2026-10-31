@@ -9,19 +9,9 @@ Conferido no banco e no GitHub em 27/10: as funções do Supabase estão todas n
 
 **Feito (conferido no banco em 29/10):** o arquivo do SQL Editor com as 8 partes (GER, FUN, ELO, PRD, REV, IAD,
 16 máquinas juntadas, tabela temporária apagada).
+**Decidido em 31/10:** a gravação dos chats no banco continua pedindo a sua aprovação. O chat avisa no ERP e no celular
+("abra este chat para aprovar a gravação") e espera 1 a 2 minutos antes de gravar.
 
-## 0. Escolher como os chats gravam no banco (SEG, 29/10) — 1 minuto
-**O que é:** no conector do Supabase no claude.ai, a gravação (`execute_sql` e `apply_migration`) está como "pedir
-aprovação". O cartão de Permitir só aparece no chat que gravou e some rápido, por isso as gravações dos chats (IAD,
-PRD, eu) estão parando. Não foi mudança no ERP nem no banco.
-**Escolha uma:**
-1. **Mais seguro:** deixar como está. O chat avisa antes de gravar e você fica com aquele chat aberto para tocar em
-   "Permitir". O que não der vai para o arquivo do SQL Editor (item 1).
-2. **Mais prático:** claude.ai → Personalizar → **Conectores** → Supabase → permissões das ferramentas → marcar
-   **"Sempre permitir"** só em `execute_sql` e `apply_migration`. As que apagam ou pausam (delete_branch,
-   pause_project, reset_branch, merge_branch, create_project, deploy_edge_function) continuam pedindo. Vale para todos
-   os chats; a proteção continua pelas regras do CLAUDE.md e pelas regras de acesso do banco.
-**O que espera essa escolha:** a regra do SEG que deixa o técnico ver só o que é dele (precisa testar no banco antes).
 
 ## 0b. GitHub: cadastrar a chave de leitura da Hostinger (SEG) — 3 minutos
 **Por que importa:** é o que falta para deixar o repositório **privado** (decisão sua de 27/10). Com ele privado, os
