@@ -145,7 +145,10 @@ A base da My Frost (empresa anterior) passou para o MYF em 23/10.
   de recebimentos e cadastros (a API para quando a assinatura acaba); depois baixar contas a pagar e receber (todas as
   situações), XML das NF-e emitidas e de entrada, NFS-e, pedidos com itens, OCs, OS, propostas, produtos com estoque e
   os anexos. Mandar o zip aqui; eu confiro o que ainda não está no ERP.
-- Clicar em "Atualizar cadastros do Tiny" e em "Buscar recebimentos do Tiny" (esse último alimenta a aba "Decidir").
+- Clicar em "Atualizar cadastros do Tiny" e em "Buscar recebimentos do Tiny" (esse último alimenta a aba "Decidir"). Está na lista do FAZ como T1.
+- Importar de novo o zip do backup de 2023 ("MF - Crown-1-001.zip") em Importar → Notas de fornecedores, para completar o
+  XML das 87 notas de 2023 que estão sem ele (a tela casa pela chave).
+- Mandar, se tiver, o XML ou o PDF de 3 notas de compra digitadas no Tiny (nº 1, 115 e 118).
 - Planilha de contas a pagar do Tiny filtrada pelos contatos de um instalador de ar-condicionado e da empresa dele, para
   ligar os pagamentos aos fornecedores (pedido do GER).
 - Ok para aplicar as contas pagas do Tiny em Aprovações, os extratos das contas que faltam e o XML das NF de entrada.
