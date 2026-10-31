@@ -1,5 +1,5 @@
 # MEMORY — SOR (ERP Line – My Frost Sorveterias e Yozzy)
-Atualizado em 29/10/2026.
+Atualizado em 31/10/2026.
 
 ## Estado agora
 A tela das sorveterias está no ar e as lojas estão cadastradas (My Frost e Yozzy).
@@ -15,7 +15,9 @@ Nada de código novo deste chat esperando publicação.
   mais de 7 dias; tabela `licenciados_marcas` (migração 20261101000180) com as 2 marcas (site 8b465c0, 28/10).
 
 ## Em andamento
-- Nada parado no meio. (No Supabase, as gravações com update pedem a aprovação dela; os insert passam.)
+- Revisão (REV, 31/10): migração 20261101000205 (regras de acesso de licenciados_marcas com (select auth.uid()) e
+  índice no dono) escrita, falta aplicar: o Supabase pediu a aprovação dela. Avisar o REV quando aplicar.
+  (No Supabase, as gravações com update e as migrações pedem a aprovação dela; os insert passam.)
 
 ## Esperando a usuária
 - Yozzy Natal: rascunho dos pagamentos que a dona mandou. Falta ela dizer se a linha "Loja 50 mil" é a soma das
