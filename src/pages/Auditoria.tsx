@@ -78,15 +78,17 @@ const NENHUM: never[] = [];
 /** Exceções calculadas pelas regras + as registradas à mão pelo checklist, com a tratativa de cada uma. */
 function useExcecoes() {
   const { filtrar } = useUnidade();
-  const { data: receber = NENHUM } = useRows<any>("contas_receber");
-  const { data: pagar = NENHUM } = useRows<any>("contas_pagar");
-  const { data: lancamentos = NENHUM } = useRows<any>("extrato_lancamentos");
+  // só as colunas que as regras e a tela usam (as tabelas inteiras com select * pesavam alguns MB a cada abertura)
+  const { data: receber = NENHUM } = useRows<any>("contas_receber", { select: "id, descricao, valor, vencimento, status, data_pagamento, valor_pago, cliente_id, forma_pagamento, unidade_id, conta_bancaria_id, categoria, pedido_id, os_id, nota_fiscal_id, created_at" });
+  const { data: pagar = NENHUM } = useRows<any>("contas_pagar", { select: "id, descricao, valor, vencimento, status, data_pagamento, valor_pago, unidade_id, conta_bancaria_id, documento, nfe_recebida_id, fornecedor_id, categoria, created_at" });
+  const { data: lancamentos = NENHUM } = useRows<any>("extrato_lancamentos", { select: "id, conta_bancaria_id, data, valor, status, descricao, conta_receber_id, conta_pagar_id, par_transferencia_id, observacao, origem, importacao_id, created_at" });
   const { data: bancos = NENHUM } = useRows<any>("contas_bancarias", { order: "nome", ascending: true });
   const { data: importacoes = NENHUM } = useRows<any>("extrato_importacoes");
-  // as regras só olham o histórico das contas, dos produtos e das vendas (o resto do histórico não é baixado), e das
-  // contas e dos produtos só o que uma pessoa fez: o que o sistema gravou sozinho (~10 mil linhas) nenhuma regra usa
+  // só o histórico que alguma regra usa: contas alteradas por uma pessoa, produto alterado por uma pessoa e venda
+  // alterada com motivo (a criação de pedidos e de produtos e o que o sistema gravou sozinho nenhuma regra olha)
   const { data: auditoria = NENHUM } = useRows<any>("auditoria", {
-    filtro: (q) => q.in("tabela", ["contas_receber", "contas_pagar", "produtos", "pedidos"]).or("origem.eq.usuario,tabela.eq.pedidos"), key: ["excecoes"],
+    filtro: (q) => q.or("and(tabela.in.(contas_receber,contas_pagar),origem.eq.usuario),and(tabela.eq.produtos,acao.eq.update,origem.eq.usuario),and(tabela.eq.pedidos,acao.eq.update,motivo.not.is.null)"),
+    key: ["excecoes"],
   });
   const { data: documentos = NENHUM } = useRows<any>("documentos", { select: "entidade, entidade_id" });
   const { data: pedidos = NENHUM } = useRows<any>("pedidos", { select: "id, numero, numero_externo, status, unidade_id, valor_total, valor_produtos, desconto, vendedor_id, origem, nf_outra_numero, created_at, notas:notas_fiscais(status, ambiente)" });
