@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, MessageCircle, Plus, ShoppingCart, StickyNote, Trash2 } from "lucide-react";
 import { Button, Carregando, ErroLista, Field, Modal, PageHeader, Tabs, Vazio, chip } from "@/components/ui";
 import { QuadroEtapas, CartaoEtapa } from "@/components/quadro/QuadroEtapas";
+import { PassoAPasso } from "@/components/oportunidades/PassoAPasso";
 import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import type { Marcador } from "@/lib/marcadores";
 import { ClienteBusca } from "@/components/ClienteBusca";
@@ -83,6 +84,8 @@ export default function Oportunidades() {
     <div className="space-y-4">
       <PageHeader title="Oportunidades" subtitle="Do primeiro contato até virar venda: quem falou com quem, em que pé está e o que fazer agora."
         actions={podeMexer && <Button onClick={() => setAberta({ etapa: "novo", vendedor_id: meuVendedor })}><Plus size={16} /> Nova oportunidade</Button>} />
+
+      <PassoAPasso />
 
       <Tabs value={aba} onChange={setAba} options={[{ value: "quadro", label: "Quadro" }, { value: "metricas", label: "Métricas" }]} />
 
