@@ -1,5 +1,5 @@
 # MEMORY — CAR (ERP Line – Minha carteira (pessoal))
-Atualizado em 30/10/2026.
+Atualizado em 31/10/2026.
 
 ## Estado agora
 Painel pessoal (Retaguarda → Pessoal, só a conta master) completo: resumo, encontro de contas, extratos por mês,
@@ -29,11 +29,12 @@ contas do mês, controle sem cobrança e a ficha das empresas. O que falta depen
 - Dizer o que passou para a conta de um familiar em 23/09.
 - Explicar as saídas de 2024 que ainda não têm explicação (35 de 68) e de quem são 2 pagamentos da conta da loja.
 - Importar extratos que faltam: conta da loja (março, setembro, outubro), conta do familiar (dez/jan/fev).
-- Cadastrar os secrets do Meu Pluggy no Supabase.
+- Importar os extratos pelo arquivo do banco (Itaú PDF/OFX, Nubank OFX/CSV), escolhendo a conta certa.
 - CNPJ de uma empresa ainda a abrir, para Minhas empresas.
 - Conferir uma conta de água em aberto em nome dela.
 
 ## Decisões da usuária
+- Desistiu do Meu Pluggy (31/10): extratos entram pelo arquivo do banco; automático por e-mail só se ela pedir.
 - Toda tela com período abre em "Esta semana" (a carteira também; os outros períodos a um toque).
 - Dados pessoais não saem deste chat; repositório público só com regra e estrutura.
 - Uma das empresas dela fica fora deste ERP (vai ter um ERP próprio): não buscar nada dela.
