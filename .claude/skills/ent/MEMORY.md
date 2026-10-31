@@ -19,12 +19,16 @@ pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliqu
 - Tela "Entradas acima de R$ 5 mil" (já existia): anotação na própria linha do extrato.
 
 ## Em andamento
+- Auditoria do quadro de vendas de outubro (31/10, pedido 0f75a2ae): ela aprovou cancelar o pedido repetido e
+  passar 12 faturados antigos para entregue (GER); notas ao FIS, envios ao TRA, venda do Mercado Livre ao MKT.
+  Conferir quando os chats responderem.
 - Entradas grandes sem dono: 11 sem venda nem nota; a usuária responde uma a uma.
 - Pix pequenos sem dono na InfinitePay SC (3) e devoluções de Pix sem a saída achada.
 - Depósitos de cartão (InfinitePay e Olist/Zoop) x vendas: sem o relatório de vendas por transação só se
   liga um a um, pela regra do dia útil seguinte e da taxa.
 
 ## Esperando a usuária
+- Extrato do Mercado Pago SP depois de 05/2026 (vendas do Mercado Livre de outubro sem extrato).
 - Pedido de 28/10 (FIS coordena): extratos da MF SC desde a abertura (06/2022). Faltam Unicred 06/2022–12/2024,
   Sicoob inteiro, e saber quais bancos a MF usou em 2022–2023. Passo a passo enviado ao FAZ.
   Datas de abertura informadas em 28/10; a da Olist (12/2025) não bate com o extrato (desde 04/2025): ela confirma
