@@ -13,6 +13,10 @@
   fazer, em 1 ou 2 frases simples>');`. Aparece no meio da tela com som e a voz lê o resumo; o botão abre o chat.
   E mandar também a notificação no celular dela (ferramenta PushNotification, carregar com ToolSearch), começando
   pelo nome do chat: "<chat>: <o que ela precisa fazer>" (até 200 letras, sem valores nem dados pessoais).
+- Toda vez que precisar da usuária, perguntar com botões (AskUserQuestion), nunca só em texto (pedido de 31/10). Exemplos:
+  publicar → "Pode publicar" / "Ainda não"; gravar no banco → "Pode gravar agora" / "Depois" (e ela aprova o cartão
+  do Supabase logo em seguida); tarefa num painel (Supabase, GitHub, Hostinger, banco) → "Já fiz" / "Me explique o
+  passo a passo" / "Depois"; decisão → uma opção por escolha, a recomendada primeiro. Uma linha do que é, sem termo técnico.
 - Gravação no banco que pede aprovação (decisão de 31/10: continua pedindo, é o mais seguro): antes de gravar, avisar
   no ERP (`aviso_claude`) e no celular (PushNotification) "<chat>: abra este chat para aprovar a gravação no banco", e
   esperar 1 a 2 minutos antes de mandar a gravação. Se o pedido expirar, não repetir sem novo aviso.
