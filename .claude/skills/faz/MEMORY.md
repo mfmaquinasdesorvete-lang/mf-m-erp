@@ -2,6 +2,9 @@
 Atualizado em 28/10/2026.
 
 ## Estado agora
+- 31/10: virei "Acompanhamento e o que só você faz" (juntou o CNF, eb791d1). 18 chats: TIN → GER (Tiny do Dossiê
+  vai para o GER), AUD → ENT (auditor e extratos com o ENT), DOC → REV. Regra 82ff394: tudo o que precisar dela vem com
+  botões (AskUserQuestion). Título da sessão: "04 📋 FAZ · Acompanhamento e o que só você faz".
 - 31/10 08:42: 4º resumo. Nada mudou desde 30/10 (rosto 0, Pluggy 0, Tiny 16/10, inutilização SP 0, 0 conferidos,
   121 'voce'). Hostinger desconectada de novo no claude.ai (entrou no resumo). Para-conferir mostrados 1 a 15 (sem o
   10, 13, 14). Próximo: 01/11 08:40.
