@@ -19,9 +19,8 @@ pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliqu
 - Tela "Entradas acima de R$ 5 mil" (já existia): anotação na própria linha do extrato.
 
 ## Em andamento
-- Auditoria do quadro de vendas de outubro (31/10, pedido 0f75a2ae): ela aprovou cancelar o pedido repetido e
-  passar 12 faturados antigos para entregue (GER); notas ao FIS, envios ao TRA, venda do Mercado Livre ao MKT.
-  Conferir quando os chats responderem.
+- Quadro de vendas de outubro: auditado e consertado (31/10). Falta só o FIS anular a NF 438 para o GER cancelar o
+  pedido repetido.
 - Entradas grandes sem dono: 11 sem venda nem nota; a usuária responde uma a uma.
 - Pix pequenos sem dono na InfinitePay SC (3) e devoluções de Pix sem a saída achada.
 - Depósitos de cartão (InfinitePay e Olist/Zoop) x vendas: sem o relatório de vendas por transação só se
