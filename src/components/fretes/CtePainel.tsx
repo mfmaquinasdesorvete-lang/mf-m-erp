@@ -9,7 +9,7 @@ import { Badge, Button, Section, Table, nomeMes, chip } from "@/components/ui";
 import { ImportarCteXml } from "@/components/fretes/ImportarCteXml";
 import { BarraSentidos, FaturasParaMontar, MenuImportar, div, nomeTransportadora, pct } from "@/components/fretes/CteResumo";
 import { ImportarCtes } from "@/components/fretes/CteImportarPlanilha";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { MontarFatura } from "@/components/fretes/CteFaturas";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje } from "@/lib/format";
@@ -153,6 +153,18 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
             </select></label>
         ) : undefined}
         nFiltros={[transp, sentido, soSemFatura, soAtraso].filter(Boolean).length} onLimpar={limpar}
+        // barra nova (31/10): filtros em pílulas com ×, a busca sugere transportadora e sentido, e o que ficou na lista
+        ligados={[
+          ...(transp ? [{ rotulo: "Transportadora", valor: nomeTransportadora(porId.get(transp)), tirar: () => setTransp("") }] : []),
+          ...(sentido ? [{ rotulo: "Sentido", valor: SENTIDOS[sentido].rotulo, tirar: () => setSentido("") }] : []),
+          ...(soSemFatura ? [{ rotulo: "Fatura", valor: "sem fatura", tirar: () => setSoSemFatura(false) }] : []),
+          ...(soAtraso ? [{ rotulo: "Entrega", valor: "com atraso", tirar: () => setSoAtraso(false) }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...(transpComCte.length > 1 ? transpComCte.map((id) => ({ tipo: "Transportadora", rotulo: nomeTransportadora(porId.get(id)), aplicar: () => setTransp(id) })) : []),
+          ...(["entrada", "saida", "transferencia", "outro"] as const).map((s) => ({ tipo: "Sentido", rotulo: SENTIDOS[s].rotulo, aplicar: () => setSentido(s) })),
+        ] satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> CT-e · <b className="num text-fg">{brl(lista.reduce((t, c) => t + Number(c.valor), 0))}</b></>}
         direita={podeImportar && <MenuImportar onPlanilha={() => setImportar(true)} />} />
 
       <div className="grid gap-3 lg:grid-cols-5">

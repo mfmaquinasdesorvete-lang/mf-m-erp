@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Hammer, PaintBucket, Receipt, Store, Wallet } from "lucide-react";
 import { Button, Card, chip, nomeMes, Stat, Table } from "@/components/ui";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { mesDoPeriodo, noPeriodo, periodoDoMes, rotuloPeriodo, SEM_PERIODO, semanaAtual, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useMarcadores } from "@/components/nfe/Marcadores";
 import { useRows } from "@/lib/data";
@@ -167,6 +167,12 @@ export default function GastosQuiosques() {
     <div>
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar loja, item ou nº da nota" periodo={faixa} onPeriodo={setFaixa} rotuloData="Data"
         nFiltros={grupo ? 1 : 0} onLimpar={() => { setBusca(""); setGrupo(""); setFaixa(SEM_PERIODO); }}
+        // barra nova (31/10): o grupo de material em pílula, a busca sugere o grupo e o que ficou (os chips de grupo continuam abaixo)
+        ligados={[
+          ...(grupo ? [{ rotulo: "Material", valor: NOME_GRUPO[grupo], tirar: () => setGrupo("") }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={GRUPOS_QUIOSQUE.map((g) => ({ tipo: "Material", rotulo: g.nome, aplicar: () => setGrupo(g.id) })) satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{notasVis.length}</b> {pl(notasVis.length, "nota", "notas")}{avulsasVis.length ? <> + <b className="num text-fg">{avulsasVis.length}</b> sem nota</> : null} · <b className="num text-fg">{brl(gasto)}</b></>}
         direita={<Button variant="secondary" onClick={exportar} disabled={!notasVis.length && !pagsVis.length}><Download size={16} /> Exportar</Button>} />
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Grupo de material">
         <button type="button" aria-pressed={!grupo} onClick={() => setGrupo("")}

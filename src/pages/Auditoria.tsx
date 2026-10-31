@@ -18,7 +18,7 @@ import {
 } from "@/lib/auditoriaBusca";
 import { PainelAuditoria } from "@/components/auditoria/PainelAuditoria";
 import { HistoricoBusca } from "@/components/auditoria/HistoricoBusca";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { Destaque, FiltroAtivo, Pilula } from "@/components/auditoria/BuscaUi";
 import { useNomesRegistros, type Destino } from "@/components/auditoria/useAuditoria";
 import { HistoricoTratativa } from "@/components/auditoria/HistoricoTratativa";
@@ -206,13 +206,32 @@ function Excecoes({ dados, inicial, abrir }: { dados: DadosExcecoes; inicial?: P
           </div>
         </>}
         nFiltros={(f.ver !== FILTROS_EXCECOES.ver ? 1 : 0) + (f.gravidade ? 1 : 0) + (f.tipo ? 1 : 0)} onLimpar={limpar}
+        // barra nova (31/10): os tipos com a contagem viram a Visão (o tipo escolhido aparece no botão da Visão);
+        // "mostrar" e gravidade em pílulas, e a busca sugere tipos, gravidades e o que mostrar
+        visoes={{
+          lista: [
+            { id: "", nome: "Todas", n: contagem.reduce((s, c) => s + c.n, 0) },
+            ...contagem.filter((c) => c.n || f.tipo === c.k).map((c) => ({ id: c.k, nome: TIPOS[c.k].rotulo, n: c.n })),
+          ],
+          ativa: f.tipo, escolher: (v) => mudar({ tipo: v as TipoExcecao | "" }),
+          pagina: "auditoria-excecoes", estado: { tipo: f.tipo, ver: f.ver, gravidade: f.gravidade },
+          aplicar: (e) => setF({
+            ...FILTROS_EXCECOES,
+            tipo: (String(e.tipo ?? "") in TIPOS ? e.tipo : "") as TipoExcecao | "",
+            ver: VER_EXCECOES.some((v) => v.valor === e.ver) ? (e.ver as VerExcecoes) : FILTROS_EXCECOES.ver,
+            gravidade: GRAVIDADES.some(([g]) => g === e.gravidade) ? (e.gravidade as Excecao["gravidade"]) : "",
+          }),
+        }}
+        ligados={[
+          ...(f.ver !== FILTROS_EXCECOES.ver ? [{ rotulo: "Mostrar", valor: VER_EXCECOES.find((v) => v.valor === f.ver)?.rotulo ?? f.ver, tirar: () => mudar({ ver: FILTROS_EXCECOES.ver }) }] : []),
+          ...(f.gravidade ? [{ rotulo: "Gravidade", valor: GRAVIDADES.find(([g]) => g === f.gravidade)?.[1] ?? f.gravidade, tirar: () => mudar({ gravidade: "" }) }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...contagem.filter((c) => c.n).map((c) => ({ tipo: "Tipo", rotulo: TIPOS[c.k].rotulo, aplicar: () => mudar({ tipo: c.k }) })),
+          ...GRAVIDADES.map(([g, rotulo]) => ({ tipo: "Gravidade", rotulo, aplicar: () => mudar({ gravidade: g }) })),
+          ...VER_EXCECOES.map((v) => ({ tipo: "Mostrar", rotulo: v.rotulo, aplicar: () => mudar({ ver: v.valor }) })),
+        ] satisfies SugestaoFiltro[]}
         direita={<Button variant="secondary" onClick={exportar} disabled={!lista.length}>Exportar</Button>} />
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        <Pilula ativo={!f.tipo} onClick={() => mudar({ tipo: "" })}>Todas ({contagem.reduce((s, c) => s + c.n, 0)})</Pilula>
-        {contagem.filter((c) => c.n || f.tipo === c.k).map((c) => (
-          <Pilula key={c.k} ativo={f.tipo === c.k} onClick={() => mudar({ tipo: c.k })} title={TIPOS[c.k].criterio}>{TIPOS[c.k].rotulo} ({c.n})</Pilula>
-        ))}
-      </div>
       {f.tipo && <p className="mb-2 text-xs text-slate-500"><b>Critério:</b> {TIPOS[f.tipo].criterio}</p>}
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <p className="text-sm text-slate-600" aria-live="polite"><b className="num text-fg">{lista.length}</b> {pl(lista.length, "exceção", "exceções")}</p>

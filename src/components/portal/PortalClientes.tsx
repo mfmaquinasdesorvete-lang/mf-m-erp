@@ -3,12 +3,15 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FilePlus2, UserPlus } from "lucide-react";
 import { Button, Card } from "@/components/ui";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado } from "@/components/filtros/BarraFiltros";
 import { brl, dataBR, pl } from "@/lib/format";
 import type { ClientePortal } from "@/lib/portal";
 import { ClienteNovoModal } from "./ClienteNovo";
 import { usePortal } from "./dados";
 
+const ORDENS: { v: "nome" | "total" | "recente"; rotulo: string }[] = [
+  { v: "nome", rotulo: "Nome" }, { v: "total", rotulo: "Mais comprou no ano" }, { v: "recente", rotulo: "Compra mais recente" },
+];
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 export function PortalClientes() {
@@ -38,12 +41,18 @@ export function PortalClientes() {
       {/* barra padrão: a ordem fica no painel Filtros (conta como filtro quando não é por nome) */}
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Nome ou cidade"
         filtros={
-          <select className="input w-auto" aria-label="Ordem" value={ordem} onChange={(e) => setOrdem(e.target.value as typeof ordem)}>
-            <option value="nome">Nome</option><option value="total">Mais comprou no ano</option><option value="recente">Compra mais recente</option>
-          </select>
+          <label className="text-xs font-semibold text-slate-600">Ordem
+            <select className="input w-auto" value={ordem} onChange={(e) => setOrdem(e.target.value as typeof ordem)}>
+              {ORDENS.map((o) => <option key={o.v} value={o.v}>{o.rotulo}</option>)}
+            </select></label>
         }
         nFiltros={ordem !== "nome" ? 1 : 0}
-        onLimpar={() => { setBusca(""); setOrdem("nome"); }} />
+        onLimpar={() => { setBusca(""); setOrdem("nome"); }}
+        // barra nova (31/10): a ordem em pílula e o que ficou na lista
+        ligados={[
+          ...(ordem !== "nome" ? [{ rotulo: "Ordem", valor: ORDENS.find((o) => o.v === ordem)?.rotulo ?? ordem, tirar: () => setOrdem("nome") }] : []),
+        ] satisfies FiltroLigado[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "cliente", "clientes")} · <b className="num text-fg">{brl(lista.reduce((s, c) => s + Number(c.total_ano), 0))}</b> no ano</>} />
       {isLoading && <p className="py-8 text-center text-slate-500">Carregando…</p>}
       {error && <p className="py-8 text-center text-red-700" role="alert">{(error as Error).message}</p>}
       {!isLoading && !error && !lista.length && <p className="py-8 text-center text-sm text-slate-500">{clientes.length ? "Nenhum cliente com essa busca." : "Sua carteira ainda está vazia."}</p>}

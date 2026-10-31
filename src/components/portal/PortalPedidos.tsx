@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Check, ChevronRight, Copy, FileText, Truck } from "lucide-react";
 import { Badge, Card } from "@/components/ui";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { brl, dataBR, pl } from "@/lib/format";
 import {
   etapaPedido, filtrarPedidos, ROTULO_SITUACAO, situacaoEntrega,
@@ -18,6 +18,11 @@ const FILTROS: { value: FiltroPedidos; label: string }[] = [
   { value: "cancelado", label: "Cancelados" },
 ];
 
+// cor da bolinha de cada situação na "Visão" da barra
+const COR_VISAO: Partial<Record<FiltroPedidos, string>> = {
+  abertos: "bg-amber-500", orcamento: "bg-slate-400", aprovado: "bg-sky-500", faturado: "bg-emerald-500", entregue: "bg-emerald-500", cancelado: "bg-red-500",
+};
+
 export const SeloPortal = () => <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-2xs font-bold text-emerald-700" title="Enviado por você no portal">PORTAL</span>;
 
 export function PortalPedidos() {
@@ -30,22 +35,17 @@ export function PortalPedidos() {
   return (
     <div className="space-y-3">
       <h1 className="text-xl font-bold text-fg">Meus pedidos</h1>
-      {/* barra padrão; as situações continuam nos botões logo abaixo */}
-      <div>
-        <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Nº, cliente, cidade ou nota" onLimpar={() => setBusca("")} />
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Situação">
-          {FILTROS.map((f) => {
-            const n = conta(f.value);
-            if (!n && f.value !== filtro && !["abertos", "todos"].includes(f.value)) return null;
-            return (
-              <button key={f.value} type="button" aria-pressed={filtro === f.value} onClick={() => setFiltro(f.value)}
-                className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${filtro === f.value ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600"}`}>
-                {f.label} <span className="num opacity-90">{n}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* barra nova (31/10): as situações (antes nos botões abaixo da barra) viram a "Visão", com a contagem */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Nº, cliente, cidade ou nota" onLimpar={() => setBusca("")}
+        visoes={{
+          lista: FILTROS.map((f) => ({ id: f.value, nome: f.value === "todos" ? "Todos os pedidos" : f.label, n: conta(f.value), cor: COR_VISAO[f.value] })),
+          ativa: filtro, escolher: (v) => setFiltro(v as FiltroPedidos),
+          pagina: "portal-pedidos",
+          estado: { filtro },
+          aplicar: (e) => setFiltro((e.filtro as FiltroPedidos) ?? "abertos"),
+        }}
+        sugestoes={FILTROS.filter((f) => f.value !== "todos").map((f) => ({ tipo: "Situação", rotulo: f.label, aplicar: () => setFiltro(f.value) })) satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{vistos.length}</b> {pl(vistos.length, "pedido", "pedidos")} · <b className="num text-fg">{brl(vistos.reduce((s, p) => s + Number(p.total || 0), 0))}</b></>} />
       {isLoading && <p className="py-8 text-center text-slate-500">Carregando…</p>}
       {error && <p className="py-8 text-center text-red-700" role="alert">{(error as Error).message}</p>}
       {!isLoading && !error && !vistos.length && <p className="py-8 text-center text-sm text-slate-500">Nenhum pedido aqui.</p>}

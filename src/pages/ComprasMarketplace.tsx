@@ -5,8 +5,8 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Package, Receipt, ShoppingBag, Store, Wallet } from "lucide-react";
-import { Card, chip, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { Card, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { mesDoPeriodo, noPeriodo, periodoDoMes, rotuloPeriodo, SEM_PERIODO, semanaAtual, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -152,21 +152,26 @@ export default function ComprasMarketplace({ embutido }: { embutido?: boolean } 
             <option value="">Pagamentos de todas as contas</option>
             {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select></label>}
-        nFiltros={(conta ? 1 : 0) + (qual ? 1 : 0)} onLimpar={() => { setBusca(""); setConta(""); setQual(""); setFaixa(SEM_PERIODO); }} />
-      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Marketplace">
-        <button type="button" aria-pressed={!qual} onClick={() => setQual("")}
-          className={chip(!qual)}>Todos</button>
-        {MARKETPLACES.map((m) => {
-          const n = notas.filter((x) => x.marketplace === m.id && doMes(x.data_emissao)).length + pagamentos.filter((p) => p.marketplace === m.id && doMes(p.data) && !ligacao.has(p.id)).length;
-          if (!n && qual !== m.id) return null;
-          return (
-            <button key={m.id} type="button" aria-pressed={qual === m.id} onClick={() => setQual(qual === m.id ? "" : m.id)}
-              className={chip(qual === m.id, `${m.chip} ring-2`)}>
-              <span className={`h-2.5 w-2.5 rounded-full ${m.barra}`} aria-hidden />{m.nome} <span className="text-xs opacity-70">{n}</span>
-            </button>
-          );
-        })}
-      </div>
+        nFiltros={(conta ? 1 : 0) + (qual ? 1 : 0)} onLimpar={() => { setBusca(""); setConta(""); setQual(""); setFaixa(SEM_PERIODO); }}
+        // barra nova (31/10): os chips de marketplace viraram a "Visão" (mesmas contagens; o que não tem nada some, menos o escolhido)
+        visoes={{
+          lista: [
+            { id: "", nome: "Todos os marketplaces" },
+            ...MARKETPLACES.map((m) => ({ id: m.id as string, nome: m.nome, cor: m.barra,
+              n: notas.filter((x) => x.marketplace === m.id && doMes(x.data_emissao)).length + pagamentos.filter((p) => p.marketplace === m.id && doMes(p.data) && !ligacao.has(p.id)).length }))
+              .filter((m) => m.n || m.id === qual),
+          ],
+          ativa: qual, escolher: (v) => setQual(v as Marketplace | ""),
+          pagina: "compras-marketplace",
+          estado: { qual, conta },
+          aplicar: (e) => { setQual((e.qual as Marketplace | "") ?? ""); setConta(String(e.conta ?? "")); },
+        }}
+        ligados={conta ? [{ rotulo: "Conta", valor: nomeConta(conta), tirar: () => setConta("") }] satisfies FiltroLigado[] : []}
+        sugestoes={[
+          ...MARKETPLACES.map((m) => ({ tipo: "Marketplace", rotulo: m.nome, aplicar: () => setQual(m.id) })),
+          ...contas.map((c) => ({ tipo: "Conta", rotulo: c.nome, aplicar: () => setConta(c.id) })),
+        ] satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{notasVis.length}</b> {pl(notasVis.length, "nota", "notas")} · <b className="num text-fg">{brl(totalNotas)}</b></>} />
 
       {erroIntermed && <Card className="mb-4 border-red-300 bg-red-50 p-3 text-sm text-red-800">Não consegui ler o marketplace das notas: {erroIntermed.message}</Card>}
 

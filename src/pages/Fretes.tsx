@@ -9,7 +9,7 @@ import { PesoMedidas } from "@/components/fretes/PesoMedidas";
 import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowRight, BadgeCheck, CircleDollarSign, ClipboardList, PackageCheck, Plus, Truck, X } from "lucide-react";
 import { Button, PageHeader, Table, Tabs, chip } from "@/components/ui";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado } from "@/components/filtros/BarraFiltros";
 import { EnvioForm } from "@/components/fretes/EnvioForm";
 import { IndicadoresMes } from "@/components/fretes/IndicadoresMes";
 import { CtePainel } from "@/components/fretes/CtePainel";
@@ -211,6 +211,18 @@ export default function Fretes() {
             {filtroSelect("Tipo de máquina", "equipamento", equipamentos.map((q) => [q, q]))}
           </>}
           nFiltros={totalFiltros - (filtros.de ? 1 : 0) - (filtros.ate ? 1 : 0)}
+          // barra nova (31/10): cada filtro em pílula com × (sem busca, então sem sugestões); a quantidade da lista ao lado
+          ligados={([
+            ["transportadora", "Transportadora", (v: string) => transportadoras.find((t) => t.id === v)?.nome ?? "transportadora"],
+            ["regiao", "Região", (v: string) => v],
+            ["uf", "UF", (v: string) => v],
+            ["vendedor", "Vendedor", (v: string) => vendedores.find((x) => x.id === v)?.nome ?? "vendedor"],
+            ["status", "Status", (v: string) => STATUS_ENVIO[v as StatusEnvio]?.rotulo ?? v],
+            ["equipamento", "Tipo de máquina", (v: string) => v],
+          ] as [keyof FiltrosPainel, string, (v: string) => string][]).filter(([k]) => filtros[k]).map(([k, rotulo, nome]) => ({
+            rotulo, valor: nome(filtros[k]!), tirar: () => setFiltros({ ...filtros, [k]: undefined }),
+          })) satisfies FiltroLigado[]}
+          resultado={aba === "envios" || (aba === "painel" && ind) ? <><b className="num text-fg">{lista.length}</b> {pl(lista.length, "envio", "envios")}</> : undefined}
           onLimpar={() => setFiltros({})}
           direita={aba === "indicadores" ? <span className="text-sm font-semibold text-slate-600">{rotuloDoMes(mes)}</span> : undefined}
         />

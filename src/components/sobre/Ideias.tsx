@@ -3,7 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Ban, CheckCircle2, ClipboardList, Columns3, Lightbulb, List, ListChecks, Pencil, RotateCcw, Sparkles, ThumbsUp, Zap, type LucideIcon } from "lucide-react";
 import { Button, Card, chip } from "@/components/ui";
-import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { MenuAcoes } from "@/components/MenuAcoes";
 import { usePerfil } from "@/lib/auth";
@@ -28,6 +28,8 @@ const SITUACOES: { id: SituacaoItem; rotulo: string; ponto: string; cor: string;
   { id: "feita", rotulo: "Feitas", ponto: "bg-emerald-500", ...TOM_ESCURO.verde, icone: CheckCircle2 },
   { id: "descartada", rotulo: "Descartadas", ponto: "bg-slate-400", ...TOM_ESCURO.cinza, icone: Ban },
 ];
+// as situações da lista, na "Visão" da barra de filtros
+const VISOES_IDEIAS: [Visao, string][] = [["ativas", "Em aberto"], ["aberta", "Novas"], ["avaliando", "Em avaliação"], ["planejada", "Planejadas"], ["feita", "Feitas"], ["descartada", "Descartadas"], ["todas", "Todas"]];
 const daSituacao = (s: SituacaoItem) => SITUACOES.find((x) => x.id === s) ?? SITUACOES[0];
 
 export function Ideias() {
@@ -89,6 +91,25 @@ export function Ideias() {
             <label className="flex items-center gap-2 pb-2 text-sm text-slate-600"><input type="checkbox" checked={soGanho} onChange={(e) => setSoGanho(e.target.checked)} /> Só ganho rápido</label>
           </>}
           nFiltros={nFiltros} onLimpar={() => ir(() => {})}
+          // barra nova (31/10): a situação vira "Visão" na lista (no quadro as colunas já são as situações), filtros em pílulas
+          visoes={modo === "quadro" ? undefined : {
+            lista: VISOES_IDEIAS.map(([v, l]) => ({ id: v, nome: l, n: base.filter((i) => naVisao(i, v)).length, cor: SITUACOES.find((x) => x.id === v)?.ponto })),
+            ativa: visao, escolher: (v) => setVisao(v as Visao),
+            pagina: "sobre-ideias", estado: { visao, area, ordem, minhas, soGanho },
+            aplicar: (e) => { setVisao((e.visao as Visao) ?? "ativas"); setArea(String(e.area ?? "")); setOrdem((e.ordem as OrdemIdeias) ?? "votos"); setMinhas(!!e.minhas); setSoGanho(!!e.soGanho); },
+          }}
+          ligados={[
+            ...(area ? [{ rotulo: "Área", valor: rotuloArea(area), tirar: () => setArea("") }] : []),
+            ...(minhas ? [{ rotulo: "Quem anotou", valor: "só as minhas", tirar: () => setMinhas(false) }] : []),
+            ...(soGanho ? [{ rotulo: "Ganho", valor: "só ganho rápido", tirar: () => setSoGanho(false) }] : []),
+          ] satisfies FiltroLigado[]}
+          sugestoes={[
+            ...(modo === "quadro" ? [] : VISOES_IDEIAS.filter(([v]) => v !== "todas").map(([v, l]) => ({ tipo: "Situação", rotulo: l, aplicar: () => setVisao(v) }))),
+            ...AREAS.filter((a) => ideias.some((i) => i.area === a.id)).map((a) => ({ tipo: "Área", rotulo: a.titulo, aplicar: () => setArea(a.id) })),
+            { tipo: "Quem anotou", rotulo: "Só as minhas", aplicar: () => setMinhas(true) },
+            { tipo: "Ganho", rotulo: "Só ganho rápido", aplicar: () => setSoGanho(true) },
+          ] satisfies SugestaoFiltro[]}
+          resultado={modo === "quadro" ? undefined : <><b className="num text-fg">{lista.length}</b> {pl(lista.length, "ideia", "ideias")}</>}
           direita={
             <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 text-sm font-semibold" role="group" aria-label="Ver como">
               {([["lista", "Lista", List], ["quadro", "Quadro", Columns3]] as const).map(([v, l, I]) => (
@@ -98,9 +119,6 @@ export function Ideias() {
             </div>} />
 
         {modo === "lista" ? <>
-          <ChipsSituacao valor={visao} onChange={setVisao} rotulo="Situação"
-            opcoes={([["ativas", "Em aberto"], ["aberta", "Novas"], ["avaliando", "Em avaliação"], ["planejada", "Planejadas"], ["feita", "Feitas"], ["descartada", "Descartadas"], ["todas", "Todas"]] as [Visao, string][])
-              .map(([v, l]) => ({ value: v, label: l, n: base.filter((i) => naVisao(i, v)).length }))} />
           {!lista.length && !isLoading && <p className="py-6 text-center text-sm text-slate-500">Nenhuma ideia {nFiltros || termo || visao !== "ativas" ? "com esses filtros" : "ainda: anote a primeira acima"}.</p>}
           <ul className="divide-y divide-slate-100">{lista.map((i) => linha(i))}</ul>
         </> : (

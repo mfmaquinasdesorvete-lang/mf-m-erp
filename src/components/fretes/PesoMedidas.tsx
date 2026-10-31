@@ -4,9 +4,10 @@
 import { useMemo, useState } from "react";
 import { Check, Package } from "lucide-react";
 import { Button } from "@/components/ui";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { useInvalidate, useRows } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
+import { pl } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { lerValor } from "@/lib/auditoriaBusca";
 import { confirmar } from "@/components/Dialogos";
@@ -24,6 +25,7 @@ export const completoParaFrete = (p: ProdutoMedidas) => Number(p.peso_kg) > 0 &&
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const txt = (v: number | null) => (v == null ? "" : String(v).replace(".", ","));
 const num = (s: string) => { const v = lerValor(s); return v != null && v > 0 ? v : null; };
+const QUAIS = { faltando: "Faltando peso ou medidas", loja: "Produtos da loja", todos: "Todos os que vendem" } as const;
 
 export function PesoMedidas({ podeEditar }: { podeEditar: boolean }) {
   const invalidar = useInvalidate();
@@ -108,7 +110,7 @@ export function PesoMedidas({ podeEditar }: { podeEditar: boolean }) {
         filtros={<>
           <label className="text-xs font-semibold text-slate-600">Quais produtos
             <select className="input mt-0.5 h-9 w-auto" value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)}>
-              <option value="faltando">Faltando peso ou medidas</option><option value="loja">Produtos da loja</option><option value="todos">Todos os que vendem</option>
+              {(Object.keys(QUAIS) as (keyof typeof QUAIS)[]).map((k) => <option key={k} value={k}>{QUAIS[k]}</option>)}
             </select></label>
           <label className="text-xs font-semibold text-slate-600">Categoria
             <select className="input mt-0.5 h-9 w-auto" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
@@ -116,6 +118,16 @@ export function PesoMedidas({ podeEditar }: { podeEditar: boolean }) {
             </select></label>
         </>}
         nFiltros={(filtro !== "faltando" ? 1 : 0) + (categoria ? 1 : 0)}
+        // barra nova (31/10): filtros em pílulas com ×, a busca sugere as opções e a quantidade ao lado
+        ligados={[
+          ...(filtro !== "faltando" ? [{ rotulo: "Quais produtos", valor: QUAIS[filtro], tirar: () => setFiltro("faltando") }] : []),
+          ...(categoria ? [{ rotulo: "Categoria", valor: categoria, tirar: () => setCategoria("") }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...(Object.keys(QUAIS) as (keyof typeof QUAIS)[]).map((k) => ({ tipo: "Quais", rotulo: QUAIS[k], aplicar: () => setFiltro(k) })),
+          ...categorias.map((c) => ({ tipo: "Categoria", rotulo: c, aplicar: () => setCategoria(c) })),
+        ] satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "produto", "produtos")}</>}
         onLimpar={() => { setBusca(""); setCategoria(""); setFiltro("faltando"); }} />
 
       {podeEditar && marcados.size > 0 && (

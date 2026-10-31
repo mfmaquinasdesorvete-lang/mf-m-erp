@@ -6,10 +6,10 @@ import { AlertTriangle, CalendarClock, ClipboardCheck, FileText, Mail, Package, 
 import { Badge, BotaoAtalho, Button, Card, chip, COR_ATALHO, Field, Indicador, Modal, Section, Stat, Table, Tabs, type TomAcao } from "@/components/ui";
 import { CabecalhoPainel, CartaoPainel, Funil, type Periodo as PeriodoPainel } from "@/components/painel/Painel";
 import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
-import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { SeloCidade } from "@/components/SeloCidade";
 import { SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
-import { brl } from "@/lib/format";
+import { brl, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { useAparencia } from "@/lib/aparencia";
 import { EditorAparencia } from "@/components/sobre/EditorAparencia";
@@ -50,6 +50,13 @@ const FATIAS: FatiaAnel<string>[] = [
 ];
 const ICONE_FATIA: Record<string, typeof Package> = { maquinas: ShoppingCart, pecas: Package, servicos: Wrench, insumos: Users };
 
+// exemplo da barra de filtros (dados de mentira)
+const SITUACOES_DEMO: { id: "todos" | "aberto" | "pago"; nome: string; n: number; cor?: string }[] = [
+  { id: "todos", nome: "Todos os pedidos", n: 48 }, { id: "aberto", nome: "Em aberto", n: 13, cor: "bg-amber-500" }, { id: "pago", nome: "Pagos", n: 35, cor: "bg-emerald-500" },
+];
+const VENDEDORES_DEMO = ["Vendedor 1", "Vendedor 2"];
+const UFS_DEMO = ["SC", "SP", "PR"];
+
 /** Bloco da vitrine: título, para que serve e o nome da peça no código. */
 function Bloco({ titulo, peca, children, texto }: { titulo: string; peca: string; texto: string; children: ReactNode }) {
   return (
@@ -77,6 +84,8 @@ export function DesignSystem() {
   const [busca, setBusca] = useState("");
   const [periodo, setPeriodo] = useState<Periodo>(SEM_PERIODO);
   const [situacao, setSituacao] = useState<"todos" | "aberto" | "pago">("todos");
+  const [vendedorDemo, setVendedorDemo] = useState("");
+  const [ufDemo, setUfDemo] = useState("");
   const [fatia, setFatia] = useState("");
   const [janela, setJanela] = useState(false);
   const total = FATIAS.reduce((s, f) => s + f.valor, 0);
@@ -275,13 +284,40 @@ export function DesignSystem() {
         </QuadroEscuro>
       </Bloco>
 
-      <Bloco titulo="Filtros das listas" peca="<BarraFiltros> · <ChipsSituacao>"
-        texto="A mesma barra em todas as listas: busca, período (com atalhos ou de/até) e os outros filtros guardados num botão. Os chips mostram a situação com a quantidade.">
+      {/* barra nova (31/10): a vitrine mostra a barra completa (Visão com as prontas e as salvas, busca que sugere,
+          período, Filtros, pílulas do que está ligado e o resultado); os chips de situação ficaram dentro da Visão */}
+      <Bloco titulo="Filtros das listas" peca="<BarraFiltros visoes ligados sugestoes resultado>"
+        texto="A mesma barra em todas as listas, sempre na mesma ordem: Visão (as situações com a quantidade e as visões que a pessoa salva), busca que sugere filtros (digite “pa” ou “SP”), período e o botão Filtros. O que está ligado aparece em pílulas com × e o resultado ao lado.">
         <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar cliente, pedido ou nota…" periodo={periodo} onPeriodo={setPeriodo}
-          rotuloData="Emissão" nFiltros={0} onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); }}
-          filtros={<Field label="Vendedor"><select className="input"><option>Todos</option></select></Field>} />
-        <ChipsSituacao valor={situacao} onChange={setSituacao}
-          opcoes={[{ value: "todos", label: "Todos", n: 48 }, { value: "aberto", label: "Em aberto", n: 13 }, { value: "pago", label: "Pagos", n: 35 }]} />
+          rotuloData="Emissão" onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setSituacao("todos"); setVendedorDemo(""); setUfDemo(""); }}
+          visoes={{
+            lista: SITUACOES_DEMO.map((s) => ({ id: s.id, nome: s.nome, n: s.n, cor: s.cor })),
+            ativa: situacao, escolher: (v) => setSituacao(v as typeof situacao),
+            pagina: "sobre-design-demo", estado: { situacao, vendedor: vendedorDemo, uf: ufDemo },
+            aplicar: (e) => { setSituacao((e.situacao as typeof situacao) ?? "todos"); setVendedorDemo(String(e.vendedor ?? "")); setUfDemo(String(e.uf ?? "")); },
+          }}
+          ligados={[
+            ...(vendedorDemo ? [{ rotulo: "Vendedor", valor: vendedorDemo, tirar: () => setVendedorDemo("") }] : []),
+            ...(ufDemo ? [{ rotulo: "UF", valor: ufDemo, tirar: () => setUfDemo("") }] : []),
+          ] satisfies FiltroLigado[]}
+          sugestoes={[
+            ...SITUACOES_DEMO.filter((s) => s.id !== "todos").map((s) => ({ tipo: "Situação", rotulo: s.nome, aplicar: () => setSituacao(s.id) })),
+            ...VENDEDORES_DEMO.map((v) => ({ tipo: "Vendedor", rotulo: v, aplicar: () => setVendedorDemo(v) })),
+            ...UFS_DEMO.map((u) => ({ tipo: "UF", rotulo: u, aplicar: () => setUfDemo(u) })),
+          ] satisfies SugestaoFiltro[]}
+          resultado={(() => {
+            // números de mentira para a vitrine: cada filtro ligado corta a lista pela metade
+            const n = Math.max(1, Math.round((SITUACOES_DEMO.find((s) => s.id === situacao)?.n ?? 0) / (vendedorDemo ? 2 : 1) / (ufDemo ? 2 : 1)));
+            return <><b className="num text-fg">{n}</b> {pl(n, "pedido", "pedidos")} · <b className="num text-fg">{brl(n * 1250)}</b></>;
+          })()}
+          filtros={<>
+            <Field label="Vendedor"><select className="input" value={vendedorDemo} onChange={(e) => setVendedorDemo(e.target.value)}>
+              <option value="">Todos</option>{VENDEDORES_DEMO.map((v) => <option key={v} value={v}>{v}</option>)}
+            </select></Field>
+            <Field label="UF"><select className="input" value={ufDemo} onChange={(e) => setUfDemo(e.target.value)}>
+              <option value="">Todas</option>{UFS_DEMO.map((u) => <option key={u} value={u}>{u}</option>)}
+            </select></Field>
+          </>} />
       </Bloco>
 
       <Bloco titulo="Tabelas" peca="<Table> · .tabela-leve"

@@ -9,7 +9,7 @@ import {
   Plus, RotateCcw, Scale, Store, Truck, UserRound, X, type LucideIcon,
 } from "lucide-react";
 import { Button, Card, chip, Modal } from "@/components/ui";
-import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { MenuAcoes } from "@/components/MenuAcoes";
 import { hoje, pl } from "@/lib/format";
@@ -23,6 +23,11 @@ import {
 } from "./ItemProjeto";
 
 type Visao = "ativas" | "aguardando" | "feita" | "descartada" | "todas";
+// as situações da lista de pendências, na "Visão" da barra de filtros
+const VISOES_HANDOFF: [Visao, string, string?][] = [
+  ["ativas", "Abertas", "bg-sky-500"], ["aguardando", "Aguardando", "bg-amber-500"], ["feita", "Feitas", "bg-emerald-500"],
+  ["descartada", "Descartadas", "bg-slate-400"], ["todas", "Todas"],
+];
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const COR_FAIXA: Record<Prioridade, string> = { alta: "bg-red-500", media: "bg-amber-400", baixa: "bg-slate-300" };
 // cor e ícone de quem faz (as mesmas das etiquetas; o "neon" é o tom que aparece no painel escuro)
@@ -145,7 +150,28 @@ export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: s
                   </select></label>
                 <label className="flex items-center gap-2 pb-2 text-sm text-slate-600"><input type="checkbox" checked={soAtrasadas} onChange={(e) => setSoAtrasadas(e.target.checked)} /> Só atrasadas</label>
               </>}
-              nFiltros={(prio ? 1 : 0) + (area ? 1 : 0) + (soAtrasadas ? 1 : 0) + (resp ? 1 : 0)} onLimpar={limpar} />
+              nFiltros={(prio ? 1 : 0) + (area ? 1 : 0) + (soAtrasadas ? 1 : 0) + (resp ? 1 : 0)} onLimpar={limpar}
+              // barra nova (31/10): a situação vira "Visão" (eram chips abaixo), os filtros em pílulas, a busca sugere
+              visoes={{
+                lista: VISOES_HANDOFF.map(([v, l, cor]) => ({ id: v, nome: l, n: doResp.filter((i) => naVisao(i, v)).length, cor })),
+                ativa: visao, escolher: (v) => setVisao(v as Visao),
+                pagina: "sobre-handoff", estado: { visao, resp, prio, area, soAtrasadas },
+                aplicar: (e) => { setVisao((e.visao as Visao) ?? "ativas"); setResp((e.resp as Responsavel | "") ?? ""); setPrio((e.prio as Prioridade | "") ?? ""); setArea(String(e.area ?? "")); setSoAtrasadas(!!e.soAtrasadas); },
+              }}
+              ligados={[
+                ...(resp ? [{ rotulo: "Quem faz", valor: ROTULO_RESPONSAVEL[resp], tirar: () => setResp("") }] : []),
+                ...(area ? [{ rotulo: "Área", valor: AREAS.find((a) => a.id === area)?.titulo ?? area, tirar: () => setArea("") }] : []),
+                ...(prio ? [{ rotulo: "Prioridade", valor: ROTULO_PRIORIDADE[prio], tirar: () => setPrio("") }] : []),
+                ...(soAtrasadas ? [{ rotulo: "Prazo", valor: "só atrasadas", tirar: () => setSoAtrasadas(false) }] : []),
+              ] satisfies FiltroLigado[]}
+              sugestoes={[
+                ...VISOES_HANDOFF.filter(([v]) => v !== "todas").map(([v, l]) => ({ tipo: "Situação", rotulo: l, aplicar: () => setVisao(v) })),
+                ...RESPONSAVEIS.map((r) => ({ tipo: "Quem faz", rotulo: ROTULO_RESPONSAVEL[r], aplicar: () => setResp(r) })),
+                ...AREAS.filter((a) => pend.some((i) => i.area === a.id)).map((a) => ({ tipo: "Área", rotulo: a.titulo, aplicar: () => setArea(a.id) })),
+                ...(["alta", "media", "baixa"] as Prioridade[]).map((p) => ({ tipo: "Prioridade", rotulo: ROTULO_PRIORIDADE[p], aplicar: () => setPrio(p) })),
+                { tipo: "Prazo", rotulo: "Só atrasadas", aplicar: () => setSoAtrasadas(true) },
+              ] satisfies SugestaoFiltro[]}
+              resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "pendência", "pendências")}</>} />
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Quem faz">
               {(["", ...RESPONSAVEIS] as (Responsavel | "")[]).map((r) => {
                 const n = base.filter((i) => naVisao(i, visao) && (!r || i.responsavel === r)).length;
@@ -157,11 +183,6 @@ export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: s
                   </button>
                 );
               })}
-            </div>
-            <div className="mt-2">
-              <ChipsSituacao valor={visao} onChange={setVisao} rotulo="Situação"
-                opcoes={([["ativas", "Abertas"], ["aguardando", "Aguardando"], ["feita", "Feitas"], ["descartada", "Descartadas"], ["todas", "Todas"]] as [Visao, string][])
-                  .map(([v, l]) => ({ value: v, label: l, n: doResp.filter((i) => naVisao(i, v)).length }))} />
             </div>
 
             {!lista.length && !isLoading && <p className="py-6 text-center text-sm text-slate-500">Nenhuma pendência {nFiltros ? "com esses filtros" : "aqui"}.</p>}

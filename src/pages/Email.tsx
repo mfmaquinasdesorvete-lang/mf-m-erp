@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Download, FileText, Inbox, Landmark, Mail, Paperclip, PenSquare, RefreshCw, Reply, ShoppingCart, Truck, User } from "lucide-react";
 import { Button, Field, Modal, PageHeader } from "@/components/ui";
-import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { useRows } from "@/lib/data";
 import { callFunction, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -31,13 +31,19 @@ const quando = (d: string) => {
     ? dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
     : dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 };
+type FiltroEmail = "todos" | "nao_lidos" | "clientes" | "nfe" | "extratos";
+// o que a "Visão" da barra mostra (antes eram os chips "Mostrar")
+const MOSTRAR: { value: FiltroEmail; label: string; cor?: string }[] = [
+  { value: "todos", label: "Todos" }, { value: "nao_lidos", label: "Não lidos", cor: "bg-sky-500" },
+  { value: "clientes", label: "De clientes", cor: "bg-emerald-500" }, { value: "nfe", label: "Com NF-e", cor: "bg-amber-500" }, { value: "extratos", label: "Extratos", cor: "bg-slate-400" },
+];
 const kb = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
 
 export default function Email() {
   const qc = useQueryClient();
   const { data: contas = [] } = useRows<ContaEmail>("email_contas", { order: "nome", ascending: true, select: "id, nome, email, sincronizado_em, erro" });
   const [conta, setConta] = useState<string>("");
-  const [filtro, setFiltro] = useState<"todos" | "nao_lidos" | "clientes" | "nfe" | "extratos">("todos");
+  const [filtro, setFiltro] = useState<FiltroEmail>("todos");
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState<EmailMsg | null>(null);
   const [novo, setNovo] = useState(false);
@@ -117,11 +123,17 @@ export default function Email() {
           <select className="input w-auto" aria-label="Caixa de e-mail" value={conta} onChange={(e) => { setConta(e.target.value); setAberto(null); }}>
             {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select>)}
-        nFiltros={filtro !== "todos" ? 1 : 0} onLimpar={() => { setBusca(""); setFiltro("todos"); }} />
-      <ChipsSituacao valor={filtro} onChange={setFiltro} rotulo="Mostrar" opcoes={[
-        { value: "todos", label: "Todos", n: contagem.todos }, { value: "nao_lidos", label: "Não lidos", n: contagem.nao_lidos },
-        { value: "clientes", label: "De clientes", n: contagem.clientes }, { value: "nfe", label: "Com NF-e", n: contagem.nfe }, { value: "extratos", label: "Extratos", n: contagem.extratos },
-      ]} />
+        nFiltros={filtro !== "todos" ? 1 : 0} onLimpar={() => { setBusca(""); setFiltro("todos"); }}
+        // barra nova (31/10): os chips "Mostrar" viram a "Visão", com a contagem; a busca sugere cada um
+        visoes={{
+          lista: MOSTRAR.map((m) => ({ id: m.value, nome: m.value === "todos" ? "Todos os e-mails" : m.label, n: contagem[m.value], cor: m.cor })),
+          ativa: filtro, escolher: (v) => setFiltro(v as FiltroEmail),
+          pagina: "email",
+          estado: { filtro },
+          aplicar: (e) => setFiltro((e.filtro as FiltroEmail) ?? "todos"),
+        }}
+        sugestoes={MOSTRAR.filter((m) => m.value !== "todos").map((m) => ({ tipo: "Mostrar", rotulo: m.label, aplicar: () => setFiltro(m.value) })) satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "e-mail", "e-mails")}</>} />
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[380px_1fr]">
         <ul className={`divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-surface ${aberto ? "hidden lg:block" : ""}`}>

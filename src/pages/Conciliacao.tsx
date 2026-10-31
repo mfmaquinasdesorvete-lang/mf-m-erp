@@ -3,7 +3,7 @@ import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Ban, Check, FileUp, Lan
 import { useNavigate } from "react-router-dom";
 import { CartaoPainel, variacao } from "@/components/painel/Painel";
 import { Badge, Button, CampoMes, Card, chip, Field, Modal, PageHeader, Section, Table } from "@/components/ui";
-import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { Colunas, Ranking } from "@/components/Charts";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
@@ -56,6 +56,11 @@ const somarMesIso = (ym: string, n: number) => { const [a, m] = ym.split("-").ma
 
 // limpeza dos extratos antigos concluída em 22/10/2026: daqui para trás já foi revisto
 const INICIO_CONCILIACAO = "2026-10-01";
+// situações da lista linha a linha (Visão da barra): id, nome e a cor da bolinha
+const SITUACOES_LANC: [string, string, string | undefined][] = [
+  ["pendente", "Pendentes", "bg-amber-500"], ["sugestao", "Com sugestão", "bg-sky-500"], ["divergente", "Divergentes", "bg-red-500"], ["conciliado", "Conciliados", "bg-emerald-500"],
+  ["transferencia", "Transferências", "bg-slate-400"], ["ignorado", "Ignorados", "bg-slate-400"], ["todos", "Todos", undefined],
+];
 export const BANCOS: Record<string, string> = { unicred: "Unicred", nubank: "Nubank", inter: "Banco Inter", infinitepay: "InfinitePay", outro: "Outro banco", caixa: "Caixa (dinheiro)" };
 
 export default function Conciliacao() {
@@ -306,6 +311,23 @@ export default function Conciliacao() {
         </>}
         nFiltros={(contaSel ? 1 : 0) + (tipo ? 1 : 0) + (verAntigos ? 1 : 0)}
         onLimpar={() => { setBusca(""); setContaSel(""); setTipo(""); setVerAntigos(false); }}
+        // barra nova (31/10): a situação (linha a linha) vira a Visão, com a contagem; conta, tipo e antigos em pílulas
+        visoes={visao === "linhas" ? {
+          lista: SITUACOES_LANC.map(([v, l, cor]) => ({ id: v, nome: l, cor, n: semSituacao.filter((x) => naSituacao(x, v)).length })),
+          ativa: situacao, escolher: setSituacao,
+          pagina: "conciliacao", estado: { situacao, contaSel, tipo, verAntigos },
+          aplicar: (e) => { setSituacao(String(e.situacao ?? "pendente")); setContaSel(String(e.contaSel ?? "")); setTipo(String(e.tipo ?? "") as TipoLanc | ""); setVerAntigos(!!e.verAntigos); },
+        } : undefined}
+        ligados={[
+          ...(contaSel ? [{ rotulo: "Conta", valor: nomeConta(contaSel), tirar: () => setContaSel("") }] : []),
+          ...(tipo ? [{ rotulo: "Tipo", valor: TIPOS_LANC.find((t) => t.id === tipo)?.rotulo ?? tipo, tirar: () => setTipo("") }] : []),
+          ...(verAntigos ? [{ rotulo: "Antigos", valor: `antes de ${dataBR(INICIO_CONCILIACAO)}`, tirar: () => setVerAntigos(false) }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...(visao === "linhas" ? SITUACOES_LANC.filter(([v]) => v !== "todos").map(([v, l]) => ({ tipo: "Situação", rotulo: l, aplicar: () => setSituacao(v) })) : []),
+          ...bancos.map((b) => ({ tipo: "Conta", rotulo: b.nome, aplicar: () => setContaSel(b.id) })),
+          ...TIPOS_LANC.map((t) => ({ tipo: "Tipo", rotulo: t.rotulo, aplicar: () => setTipo(t.id) })),
+        ] satisfies SugestaoFiltro[]}
         direita={<>
           <div className="flex rounded-xl bg-slate-100 p-1" role="group" aria-label="Como ver o extrato">
             {([["linhas", "Linha a linha", List], ["favorecido", "Por favorecido", Users]] as const).map(([v, l, I]) => (
@@ -315,12 +337,6 @@ export default function Conciliacao() {
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês do extrato" /></div>
         </>} />
-      {visao === "linhas" && (
-        <ChipsSituacao valor={situacao} onChange={setSituacao} rotulo="Situação" opcoes={([
-          ["pendente", "Pendentes"], ["sugestao", "Com sugestão"], ["divergente", "Divergentes"], ["conciliado", "Conciliados"],
-          ["transferencia", "Transferências"], ["ignorado", "Ignorados"], ["todos", "Todos"],
-        ] as const).map(([v, l]) => ({ value: v as string, label: l, n: semSituacao.filter((x) => naSituacao(x, v)).length }))} />
-      )}
       {visao === "linhas" && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {podeEditar && sugeridasNaLista.length > 0 && (

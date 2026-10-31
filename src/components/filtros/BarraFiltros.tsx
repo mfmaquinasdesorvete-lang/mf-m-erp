@@ -157,7 +157,7 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
         {direita && <div className="ml-auto flex flex-wrap items-center justify-end gap-2 max-sm:basis-full">{direita}</div>}
       </div>
       {painel === "periodo" && comPeriodo && <PainelPeriodo periodo={periodo!} onChange={onPeriodo!} rotulo={rotuloData} campoData={campoData} />}
-      {novo && ((ligados?.length ?? 0) > 0 || resultado) && (
+      {novo && ((ligados?.length ?? 0) > 0 || !!busca || resultado) && (
         <div className="flex flex-wrap items-center gap-1.5" aria-live="polite">
           {ligados?.map((l) => (
             <span key={`${l.rotulo}-${l.valor}`} className="inline-flex h-8 max-w-full items-center gap-1 rounded-full bg-brand/10 pl-3 pr-1 text-sm text-fg">
@@ -165,7 +165,7 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
               <button type="button" onClick={l.tirar} aria-label={`Tirar o filtro ${l.rotulo} ${l.valor}`} className="botao-icone h-6 w-6 rounded-full p-0"><X size={14} aria-hidden /></button>
             </span>
           ))}
-          {(ligados?.length ?? 0) > 0 && onLimpar && <button type="button" onClick={onLimpar} className="link-acao px-1.5 text-sm">Limpar tudo</button>}
+          {((ligados?.length ?? 0) > 0 || !!busca) && onLimpar && <button type="button" onClick={onLimpar} className="link-acao px-1.5 text-sm">Limpar tudo</button>}
           {resultado && <span className="ml-auto text-sm text-slate-500 max-sm:basis-full">{resultado}</span>}
         </div>
       )}

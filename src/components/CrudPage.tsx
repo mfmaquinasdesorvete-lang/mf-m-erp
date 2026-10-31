@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Search, Trash2, X } from "lucide-react";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { soMudou } from "@/lib/soMudou";
 import { supabase } from "@/lib/supabase";
@@ -15,6 +15,7 @@ import { lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "./FaixaDestaque";
 import { AplicarMarcadores, BotaoMarcadores, ChipsMarcadores, filtroMarcadores, useMarcadores, type TabelaMarcavel } from "./nfe/Marcadores";
 import { confirmar } from "@/components/Dialogos";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 
 /** "clientes" → "cliente", "embalagens" → "embalagem", "formas de pagamento" → "forma de pagamento" (para "1 cliente"). */
 function singularDe(plural: string) {
@@ -73,8 +74,6 @@ const valoresDaLinha = <T,>(f: FiltroCrud<T>, r: T): string[] =>
 export type OrdemCrud<T> = { label: string; comparar: (a: T, b: T) => number };
 
 const POR_VEZ = 200;
-/** Filtros à vista na linha da busca, no computador (os outros ficam no botão "Filtros"). */
-const VISIVEIS_PC = 2;
 
 type Props<T> = {
   title: string;
@@ -225,11 +224,6 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   const filtrosAtivos = Object.values(escolhas).filter(Boolean).length;
   const recolhida = !!props.listaRecolhida && !props.listaRecolhida.aberta && !busca.trim() && filtrosAtivos === 0;
   const temFiltros = filtros.length > 0 || ordens.length > 1;
-  // no computador: os primeiros filtros à vista; os outros e a ordem no painel do botão "Filtros"
-  const maisFiltros = filtros.length > VISIVEIS_PC || ordens.length > 1;
-  const escondidosAtivos = filtros.slice(VISIVEIS_PC).some((f) => escolhas[f.label]);
-  const [painel, setPainel] = useState(false);
-  const celular = useCelular();
   const todosMarcados = filtrados.length > 0 && filtrados.every((r) => sel.has(r.id));
   const marcar = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const marcarTodos = () => setSel(todosMarcados ? new Set() : new Set(filtrados.map((r) => r.id)));
@@ -450,63 +444,40 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       {props.aposTitulo}
       {destaque && <FaixaDestaque destaque={destaque} mostrando={data.length} onLimpar={limparDestaque} />}
 
-      {/* No celular os filtros ficam guardados no botão "Filtros" (a lista aparece logo abaixo da busca);
-          no computador os 2 primeiros ficam na linha da busca e o resto abre no mesmo botão. */}
-      <div className="mb-3 flex flex-wrap items-end gap-2">
-        <div className="relative min-w-0 flex-1 md:w-full md:max-w-sm md:flex-none">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input aria-label="Buscar" className="input pl-9" placeholder="Buscar…" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </div>
-        {temFiltros && (
-          <button type="button" onClick={() => setPainel((a) => !a)} aria-expanded={painel}
-            className={`inline-flex min-h-[46px] shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold md:order-1 md:min-h-[38px] ${maisFiltros ? "" : "md:hidden"} ${painel || filtrosAtivos ? "border-brand text-brand" : "border-slate-300 text-fg"}`}>
-            <SlidersHorizontal size={16} /> {painel ? "Fechar filtros" : "Filtros"}
-            {filtrosAtivos > 0 && <span className="rounded-full bg-brand px-1.5 text-xs leading-5 text-white">{filtrosAtivos}</span>}
-          </button>
-        )}
-        {/* no computador os primeiros filtros ficam na linha da busca; o resto (e a ordem) abre no botão "Filtros" */}
-        {[filtros.slice(0, VISIVEIS_PC), filtros.slice(VISIVEIS_PC)].map((grupo, g) => (grupo.length > 0 || (g === 1 && ordens.length > 1)) && (
-          <div key={g} className={`${painel ? "grid" : "hidden"} w-full grid-cols-2 gap-x-2 gap-y-2.5 ${g === 0 ? "md:contents" : "md:order-2 md:grid-cols-4 md:rounded-xl md:border md:border-slate-200 md:p-3"}`}>
-            {grupo.map((f) => {
-              const i = filtros.indexOf(f);
-              return (
-                <label key={f.label} className={`min-w-0 ${g === 0 ? "md:contents" : ""}`}>
-                  <span className={`mb-1 block truncate text-xs font-semibold text-slate-500 ${g === 0 ? "md:hidden" : ""}`}>{f.label}</span>
-                  <select className={`input min-w-0 ${g === 0 ? "md:!w-auto md:max-w-48" : ""} ${escolhas[f.label] ? "!border-brand" : ""}`} aria-label={f.label}
-                    value={escolhas[f.label] ?? ""} onChange={(e) => setEscolhas((x) => ({ ...x, [f.label]: e.target.value }))}>
-                    <option value="">{celular || g === 1 ? "Todos" : `${f.label}: todos`}</option>
-                    {"opcoes" in f
-                      ? f.opcoes.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)
-                      : valoresFiltro[i].map((v) => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                </label>
-              );
-            })}
-            {g === 1 && ordens.length > 1 && (
-              <label className="min-w-0">
-                <span className="mb-1 block text-xs font-semibold text-slate-500">Ordem</span>
-                <select className="input min-w-0" aria-label="Ordenar" value={ordem} onChange={(e) => setOrdem(Number(e.target.value))}>
-                  {ordens.map((o, i) => <option key={o.label} value={i}>{o.label}</option>)}
-                </select>
-              </label>
-            )}
-          </div>
-        ))}
-        {(filtrosAtivos > 0 || busca) && (
-          <button type="button" className={`link-acao px-2 py-2 text-sm md:order-1 ${painel ? "" : "hidden md:inline"}`} onClick={() => { setEscolhas({}); setBusca(""); }}>Limpar filtros</button>
-        )}
-        {/* filtros escolhidos, à vista com o painel fechado (no computador, só os que estão dentro do painel) */}
-        {!painel && filtrosAtivos > 0 && (
-          <div className={`flex w-full flex-wrap gap-1.5 md:order-3 ${escondidosAtivos ? "" : "md:hidden"}`}>
-            {Object.entries(escolhas).filter(([, v]) => v).map(([k, v]) => (
-              <button key={k} type="button" onClick={() => setEscolhas((x) => ({ ...x, [k]: "" }))} aria-label={`Tirar o filtro ${k}`}
-                className={`inline-flex max-w-full items-center gap-1 rounded-full bg-brand-light px-2.5 py-1 text-xs font-semibold text-fg ${filtros.findIndex((f) => f.label === k) < VISIVEIS_PC ? "md:hidden" : ""}`}>
-                <span className="truncate">{k}: {v}</span> <X size={13} className="shrink-0" />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* barra de filtros nova (31/10): busca que sugere filtros, todos os filtros e a ordem no painel do botão
+          "Filtros" (ao lado no computador, de baixo no celular), o que está ligado em pílulas e visões salvas por cadastro */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder={`Buscar ${plural}…`}
+        filtros={temFiltros ? <>
+          {filtros.map((f, i) => (
+            <label key={f.label} className="text-xs font-semibold text-slate-600">{f.label}
+              <select className={`input mt-0.5 ${escolhas[f.label] ? "!border-brand" : ""}`} value={escolhas[f.label] ?? ""}
+                onChange={(e) => setEscolhas((x) => ({ ...x, [f.label]: e.target.value }))}>
+                <option value="">Todos</option>
+                {"opcoes" in f
+                  ? f.opcoes.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)
+                  : valoresFiltro[i].map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </label>
+          ))}
+          {ordens.length > 1 && (
+            <label className="text-xs font-semibold text-slate-600">Ordem
+              <select className="input mt-0.5" value={ordem} onChange={(e) => setOrdem(Number(e.target.value))}>
+                {ordens.map((o, i) => <option key={o.label} value={i}>{o.label}</option>)}
+              </select>
+            </label>
+          )}
+        </> : undefined}
+        nFiltros={filtrosAtivos}
+        onLimpar={() => { setEscolhas({}); setBusca(""); }}
+        ligados={Object.entries(escolhas).filter(([, v]) => v).map(([k, v]) => ({ rotulo: k, valor: v, tirar: () => setEscolhas((x) => ({ ...x, [k]: "" })) }))}
+        sugestoes={filtros.flatMap((f, i) => ("opcoes" in f ? f.opcoes.map((o) => o.label) : valoresFiltro[i])
+          .map((v) => ({ tipo: f.label, rotulo: v, aplicar: () => setEscolhas((x) => ({ ...x, [f.label]: v })) })))}
+        visoes={temFiltros ? {
+          lista: [{ id: "todos", nome: `Todos os ${plural}`, n: data.length }],
+          ativa: filtrosAtivos === 0 ? "todos" : null, escolher: () => setEscolhas({}),
+          pagina: `cadastro-${table}`, estado: { ...Object.fromEntries(Object.entries(escolhas).filter(([, v]) => v)), __ordem: ordem },
+          aplicar: (e) => { const { __ordem, ...resto } = e; setEscolhas(resto as Record<string, string>); setOrdem(Number(__ordem ?? 0)); },
+        } : undefined} />
 
       {recolhida ? (
         <button type="button" onClick={() => props.listaRecolhida!.mudar(true)}
@@ -769,20 +740,6 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       </Modal>
     </div>
   );
-}
-
-/** Tela de celular (abaixo de 768px): os filtros mostram o nome em cima e "Todos" dentro. */
-function useCelular(q = "(max-width: 767px)") {
-  const [ok, setOk] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(q).matches);
-  useEffect(() => {
-    const m = window.matchMedia?.(q);
-    if (!m) return;
-    const f = () => setOk(m.matches);
-    f();
-    m.addEventListener?.("change", f);
-    return () => m.removeEventListener?.("change", f);
-  }, [q]);
-  return ok;
 }
 
 const PLACEHOLDER: Partial<Record<Mascara, string>> = {

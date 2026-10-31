@@ -92,6 +92,7 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
     [lancamentos, idsContas, recebidas, faixa]);
 
   const def = ABAS_GASTO.find((a) => a.id === aba)!;
+  const rotuloGrupo = aba === "impostos" ? "Esfera" : aba === "tarifas" ? "Quem cobrou" : "Funcionário";
   const periodo = mes ? nomeMes(mes) : temPeriodo(faixa) ? rotuloPeriodo(faixa, hoje()).toLowerCase() : "todo o extrato importado";
   const contasComExtrato = contas.filter((c) => lancamentos.some((l) => l.conta_bancaria_id === c.id)).map((c) => c.nome);
 
@@ -119,6 +120,16 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
             {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select></label>}
         nFiltros={(conta ? 1 : 0) + (grupo ? 1 : 0)} onLimpar={() => { setBusca(""); setConta(""); setGrupo(""); setFaixa(SEM_PERIODO); }}
+        // barra nova (31/10): conta e cartão escolhido em pílulas, sugeridos na busca, e o resultado da lista
+        ligados={[
+          ...(conta ? [{ rotulo: "Conta", valor: nomeConta(conta), tirar: () => setConta("") }] : []),
+          ...(grupo ? [{ rotulo: rotuloGrupo, valor: grupo, tirar: () => setGrupo("") }] : []),
+        ]}
+        sugestoes={[
+          ...grupos.filter((g) => porGrupo.get(g.id)?.n).map((g) => ({ tipo: rotuloGrupo, rotulo: g.id, aplicar: () => setGrupo(g.id) })),
+          ...contas.map((c) => ({ tipo: "Conta", rotulo: c.nome, aplicar: () => setConta(c.id) })),
+        ]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "pagamento", "pagamentos")} · <b className="num text-fg">{brl(total)}</b></>}
         direita={<Button type="button" variant="secondary" onClick={exportar} disabled={!lista.length}><Download size={16} aria-hidden /> Exportar</Button>} />
 
       {aba === "funcionarios" && !funcionarios.length && (

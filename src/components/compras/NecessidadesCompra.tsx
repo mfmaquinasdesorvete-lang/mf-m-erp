@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Button, Card, Field, MaisAcoes, Modal, Stat, Table } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { Ranking, Rosca } from "@/components/Charts";
 import { confirmar } from "@/components/Dialogos";
 import { useInvalidate, useRows, semUnificados } from "@/lib/data";
@@ -498,6 +498,24 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
         </div>
         }
         nFiltros={filtrosAtivos} onLimpar={() => { setBusca(""); setF(FILTROS_PADRAO); setPeriodo(PERIODO_PADRAO); setUnidade(atual); }}
+        // barra nova (31/10): cada filtro em uso em pílula com × (o × volta ao padrão), a busca sugere categoria, tipo e fornecedor
+        ligados={[
+          ...(f.categoria ? [{ rotulo: "Categoria", valor: f.categoria, tirar: () => setF((x) => ({ ...x, categoria: "" })) }] : []),
+          ...(f.tipo ? [{ rotulo: "Tipo", valor: TIPOS[f.tipo] ?? f.tipo, tirar: () => setF((x) => ({ ...x, tipo: "" })) }] : []),
+          ...(f.fornecedor ? [{ rotulo: "Fornecedor", valor: f.fornecedor === "-" ? "Sem fornecedor" : nomeForn(f.fornecedor), tirar: () => setF((x) => ({ ...x, fornecedor: "" })) }] : []),
+          ...(f.criticos ? [{ rotulo: "Mostrando", valor: "só os críticos", tirar: () => setF((x) => ({ ...x, criticos: false })) }] : []),
+          ...(f.zerados ? [{ rotulo: "Incluindo", valor: "zerados e sem movimento", tirar: () => setF((x) => ({ ...x, zerados: false })) }] : []),
+          ...(f.inativos ? [{ rotulo: "Incluindo", valor: "inativos", tirar: () => setF((x) => ({ ...x, inativos: false })) }] : []),
+          ...(!f.soPrecisa ? [{ rotulo: "Mostrando", valor: "também o que não precisa comprar", tirar: () => setF((x) => ({ ...x, soPrecisa: true })) }] : []),
+          ...(periodo !== PERIODO_PADRAO ? [{ rotulo: "Saídas", valor: `últimos ${periodo} dias`, tirar: () => setPeriodo(PERIODO_PADRAO) }] : []),
+          ...(unidade !== atual ? [{ rotulo: "Estoque", valor: unidade ? nomeUnidade(unidade) : "todas as unidades", tirar: () => setUnidade(atual) }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...categorias.map((c) => ({ tipo: "Categoria", rotulo: c, aplicar: () => setF((x) => ({ ...x, categoria: c })) })),
+          ...Object.entries(TIPOS).map(([v, r]) => ({ tipo: "Tipo", rotulo: r, aplicar: () => setF((x) => ({ ...x, tipo: v })) })),
+          ...fornecedoresLista.map((x) => ({ tipo: "Fornecedor", rotulo: x.nome, aplicar: () => setF((y) => ({ ...y, fornecedor: x.id })) })),
+        ] satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{visiveis.length}</b> {pl(visiveis.length, "produto", "produtos")}</>}
         direita={<>
           <MaisAcoes>
             <Button variant="secondary" onClick={sugerir} disabled={!podeMinMax} title={podeMinMax ? "Preenche mínimo e máximo pelo consumo (sem gravar), nos marcados ou na lista toda" : "Seu perfil não muda o cadastro de produtos"}>

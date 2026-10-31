@@ -22,7 +22,7 @@ import {
 import { ImportarPropostasTiny } from "./ImportarPropostasTiny";
 import { ListaNotasMyFrost, type NotaLegado } from "@/components/clientes/NotasMyFrost";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { noPeriodoOuPendente, SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
 
 const SELECT = "*, cliente:clientes(id, nome, nome_fantasia, codigo, cpf_cnpj, municipio, uf, tags)";
@@ -54,6 +54,11 @@ function exportar(lista: PropostaTiny[]) {
 }
 
 type Aba = "todas" | "contatar" | string;
+// bolinha de cada situação na "Visão" da barra
+const COR_VISAO_PROPOSTA: Record<string, string> = {
+  contatar: "bg-amber-500", "Em aberto": "bg-sky-500", Pendente: "bg-sky-500", Aguardando: "bg-sky-500",
+  Aprovado: "bg-emerald-500", Concluído: "bg-emerald-500", "Não aprovado": "bg-red-500", Rascunho: "bg-slate-400", Modelo: "bg-slate-400",
+};
 const COR_CONTATO = { atrasado: "text-red-600 font-semibold", hoje: "text-amber-700 font-semibold", futuro: "text-slate-600" } as const;
 
 export function PropostasTiny({ onNovoOrcamento, empresaFixa }: {
@@ -131,6 +136,25 @@ export function PropostasTiny({ onNovoOrcamento, empresaFixa }: {
             <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
           </>}
           nFiltros={(vendedor ? 1 : 0) + (marcador ? 1 : 0)}
+          // barra nova (31/10): as abas de situação viram "Visão", vendedor e marcador em pílulas, a busca sugere
+          visoes={{
+            lista: abas.map((x) => ({ id: x.id, nome: x.id === "todas" ? "Todas as propostas" : x.rotulo, n: x.n, cor: COR_VISAO_PROPOSTA[x.id] })),
+            ativa: aba, escolher: (v) => { setAba(v); setSel(new Set()); },
+            pagina: `propostas-tiny-${empresaFixa ?? "todas"}`,
+            estado: { aba, vendedor, marcador, empresa, soLicenciados },
+            aplicar: (e) => { setAba(String(e.aba ?? "todas")); setVendedor(String(e.vendedor ?? "")); setMarcador(String(e.marcador ?? "")); setEmpresa(empresaFixa ?? ((e.empresa as EmpresaProposta | "todas") || "todas")); setSoLicenciados(!!e.soLicenciados); setSel(new Set()); },
+          }}
+          ligados={[
+            ...(vendedor ? [{ rotulo: "Vendedor", valor: vendedor, tirar: () => setVendedor("") }] : []),
+            ...(marcador ? [{ rotulo: "Marcador", valor: marcadores.find((m) => m.id === marcador)?.nome ?? "marcador", tirar: () => setMarcador("") }] : []),
+          ] satisfies FiltroLigado[]}
+          sugestoes={[
+            { tipo: "Situação", rotulo: "Contatar hoje", aplicar: () => { setAba("contatar"); setSel(new Set()); } },
+            ...SITUACOES_TINY.map((s) => ({ tipo: "Situação", rotulo: ROTULO_ABA_SITUACAO[s], aplicar: () => { setAba(s); setSel(new Set()); } })),
+            ...(vendedores.length > 1 ? vendedores.map((v) => ({ tipo: "Vendedor", rotulo: v, aplicar: () => setVendedor(v) })) : []),
+            ...marcadores.map((m) => ({ tipo: "Marcador", rotulo: m.nome, aplicar: () => setMarcador(m.id) })),
+          ] satisfies SugestaoFiltro[]}
+          resultado={<><b className="num text-fg">{lista.length}</b> {lista.length === 1 ? "proposta" : "propostas"}</>}
           onLimpar={() => { setBusca(""); setVendedor(""); setMarcador(""); setPeriodo(SEM_PERIODO); setEmpresa(empresaFixa ?? "todas"); setSoLicenciados(false); setAba("todas"); setSel(new Set()); }}
           direita={<>
             <Button variant="secondary" disabled={!lista.length} onClick={() => exportar(lista)}><FileDown size={16} /> Exportar</Button>
@@ -147,14 +171,6 @@ export function PropostasTiny({ onNovoOrcamento, empresaFixa }: {
             className={chip(soLicenciados, "border-purple-500 bg-purple-100 text-purple-800 ring-1 ring-purple-500")}>
             Licenciados <span className="num ml-1 opacity-90">{todas.filter((p) => (empresa === "todas" || p.empresa === empresa) && ehLicenciado(p.cliente)).length}</span>
           </button>
-        </div>
-        <div className="flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist" aria-label="Situação das propostas">
-          {abas.map((x) => (
-            <button key={x.id} type="button" role="tab" aria-selected={aba === x.id} onClick={() => { setAba(x.id); setSel(new Set()); }}
-              className={`shrink-0 border-b-2 px-3 pb-2 pt-1 text-sm font-semibold transition ${aba === x.id ? "border-brand text-fg" : "border-transparent text-slate-500 hover:text-fg"} ${x.id === "contatar" && x.n > 0 && aba !== x.id ? "!text-amber-700" : ""}`}>
-              {x.rotulo} <span className="num block text-xs font-bold opacity-80">{String(x.n).padStart(2, "0")}</span>
-            </button>
-          ))}
         </div>
         {mf.length > 0 && (
           <p className="text-sm text-slate-600">

@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { Check, Download, IceCreamCone, Link2, Lock, Pencil, Plus, Store, Undo2, Wallet, X } from "lucide-react";
 import { Button, Card, Field, MaisAcoes, Modal, PageHeader, Tabs } from "@/components/ui";
 import { useAparencia } from "@/lib/aparencia";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import type { Equipamento } from "@/lib/types";
 import { CustosAba, FichaUnidade, MaquinasAba, UnidadesLista } from "@/components/licenciados/Unidades";
 import { MarcasAba } from "@/components/licenciados/Marcas";
@@ -394,7 +394,13 @@ export default function Licenciados() {
             <option value="">Todas as lojas</option>
             {ordenadas.map((r) => <option key={r.loja.id} value={r.loja.id}>{r.loja.nome}</option>)}
           </select></label>}
-        nFiltros={lojaSel ? 1 : 0} onLimpar={() => { setBusca(""); setLojaSel(""); }} />
+        nFiltros={lojaSel ? 1 : 0} onLimpar={() => { setBusca(""); setLojaSel(""); }}
+        // barra nova (31/10): a loja em pílula, a busca sugere a loja e o que ficou na lista
+        ligados={[
+          ...(lojaSel ? [{ rotulo: "Loja", valor: nomeLoja(lojaSel)?.nome ?? "loja", tirar: () => setLojaSel("") }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={ordenadas.map((r) => ({ tipo: "Loja", rotulo: r.loja.nome, aplicar: () => setLojaSel(r.loja.id) })) satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{pagsLista.length}</b> {pl(pagsLista.length, "pagamento", "pagamentos")} · <b className="num text-fg">{brl(pagsLista.reduce((t, p) => t + Number(p.valor || 0), 0))}</b></>} />
       <Card className="overflow-hidden">
         {!pagsLista.length ? <p className="p-4 text-sm text-slate-500">Nenhum pagamento no período.</p> : (
           <ul className="divide-y divide-slate-100">

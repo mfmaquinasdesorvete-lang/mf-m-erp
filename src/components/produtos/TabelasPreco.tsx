@@ -4,10 +4,10 @@ import { useMemo, useState, type FormEvent } from "react";
 import { lerValor } from "@/lib/auditoriaBusca";
 import { FileDown, Pencil, Plus, Tags } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
-import { brl } from "@/lib/format";
+import { brl, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { baixarPlanilha } from "@/lib/exportar";
 import type { Produto } from "@/lib/types";
@@ -161,7 +161,11 @@ function DetalheTabela({ tabela, produtos, fixos, podeEditar, onVoltar, onEditar
       </div>
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar produto, código, categoria…"
         filtros={<label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={soFixos} onChange={(e) => setSoFixos(e.target.checked)} /> Só os com preço fixo ({fixosDaTabela.length})</label>}
-        nFiltros={soFixos ? 1 : 0} onLimpar={() => { setBusca(""); setSoFixos(false); }} />
+        nFiltros={soFixos ? 1 : 0} onLimpar={() => { setBusca(""); setSoFixos(false); }}
+        // barra nova (31/10): o filtro em pílula, a busca sugere e o resultado ao lado (a lista mostra até 300)
+        ligados={soFixos ? [{ rotulo: "Preço", valor: "só os fixos", tirar: () => setSoFixos(false) }] : []}
+        sugestoes={[{ tipo: "Preço", rotulo: "Só os com preço fixo", aplicar: () => setSoFixos(true) }] satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}{lista.length === 300 ? "+" : ""}</b> {pl(lista.length, "produto", "produtos")}</>} />
       <Card>
         <ul className="divide-y divide-slate-100">
           {lista.map((p) => {

@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Circle, ClipboardList, FileText, PackageCheck, ShoppingBag, Truck } from "lucide-react";
 import { PageHeader, Stat, Table } from "@/components/ui";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
@@ -68,11 +68,16 @@ export default function AcompanhamentoCompras() {
         <Stat icon={PackageCheck} tom={filtro === "chegou" ? "bom" : "neutro"} label="Chegaram" valor={conta("chegou")} sub="nos últimos 30 dias" {...cartao("chegou")} />
       </div>
 
+      {/* barra nova (31/10): a busca sugere a etapa e a quantidade fica ao lado */}
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar peça, código, fornecedor, OC ou NF…"
-        direita={<span className="text-sm text-slate-600">
-          {filtro === "abertas" ? "Peças ainda não chegaram" : filtro === "atrasadas" ? "Atrasadas" : ETAPAS.find((e) => e.valor === filtro)?.rotulo}
-          {filtro !== "abertas" && <button type="button" className="link-modulo ml-2" onClick={() => setFiltro("abertas")}>ver todas em aberto</button>}
-        </span>} />
+        // a etapa se escolhe nos cartões acima (sem repetir na "Visão"); fora de "em aberto" fica em pílula, e o × volta a todas em aberto
+        ligados={filtro === "abertas" ? [] : [{ rotulo: "Etapa", valor: filtro === "atrasadas" ? "Atrasadas" : ETAPAS.find((e) => e.valor === filtro)?.rotulo ?? filtro, tirar: () => setFiltro("abertas") }]}
+        onLimpar={() => { setBusca(""); setFiltro("abertas"); }}
+        sugestoes={[
+          { tipo: "Etapa", rotulo: "Atrasadas", aplicar: () => setFiltro("atrasadas") },
+          ...ETAPAS.map((e) => ({ tipo: "Etapa", rotulo: e.rotulo, aplicar: () => setFiltro(e.valor) })),
+        ] satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "peça", "peças")}</>} />
 
       {error ? <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Não deu para carregar: {(error as Error).message}</p> : (
         <Table empty={!isLoading && !lista.length} head={<>

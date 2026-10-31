@@ -12,7 +12,7 @@ import { Anexos, ENTIDADES, IconeArquivo, abrirDocumento, apagarDocumento, envia
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje, pl, somarDias } from "@/lib/format";
 import { notify } from "@/lib/notify";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { noPeriodo, semanaAtual, SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
 import { usePerfil } from "@/lib/auth";
 import { useVisivel } from "@/lib/menu";
@@ -252,7 +252,13 @@ function TodosOsAnexos({ docs, carregando, podeApagar }: { docs: Documento[]; ca
               <option value="">Todos</option>
               {Object.entries(ENTIDADES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select></label>}
-          nFiltros={tipo ? 1 : 0} onLimpar={() => { setBusca(""); setTipo(""); setPeriodo(SEM_PERIODO); }} />
+          nFiltros={tipo ? 1 : 0} onLimpar={() => { setBusca(""); setTipo(""); setPeriodo(SEM_PERIODO); }}
+          // barra nova (31/10): onde foi anexado em pílula, a busca sugere o lugar e o que ficou na lista
+          ligados={[
+            ...(tipo ? [{ rotulo: "Onde", valor: ENTIDADES[tipo] ?? tipo, tirar: () => setTipo("") }] : []),
+          ] satisfies FiltroLigado[]}
+          sugestoes={Object.entries(ENTIDADES).map(([v, l]) => ({ tipo: "Onde", rotulo: l, aplicar: () => setTipo(v) })) satisfies SugestaoFiltro[]}
+          resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "anexo", "anexos")}</>} />
       </div>
       <div className="px-4 pb-4 sm:px-5">
         {!carregando && !lista.length ? <Vazio icone={FolderOpen} titulo="Nada anexado neste período" texto="Troque o período no botão Anexado ou busque pelo nome do arquivo." /> : (

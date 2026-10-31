@@ -4,8 +4,8 @@ import { useState } from "react";
 import { CheckCircle2, CircleHelp } from "lucide-react";
 import { PageHeader, Table } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR, hoje } from "@/lib/format";
-import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { noPeriodoOuPendente, semanaAtual, SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -63,10 +63,22 @@ export default function EntradasGrandes() {
             {contas.filter((c) => linhas.some((l) => l.conta_bancaria_id === c.id)).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select></label>}
         nFiltros={conta ? 1 : 0} onLimpar={() => { setBusca(""); setConta(""); setPeriodo(SEM_PERIODO); setVisao("falta"); }}
-        direita={<span className="text-sm text-slate-500">{lista.length} entradas · {brl(soma(lista))}</span>} />
-      <ChipsSituacao valor={visao} onChange={setVisao} opcoes={[
-        { value: "falta", label: "Falta identificar", n: falta.length }, { value: "feitas", label: "Já identificadas", n: feitas.length }, { value: "todas", label: "Todas", n: daConta.length },
-      ]} />
+        // barra nova (31/10): a situação vira a Visão (mesmas contagens), a conta em pílula e o resultado embaixo
+        visoes={{
+          lista: [
+            { id: "falta", nome: "Falta identificar", n: falta.length, cor: "bg-amber-500" }, { id: "feitas", nome: "Já identificadas", n: feitas.length, cor: "bg-emerald-500" },
+            { id: "todas", nome: "Todas", n: daConta.length },
+          ],
+          ativa: visao, escolher: (v) => setVisao(v as typeof visao),
+          pagina: "entradas-grandes", estado: { visao, conta },
+          aplicar: (e) => { setVisao((["falta", "feitas", "todas"].includes(String(e.visao)) ? e.visao : "falta") as typeof visao); setConta(String(e.conta ?? "")); },
+        }}
+        ligados={conta ? [{ rotulo: "Conta", valor: nomeConta(conta), tirar: () => setConta("") }] : []}
+        sugestoes={[
+          { tipo: "Situação", rotulo: "Falta identificar", aplicar: () => setVisao("falta") }, { tipo: "Situação", rotulo: "Já identificadas", aplicar: () => setVisao("feitas") },
+          ...contas.filter((c) => linhas.some((l) => l.conta_bancaria_id === c.id)).map((c) => ({ tipo: "Conta", rotulo: c.nome, aplicar: () => setConta(c.id) })),
+        ]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "entrada", "entradas")} · <b className="num text-fg">{brl(soma(lista))}</b></>} />
       <Table empty={!isLoading && !lista.length}
         head={<><th className="th">Data / conta</th><th className="th">Quem mandou (banco)</th><th className="th text-right">Valor</th><th className="th">De quem é e o que foi</th></>}>
         {lista.map((l) => (

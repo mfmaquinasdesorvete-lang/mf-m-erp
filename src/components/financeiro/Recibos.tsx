@@ -328,8 +328,17 @@ export function Recibos({ escopo = "financeiro" }: { escopo?: "financeiro" | "fu
         </>}
         nFiltros={(tipo ? 1 : 0) + (mes ? 1 : 0)}
         onLimpar={() => { setBusca(""); setTipo(""); setMes(""); }}
+        // barra nova (31/10): tipo e mês em pílulas, o tipo sugerido na busca; a quantidade e o total vão para o resultado
+        ligados={[
+          ...(tipo ? [{ rotulo: "Tipo", valor: tipo === "recebimento" ? "Recebimento" : "Pagamento", tirar: () => setTipo("") }] : []),
+          ...(mes ? [{ rotulo: "Mês", valor: mes.split("-").reverse().join("/"), tirar: () => setMes("") }] : []),
+        ]}
+        sugestoes={[
+          { tipo: "Tipo", rotulo: "Recebimento", aplicar: () => setTipo("recebimento") },
+          { tipo: "Tipo", rotulo: "Pagamento", aplicar: () => setTipo("pagamento") },
+        ]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "recibo", "recibos")} · <b className="num text-fg">{brl(total)}</b></>}
         direita={<>
-          <p className="text-sm text-slate-600">{lista.length} {pl(lista.length, "recibo", "recibos")} · <b>{brl(total)}</b></p>
           {lista.length > 1 && <Button variant="secondary" disabled={gerando} onClick={pdfLote} title="Um PDF com todos os recibos da lista, um por página, para assinar de uma vez">
             <FileText size={16} /> {gerando ? "Gerando…" : `PDF em lote (${lista.filter((r) => !r.cancelado_em).length})`}</Button>}
           {podeEmitir && <Button onClick={novo}><Plus size={16} /> Novo recibo</Button>}

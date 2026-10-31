@@ -9,9 +9,9 @@ import { PainelAcessos } from "@/components/usuarios/Acessos";
 import { quandoAcesso, ultimoPorPessoa, type Acesso } from "@/lib/acessos";
 import { Button, Card, Field, Modal, PageHeader, Tabs } from "@/components/ui";
 import { Historico } from "@/components/Historico";
-import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { useInvalidate, useRows } from "@/lib/data";
-import { dataBR, whatsappLink } from "@/lib/format";
+import { dataBR, pl, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -145,10 +145,24 @@ export default function Usuarios() {
               {admins === 1 && <span className="rounded-lg bg-sky-50 px-3 py-1.5 text-sky-900">Só 1 administrador ativo: vale ter um segundo, para não ficar sem acesso</span>}
             </div>
           )}
-          <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nome, e-mail, função…" onLimpar={() => { setBusca(""); setFiltro("ativos"); }} nFiltros={filtro !== "ativos" ? 1 : 0} />
-          <ChipsSituacao valor={filtro} onChange={setFiltro} opcoes={[
-            { value: "ativos", label: "Ativos", n: ativos.length }, { value: "inativos", label: "Inativos", n: usuarios.length - ativos.length }, { value: "todos", label: "Todos", n: usuarios.length },
-          ]} />
+          {/* barra nova (31/10): os chips Ativos/Inativos/Todos viram a "Visão", com a contagem */}
+          <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nome, e-mail, função…" onLimpar={() => { setBusca(""); setFiltro("ativos"); }} nFiltros={filtro !== "ativos" ? 1 : 0}
+            visoes={{
+              lista: [
+                { id: "ativos", nome: "Ativos", n: ativos.length, cor: "bg-emerald-500" },
+                { id: "inativos", nome: "Inativos", n: usuarios.length - ativos.length, cor: "bg-slate-400" },
+                { id: "todos", nome: "Todos os usuários", n: usuarios.length },
+              ],
+              ativa: filtro, escolher: (v) => setFiltro(v as typeof filtro),
+              pagina: "usuarios",
+              estado: { filtro },
+              aplicar: (e) => setFiltro((e.filtro as typeof filtro) ?? "ativos"),
+            }}
+            sugestoes={[
+              { tipo: "Situação", rotulo: "Ativos", aplicar: () => setFiltro("ativos") },
+              { tipo: "Situação", rotulo: "Inativos", aplicar: () => setFiltro("inativos") },
+            ]}
+            resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "usuário", "usuários")}</>} />
 
           <Card>
             {isLoading ? <p className="p-6 text-center text-sm text-slate-500">Carregando…</p> : !lista.length ? <p className="p-6 text-center text-sm text-slate-500">Nenhum usuário {filtro !== "todos" ? filtro.slice(0, -1) : ""}.</p> : (

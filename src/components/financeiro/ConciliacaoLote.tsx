@@ -71,12 +71,21 @@ export function PorFavorecido({ linhas, deFora, regras, nomeConta, podeEditar }:
       {/* barra padrão: o sentido fica no painel Filtros */}
       <BarraFiltros busca={busca} onBusca={(v) => { setBusca(v); setLimite(POR_PAGINA); }} placeholder="Buscar favorecido…"
         filtros={
-          <select className="input w-auto" value={sentido} onChange={(e) => setSentido(e.target.value as typeof sentido)} aria-label="Sentido">
-            <option value="">Entradas e saídas</option><option value="saida">Só saídas</option><option value="entrada">Só entradas</option>
-          </select>
+          <label className="text-xs font-semibold text-slate-600">Sentido
+            <select className="input w-auto" value={sentido} onChange={(e) => setSentido(e.target.value as typeof sentido)}>
+              <option value="">Entradas e saídas</option><option value="saida">Só saídas</option><option value="entrada">Só entradas</option>
+            </select>
+          </label>
         }
         nFiltros={sentido ? 1 : 0}
         onLimpar={() => { setBusca(""); setSentido(""); setLimite(POR_PAGINA); }}
+        // barra nova (31/10): o sentido em pílula, sugerido na busca, e quantos favorecidos ficaram
+        ligados={sentido ? [{ rotulo: "Sentido", valor: sentido === "saida" ? "Só saídas" : "Só entradas", tirar: () => setSentido("") }] : []}
+        sugestoes={[
+          { tipo: "Sentido", rotulo: "Só saídas", aplicar: () => setSentido("saida") },
+          { tipo: "Sentido", rotulo: "Só entradas", aplicar: () => setSentido("entrada") },
+        ]}
+        resultado={<><b className="num text-fg">{grupos.length}</b> {pl(grupos.length, "favorecido", "favorecidos")}</>}
         direita={<Button variant="secondary" onClick={() => setVerRegras(true)}><ListChecks size={16} /> Regras ({regras.filter((r) => r.ativo).length})</Button>} />
 
       {!grupos.length && <p className="cartao p-6 text-center text-sm text-slate-500">Nenhuma linha pendente {termo ? "com este nome" : "nestes filtros"}.</p>}

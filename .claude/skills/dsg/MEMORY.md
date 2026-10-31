@@ -55,6 +55,10 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
   perfil "visoes:<página>"), busca que sugere filtros, período, Filtros em painel lateral/de baixo, pílulas e resultado.
   Ligada em Notas emitidas, Vendas (lista) e OS; as outras 37 telas ganharam só o painel novo e passam às partes novas aos poucos.
 
+- Barra nova no site todo (31/10): CrudPage (todos os cadastros: filtros no painel com rótulo, pílulas, busca que
+  sugere opções, visões salvas "cadastro-<tabela>") e as 37 telas com BarraFiltros. Onde os cartões de cima já escolhem a
+  situação (Garantias, Códigos EAN, Acompanhamento de compras), sem Visão repetida: a escolha vira pílula.
+
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 

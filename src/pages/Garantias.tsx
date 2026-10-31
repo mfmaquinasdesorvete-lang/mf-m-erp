@@ -14,10 +14,20 @@ import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Equipamento, Produto } from "@/lib/types";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { TesteGigaDoNs } from "@/components/testeGiga/SeloGiga";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { noPeriodo, SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
 
 type Filtro = "todos" | "em_garantia" | "vence_logo" | "fora_garantia" | "prev_atrasada" | "prev_proxima";
+// os nomes das situações dos cartões (pílula e sugestões da busca)
+const SITUACOES_GARANTIA: { id: Filtro; nome: string; cor?: string }[] = [
+  { id: "todos", nome: "Todas as máquinas" },
+  { id: "em_garantia", nome: "Em garantia", cor: "bg-emerald-500" },
+  { id: "vence_logo", nome: "Garantia vence em 30 dias", cor: "bg-amber-500" },
+  { id: "fora_garantia", nome: "Fora da garantia", cor: "bg-slate-400" },
+  { id: "prev_atrasada", nome: "Preventiva atrasada", cor: "bg-red-500" },
+  { id: "prev_proxima", nome: "Preventiva nos próximos 30 dias", cor: "bg-sky-500" },
+];
+
 
 export default function Garantias() {
   const { pode } = usePerfil();
@@ -112,7 +122,12 @@ export default function Garantias() {
 
       {/* a situação (garantia, preventiva) se escolhe tocando nos cartões acima; aqui a busca e o período da venda */}
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar por série, máquina ou cliente…" periodo={periodo} onPeriodo={setPeriodo} rotuloData="Venda"
-        nFiltros={filtro !== "todos" ? 1 : 0} onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setFiltro("todos"); }} />
+        nFiltros={filtro !== "todos" ? 1 : 0} onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setFiltro("todos"); }}
+        // barra nova (31/10): a busca sugere a situação e o resultado fica ao lado
+        // a situação se escolhe nos cartões acima (sem repetir na "Visão"): aqui fica à vista em pílula, com ×
+        ligados={filtro === "todos" ? [] : [{ rotulo: "Situação", valor: SITUACOES_GARANTIA.find((v) => v.id === filtro)?.nome ?? filtro, tirar: () => setFiltro("todos") }]}
+        sugestoes={SITUACOES_GARANTIA.filter((v) => v.id !== "todos").map((v) => ({ tipo: "Situação", rotulo: v.nome, aplicar: () => setFiltro(v.id) })) satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "máquina", "máquinas")}</>} />
 
       {/* Celular: um cartão por máquina */}
       <div className="space-y-3 md:hidden">

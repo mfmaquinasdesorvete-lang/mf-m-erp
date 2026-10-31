@@ -12,7 +12,7 @@ import { ExpedicaoModal, useAcoesExpedicao } from "@/components/fluxo/Expedicao"
 import { RiscosParaDespachar } from "@/components/fluxo/ConferenciaRisco";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
-import { brl, hoje } from "@/lib/format";
+import { brl, hoje, pl } from "@/lib/format";
 import { bancoDaVenda, contasDaVenda, meioDaVenda, pagamentoDaVenda } from "@/lib/vendasLista";
 import { useConfig } from "@/lib/useConfig";
 import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
@@ -225,6 +225,16 @@ export default function Fluxo() {
           ) : undefined}
           nFiltros={(vendedorSel ? 1 : 0) + (canal ? 1 : 0)}
           onLimpar={() => { setBusca(""); setVendedorSel(""); setCanal(""); }}
+          // barra nova (31/10): vendedor e canal em pílulas, sugeridos na busca, e quantos pedidos ficaram (os canais seguem em chips abaixo)
+          ligados={[
+            ...(vendedorSel ? [{ rotulo: "Vendedor", valor: vendedorSel === "sem" ? "Sem vendedor" : vendedorSel === meuVendedor?.id ? "Minhas vendas" : vendedores.find((v) => v.id === vendedorSel)?.nome ?? "vendedor", tirar: () => setVendedorSel("") }] : []),
+            ...(canal ? [{ rotulo: "Canal", valor: CANAIS[canal] ?? canal, tirar: () => setCanal("") }] : []),
+          ]}
+          sugestoes={[
+            ...Object.entries(CANAIS).filter(([v]) => !ORIGENS_TINY.includes(v)).map(([v, l]) => ({ tipo: "Canal", rotulo: l, aplicar: () => setCanal(v) })),
+            ...(escolheVendedor ? vendedores.filter((v) => v.ativo !== false).map((v) => ({ tipo: "Vendedor", rotulo: v.nome, aplicar: () => setVendedorSel(v.id) })) : []),
+          ]}
+          resultado={<><b className="num text-fg">{linhas.length}</b> {pl(linhas.length, "pedido", "pedidos")}</>}
           direita={!escolheVendedor && meuVendedor ? (
             <div className="flex gap-1.5">
               {chip("todas", !minhas, () => setMinhas(false), "Todas as vendas")}

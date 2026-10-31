@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Fuel, Receipt, Store, TrendingUp } from "lucide-react";
 import { Card, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { mesDoPeriodo, noPeriodo, periodoDoMes, rotuloPeriodo, SEM_PERIODO, semanaAtual, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
@@ -81,7 +81,11 @@ export default function Combustivel({ embutido }: { embutido?: boolean } = {}) {
             <option value="">Todas as contas e cartões</option>
             {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select></label>}
-        nFiltros={conta ? 1 : 0} onLimpar={() => { setBusca(""); setConta(""); setFaixa(SEM_PERIODO); }} />
+        nFiltros={conta ? 1 : 0} onLimpar={() => { setBusca(""); setConta(""); setFaixa(SEM_PERIODO); }}
+        // barra nova (31/10): a conta em pílula com ×, a busca sugere as contas e o total dos abastecimentos do período
+        ligados={conta ? [{ rotulo: "Conta", valor: nomeConta(conta), tirar: () => setConta("") }] satisfies FiltroLigado[] : []}
+        sugestoes={contas.map((c) => ({ tipo: "Conta", rotulo: c.nome, aplicar: () => setConta(c.id) })) satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{doPeriodo.length}</b> {pl(doPeriodo.length, "abastecimento", "abastecimentos")} · <b className="num text-fg">{brl(total)}</b></>} />
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={`Gasto com combustível · ${periodo}`} valor={brl(total)} icon={Fuel} tom="atencao" />

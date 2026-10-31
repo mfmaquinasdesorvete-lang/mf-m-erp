@@ -7,7 +7,7 @@ import { Badge, BotaoAtalho, Button, COR_ATALHO, Field, Modal, PageHeader, Table
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave, semUnificados } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
-import { brl, dataBR, hoje, situacaoConta, somarDias, whatsappLink } from "@/lib/format";
+import { brl, dataBR, hoje, pl, situacaoConta, somarDias, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
@@ -38,11 +38,11 @@ import { useAprovarPagar } from "@/components/financeiro/AprovarPagar";
 import { ChipTipo } from "@/components/financeiro/ResumoPagar";
 import { ORDEM_TIPOS, raizCnpj, TIPOS_PAGAR, tipoPagar, type TipoPagar } from "@/lib/tiposPagar";
 import { noCartao, noEstado, resumoAgora, type CartaoAgora, type EstadoLista, type RegrasAgora } from "@/lib/agoraContas";
-import { CartoesAgora, EscolhaEstado, FaixaCartao } from "@/components/financeiro/AgoraContas";
+import { CartoesAgora, FaixaCartao } from "@/components/financeiro/AgoraContas";
 import { RecebidoPorConta, recebidoPorConta } from "@/components/financeiro/RecebidoPorConta";
 import type { ContaRevisao } from "@/lib/aprovacao";
 import { aguardaAprovacao, contaParada, COR_TOM, diaDoPagamento, naVisaoPagar, paraPagarHoje, passoPagar, situacaoPagar, type Decisao, type VisaoPagar } from "@/lib/programacao";
-import { BarraFiltros, ChipsSituacao, RodapeLista } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, ChipsSituacao, RodapeLista, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { noPeriodo, noPeriodoOuPendente, rotuloPeriodo, SEM_PERIODO, semanaAtual, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { MenuAcoes } from "@/components/MenuAcoes";
 import { AvisoGolpe } from "@/components/fornecedores/Golpe";
@@ -351,8 +351,15 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar cliente, descrição ou forma de pagamento…"
         periodo={cartao ? undefined : periodo} onPeriodo={cartao ? undefined : setPeriodo} rotuloData={porRecebimento ? "Recebido em" : "Vencimento"}
         onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); }}
+        // barra nova (31/10): "Em aberto / Recebidas / Todas" vira a Visão (com um cartão escolhido, a faixa do cartão manda)
+        visoes={cartao ? undefined : {
+          lista: [{ id: "aberto", nome: "Em aberto", cor: "bg-amber-500" }, { id: "pagas", nome: "Recebidas", cor: "bg-emerald-500" }, { id: "todas", nome: "Todas", cor: "bg-slate-400" }],
+          ativa: estado, escolher: (v) => setEstado(v as EstadoLista),
+          pagina: "financeiro-receber", estado: { estado },
+          aplicar: (e) => setEstado((["aberto", "pagas", "todas"].includes(String(e.estado)) ? e.estado : "aberto") as EstadoLista),
+        }}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "conta", "contas")} · <b className="num text-fg">{brl(lista.reduce((s, c) => s + Number(c.valor), 0))}</b></>}
         direita={<>
-          {!cartao && <EscolhaEstado valor={estado} onMudar={setEstado} rotuloPagas="Recebidas" />}
           <span className="flex flex-1 justify-end gap-2 sm:flex-none">
           <MenuAcoes texto="Mais" rotulo="Mais opções" itens={[
             { rotulo: "Imprimir a lista", icone: Printer, onClick: () => rel.imprimir(paraRel()) },
@@ -719,8 +726,33 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
           <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} className="h-9" />
         </>}
         onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setCategoria(""); setMarcador(""); setTipo(""); setOrigemF(""); }}
+        // barra nova (31/10): "Em aberto / Pagas / Todas" vira a Visão (com cartão ou fixas/renegociadas, a faixa manda); filtros em pílulas
+        visoes={cartao || especial ? undefined : {
+          lista: [{ id: "aberto", nome: "Em aberto", cor: "bg-amber-500" }, { id: "pagas", nome: "Pagas", cor: "bg-emerald-500" }, { id: "todas", nome: "Todas", cor: "bg-slate-400" }],
+          ativa: estado, escolher: (v) => { setEstado(v as EstadoLista); setSel(new Set()); },
+          pagina: "financeiro-pagar", estado: { estado, tipo, origemF, categoria, marcador, campoData },
+          aplicar: (e) => {
+            setEstado((["aberto", "pagas", "todas"].includes(String(e.estado)) ? e.estado : "aberto") as EstadoLista);
+            setTipo(String(e.tipo ?? "") as TipoPagar | ""); setOrigemF(String(e.origemF ?? "") as CodigoOrigem | "");
+            setCategoria(String(e.categoria ?? "")); setMarcador(String(e.marcador ?? ""));
+            if (CAMPOS_DATA.some((x) => x.v === e.campoData)) setCampoData(e.campoData as CampoData);
+            setSel(new Set());
+          },
+        }}
+        ligados={[
+          ...(tipo ? [{ rotulo: "Tipo", valor: TIPOS_PAGAR[tipo]?.rotulo ?? tipo, tirar: () => { setTipo(""); setSel(new Set()); } }] : []),
+          ...(origemF ? [{ rotulo: "Origem", valor: ORIGENS[origemF]?.rotulo ?? origemF, tirar: () => setOrigemF("") }] : []),
+          ...(categoria ? [{ rotulo: "Categoria", valor: categoria, tirar: () => setCategoria("") }] : []),
+          ...(marcador ? [{ rotulo: "Marcador", valor: marcadores.find((m) => m.id === marcador)?.nome ?? "marcador", tirar: () => setMarcador("") }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...ORDEM_TIPOS.map((t) => ({ tipo: "Tipo", rotulo: TIPOS_PAGAR[t].rotulo, aplicar: () => { setTipo(t); setSel(new Set()); } })),
+          ...origensUsadas.map(({ k }) => ({ tipo: "Origem", rotulo: ORIGENS[k].rotulo, aplicar: () => setOrigemF(k) })),
+          ...categorias.map((c) => ({ tipo: "Categoria", rotulo: c, aplicar: () => setCategoria(c) })),
+          ...marcadores.filter((m) => m.ativo).map((m) => ({ tipo: "Marcador", rotulo: m.nome, aplicar: () => setMarcador(m.id) })),
+        ] satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "conta", "contas")} · <b className="num text-fg">{brl(somaDe(lista))}</b></>}
         direita={<>
-          {!cartao && !especial && <EscolhaEstado valor={estado} onMudar={(e) => { setEstado(e); setSel(new Set()); }} />}
           <span className="flex flex-1 justify-end gap-2 sm:flex-none">
           <MenuAcoes texto="Mais" rotulo="Mais opções" itens={[
             { rotulo: "Imprimir a lista", icone: Printer, onClick: () => rel.imprimir(paraRel()) },

@@ -5,7 +5,7 @@
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { Ban, FileText, Image as Imagem, MapPin, Paperclip, Pencil, Phone, Plus, Store, Trash2, Undo2, User, Users, Wrench } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
-import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { confirmar } from "@/components/Dialogos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { ClienteBusca } from "@/components/ClienteBusca";
@@ -38,6 +38,9 @@ function ChipContrato({ l }: { l: Loja }) {
   return <span className="rounded-full px-2 py-0.5 text-2xs font-bold text-white" style={{ background: vencido ? "#b91c1c" : c.cor }}>{vencido ? "Contrato vencido" : c.nome}</span>;
 }
 
+// cor da bolinha de cada situação na "Visão" da barra
+const COR_VISAO_LOJA: Partial<Record<FiltroLoja, string>> = { ativa: "bg-emerald-500", abrir: "bg-sky-500", fechando: "bg-amber-500", encerrada: "bg-slate-400", mudou: "bg-slate-400" };
+
 /** Cartões das unidades, com filtro por situação e busca. */
 export function UnidadesLista({ dados, onAbrir, onEditar, onNova }: { dados: Dados; onAbrir: (l: Loja) => void; onEditar: (l: Loja) => void; onNova: () => void }) {
   const [filtro, setFiltro] = useState<FiltroLoja>("ativa");
@@ -48,11 +51,12 @@ export function UnidadesLista({ dados, onAbrir, onEditar, onNova }: { dados: Dad
   const lista = dados.lojas.filter((l) => naFiltro(l.situacao, filtro) && (!marca || (l.marca ?? "myfrost") === marca)
     && (!t || sem([l.nome, l.cidade, l.uf, l.responsavel, l.endereco, l.documento, nomeMarca(l.marca), ...(l.socios ?? []).map((x) => x.nome)].join(" ")).includes(t)));
   const n = (f: FiltroLoja) => dados.lojas.filter((l) => naFiltro(l.situacao, f)).length;
+  const temYozzy = dados.lojas.some((l) => l.marca === "yozzy");
   return (
     <div>
-      {/* a marca só aparece quando há loja Yozzy; a situação fica nos chips abaixo */}
+      {/* a marca só aparece quando há loja Yozzy; a situação fica na "Visão" da barra */}
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar unidade, cidade ou responsável"
-        filtros={dados.lojas.some((l) => l.marca === "yozzy") ? (
+        filtros={temYozzy ? (
           <label className="text-xs font-semibold text-slate-600">Marca
             <select className="input mt-0.5 h-9 w-auto" value={marca} onChange={(e) => setMarca(e.target.value as MarcaLoja | "")}>
               <option value="">Todas as marcas</option>
@@ -60,9 +64,23 @@ export function UnidadesLista({ dados, onAbrir, onEditar, onNova }: { dados: Dad
             </select></label>
         ) : undefined}
         nFiltros={marca ? 1 : 0} onLimpar={() => { setBusca(""); setMarca(""); }}
-        direita={<Button onClick={onNova}><Store size={16} /> Nova unidade</Button>} />
-      <ChipsSituacao rotulo="Situação das unidades" valor={filtro} onChange={setFiltro}
-        opcoes={FILTROS_LOJA.map(({ id, nome }) => ({ value: id, label: nome, n: n(id) }))} />
+        direita={<Button onClick={onNova}><Store size={16} /> Nova unidade</Button>}
+        // barra nova (31/10): os chips de situação viram "Visão"; a marca em pílula; a busca sugere situação e marca
+        visoes={{
+          lista: FILTROS_LOJA.map(({ id, nome }) => ({ id, nome: id === "todas" ? "Todas as unidades" : nome, n: n(id), cor: COR_VISAO_LOJA[id] })),
+          ativa: filtro, escolher: (v) => setFiltro(v as FiltroLoja),
+          pagina: "licenciados-unidades",
+          estado: { filtro, marca },
+          aplicar: (e) => { setFiltro((e.filtro as FiltroLoja) ?? "ativa"); setMarca((e.marca as MarcaLoja | "") ?? ""); },
+        }}
+        ligados={[
+          ...(marca ? [{ rotulo: "Marca", valor: nomeMarca(marca), tirar: () => setMarca("") }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...FILTROS_LOJA.filter((f) => f.id !== "todas").map((f) => ({ tipo: "Situação", rotulo: f.nome, aplicar: () => setFiltro(f.id) })),
+          ...(temYozzy ? MARCAS_LOJA.map((m) => ({ tipo: "Marca", rotulo: m.nome, aplicar: () => setMarca(m.id) })) : []),
+        ] satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "unidade", "unidades")}</>} />
       {!lista.length && <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Nenhuma unidade aqui.</p>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {lista.map((l) => {

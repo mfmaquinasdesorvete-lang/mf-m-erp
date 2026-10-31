@@ -11,7 +11,7 @@ import { Colunas, Ranking } from "@/components/Charts";
 import { CartaoPainel, type Cartao } from "@/components/painel/Painel";
 import { useInvalidate, useRows } from "@/lib/data";
 import { sincronizarItens } from "@/lib/itens";
-import { brl, dataBR, hoje } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { confirmarSeTeste } from "@/lib/ambienteNfe";
@@ -64,7 +64,9 @@ export default function Transferencias() {
         actions={podeEditar && unidades.length > 1 && <Button onClick={nova}><Plus size={16} /> Nova transferência</Button>} />
       {unidades.length < 2 && <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Cadastre a segunda unidade em Configurações → Unidades.</p>}
       {lista.length > 0 && <PainelTransf lista={daUnidade} nome={nome} />}
-      <BarraFiltros periodo={periodo} onPeriodo={setPeriodo} rotuloData="Data" onLimpar={() => setPeriodo(SEM_PERIODO)} />
+      {/* barra nova (31/10): só o período (não há outros filtros); o que ficou na lista ao lado */}
+      <BarraFiltros periodo={periodo} onPeriodo={setPeriodo} rotuloData="Data" onLimpar={() => setPeriodo(SEM_PERIODO)}
+        resultado={<><b className="num text-fg">{visiveis.length}</b> {pl(visiveis.length, "transferência", "transferências")}</>} />
       <Table empty={!isLoading && !visiveis.length}
         head={<><th className="th">Nº</th><th className="th">De → para</th><th className="th">Itens</th><th className="th">Situação</th><th className="th">NF-e</th><th className="th">Data</th><th className="th" /></>}>
         {visiveis.map((t) => {

@@ -105,6 +105,10 @@ export default function PartesRelacionadas() {
 
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar na descrição ou conta" periodo={faixa} onPeriodo={setFaixa} rotuloData="Data"
         nFiltros={grupo ? 1 : 0} onLimpar={() => { setBusca(""); setGrupo(""); setFaixa(SEM_PERIODO); }}
+        // barra nova (31/10): o cartão escolhido (quem) em pílula, os nomes sugeridos na busca e quantos lançamentos ficaram
+        ligados={grupo ? [{ rotulo: "Quem", valor: grupos.find((g) => g.id === grupo)?.nome ?? "—", tirar: () => setGrupo("") }] : []}
+        sugestoes={grupos.map((g) => ({ tipo: "Quem", rotulo: g.nome, aplicar: () => setGrupo(g.id) }))}
+        resultado={<><b className="num text-fg">{filtradas.length}</b> {pl(filtradas.length, "lançamento", "lançamentos")}</>}
         direita={<Button type="button" variant="secondary" onClick={exportar} disabled={!filtradas.length}><Download size={16} aria-hidden /> Exportar</Button>} />
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

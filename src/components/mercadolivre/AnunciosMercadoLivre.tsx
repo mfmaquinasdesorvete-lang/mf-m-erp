@@ -3,9 +3,9 @@
 // ligar a um produto e buscar os anúncios da conta. No celular a tabela vira cartões.
 import { useMemo, useState, type ReactNode } from "react";
 import { Download, ExternalLink, Link2, Loader2, Pause, Play, Send } from "lucide-react";
-import { Button, Card, Modal, Table, chip } from "@/components/ui";
+import { Button, Card, Modal, Table } from "@/components/ui";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { confirmar } from "@/components/Dialogos";
 import { usePerfil } from "@/lib/auth";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -19,6 +19,10 @@ const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g,
 const POR_PAGINA = 100;
 // o que pede atenção primeiro
 const ORDEM: Situacao[] = ["aguardando", "erro", "sem_produto", "a_enviar", "na_fila", "em_dia", "desligado"];
+// bolinha de cada situação na "Visão" da barra (mesmos tons dos selos)
+const COR_VISAO: Record<Situacao, string> = {
+  em_dia: "bg-emerald-500", na_fila: "bg-sky-500", a_enviar: "bg-sky-500", aguardando: "bg-purple-500", erro: "bg-red-500", sem_produto: "bg-amber-500", desligado: "bg-slate-400",
+};
 
 export const quando = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
@@ -196,8 +200,23 @@ export function AnunciosMercadoLivre({ conta, anuncios, carregando, erro, podeMu
 
   return (
     <div className="space-y-3">
-      {/* a mesma barra das outras listas: busca, e ativos/pausados no botão Filtros; os chips da situação logo abaixo */}
+      {/* a mesma barra das outras listas: a situação na "Visão" (eram chips logo abaixo), busca, e ativos/pausados no botão Filtros */}
       <BarraFiltros busca={busca} onBusca={(v) => { setBusca(v); setLimite(POR_PAGINA); }} placeholder="Buscar: título, MLB, SKU ou produto"
+        // barra nova (31/10): situação vira "Visão" (só as que têm anúncio, como nos chips), ativos/pausados em pílula
+        visoes={{
+          lista: [{ id: "todos", nome: "Todos os anúncios", n: anuncios.length },
+            ...SITUACOES.filter((s) => contagem.get(s.id) || filtro === s.id).map((s) => ({ id: s.id, nome: s.nome[0].toUpperCase() + s.nome.slice(1), n: contagem.get(s.id) ?? 0, cor: COR_VISAO[s.id] }))],
+          ativa: filtro || "todos", escolher: (v) => { setFiltro(v === "todos" ? "" : (v as Situacao)); setLimite(POR_PAGINA); },
+          pagina: "mercadolivre-anuncios", estado: { filtro, situacaoML },
+          aplicar: (e) => { setFiltro((e.filtro as Situacao | "") ?? ""); setSituacaoML((e.situacaoML as typeof situacaoML) ?? ""); setLimite(POR_PAGINA); },
+        }}
+        ligados={situacaoML ? [{ rotulo: "No Mercado Livre", valor: situacaoML === "paused" ? "só pausados" : "só ativos", tirar: () => setSituacaoML("") }] : []}
+        sugestoes={[
+          ...SITUACOES.map((s) => ({ tipo: "Situação", rotulo: s.nome, aplicar: () => { setFiltro(s.id); setLimite(POR_PAGINA); } })),
+          { tipo: "No ML", rotulo: "Só ativos", aplicar: () => setSituacaoML("active") },
+          { tipo: "No ML", rotulo: "Só pausados", aplicar: () => setSituacaoML("paused") },
+        ] satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "anúncio", "anúncios")}</>}
         filtros={<label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">No Mercado Livre</span>
           <select className="input w-auto" value={situacaoML} onChange={(e) => setSituacaoML(e.target.value as typeof situacaoML)}>
             <option value="">Ativos e pausados</option><option value="active">Só ativos</option><option value="paused">Só pausados</option>
@@ -208,18 +227,6 @@ export function AnunciosMercadoLivre({ conta, anuncios, carregando, erro, podeMu
             {ocupado === "buscar" ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Buscar anúncios
           </Button>
         )} />
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar pela situação">
-        <button type="button" aria-pressed={!filtro} onClick={() => setFiltro("")}
-          className={chip(!filtro, "border-transparent bg-modulo-escuro text-white")}>
-          Todos <span className="num">{anuncios.length}</span>
-        </button>
-        {SITUACOES.filter((s) => contagem.get(s.id)).map((s) => (
-          <button key={s.id} type="button" aria-pressed={filtro === s.id} onClick={() => setFiltro(filtro === s.id ? "" : s.id)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${filtro === s.id ? "ring-2 ring-modulo" : "ring-transparent"} ${s.cor}`}>
-            {s.nome} <span className="num">{contagem.get(s.id)}</span>
-          </button>
-        ))}
-      </div>
 
       {!carregando && !anuncios.length ? (
         <Card className="p-6 text-center text-sm text-slate-600">

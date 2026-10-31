@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, ImageOff, Images, Loader2 } from "lucide-react";
-import { Button, Card, Table, chip } from "@/components/ui";
+import { Button, Card, Table } from "@/components/ui";
 import { confirmar } from "@/components/Dialogos";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate } from "@/lib/data";
@@ -12,7 +12,7 @@ import { callFunction, supabase } from "@/lib/supabase";
 import { DISPONIBILIDADE, urlFotoProduto } from "@/lib/catalogo";
 import { linkAnuncio } from "@/lib/mlAnuncios";
 import { AnunciosNovosML } from "./AnunciosNovosML";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 
 type AnuncioProduto = {
   anuncio_id: string; ml_item_id: string; variation_id: string | null; titulo: string | null; quantidade: number;
@@ -73,15 +73,24 @@ export function ProdutosLojaML({ podeMudar = false }: { podeMudar?: boolean }) {
       <p className="text-sm text-slate-600">
         Os mesmos produtos da loja (ativos, no catálogo, com foto e preço). Ao lado, o anúncio do Mercado Livre de cada um.
       </p>
-      {/* a barra padrão das listas; os chips de anúncio ficam logo abaixo */}
-      <div>
-        <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar: nome, SKU ou MLB" onLimpar={() => { setBusca(""); setFiltro("todos"); }} />
-        <div className="faixa-chips" role="group" aria-label="Filtrar produtos">
-          {([["todos", `Todos ${produtos.length}`], ["com", `Anunciados ${com}`], ["sem", `Sem anúncio ${produtos.length - com}`]] as const).map(([v, t]) => (
-            <button key={v} type="button" onClick={() => setFiltro(v)} aria-pressed={filtro === v} className={chip(filtro === v, "border-brand bg-brand-light text-brand")}>{t}</button>
-          ))}
-        </div>
-      </div>
+      {/* a barra padrão das listas; barra nova (31/10): com ou sem anúncio na "Visão" (eram chips logo abaixo) */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar: nome, SKU ou MLB" onLimpar={() => { setBusca(""); setFiltro("todos"); }}
+        visoes={{
+          lista: [
+            { id: "todos", nome: "Todos os produtos", n: produtos.length },
+            { id: "com", nome: "Anunciados", n: com, cor: "bg-emerald-500" },
+            { id: "sem", nome: "Sem anúncio", n: produtos.length - com, cor: "bg-amber-500" },
+          ],
+          ativa: filtro, escolher: (v) => setFiltro(v as Filtro),
+          pagina: "mercadolivre-produtos", estado: { filtro },
+          aplicar: (e) => setFiltro((e.filtro as Filtro) ?? "todos"),
+        }}
+        ligados={[]}
+        sugestoes={[
+          { tipo: "Anúncio", rotulo: "Anunciados", aplicar: () => setFiltro("com") },
+          { tipo: "Anúncio", rotulo: "Sem anúncio", aplicar: () => setFiltro("sem") },
+        ] satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "produto", "produtos")}</>} />
 
       <AnunciosNovosML podeMudar={podeMudar} semAnuncio={produtos.length - com} />
 

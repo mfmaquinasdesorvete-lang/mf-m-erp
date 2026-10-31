@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Barcode, CheckCircle2, CircleAlert, FileSpreadsheet, Lightbulb, Sparkles, XCircle } from "lucide-react";
 import { Button, Card, Modal } from "@/components/ui";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { useInvalidate } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -176,6 +176,11 @@ export function CodigosEan({ produtos, podeEditar, onAbrir }: { produtos: Produt
       <Dicas />
 
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar produto, SKU ou código" onLimpar={() => setBusca("")}
+        // barra nova (31/10): a busca sugere as situações dos cartões acima e o resultado fica ao lado
+        // a situação se escolhe nos cartões acima (sem repetir na "Visão"): aqui fica à vista em pílula, com ×
+        ligados={filtro === "todos" ? [] : [{ rotulo: "Situação", valor: FILTROS.find((f) => f.id === filtro)?.rotulo ?? filtro, tirar: () => { setFiltro("todos"); setLimite(100); } }]}
+        sugestoes={FILTROS.filter((f) => f.id !== "todos").map((f) => ({ tipo: "Situação", rotulo: f.rotulo, aplicar: () => { setFiltro(f.id); setLimite(100); } })) satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{visiveis.length}</b> {pl(visiveis.length, "produto", "produtos")}</>}
         direita={<Button variant="secondary" onClick={planilhaTudo}><FileSpreadsheet size={15} /> Planilha</Button>} />
 
       {podeEditar && visiveis.length > 0 && (

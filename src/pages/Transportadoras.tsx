@@ -5,11 +5,11 @@ import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { confirmar } from "@/components/Dialogos";
 import {
-  AlertTriangle, Building2, CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Globe, Link2, Mail, MapPin, Merge, Pencil,
+  AlertTriangle, Building2, CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Globe, Mail, MapPin, Merge, Pencil,
   MapPinOff, PackageCheck, Phone, Plug, PlugZap, Plus, Search, SearchCheck, Truck, Unlink, Users,
 } from "lucide-react";
 import { Button, chip, Field, Modal, PageHeader, Tabs } from "@/components/ui";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { Contato } from "@/components/Contato";
 import Fornecedores from "@/pages/Fornecedores";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
@@ -75,10 +75,11 @@ function PorMarca() {
   const sugestoes = useMemo(() => sugestoesAgrupar(porMarca(rows)), [rows]);
   const repetidas = useMemo(() => repetidasPorNome(porMarca(rows)), [rows]);
   const lista = useMemo(() => filtrar(todas, filtro, usos).filter((m) => (!tipo || (m.marca.tipo ?? "transportadora") === tipo) && combina(m, busca)), [todas, filtro, usos, tipo, busca]);
-  const chips: { v: FiltroMarca; rotulo: string; icone: typeof Plug }[] = [
-    { v: "todas", rotulo: "Todas", icone: Truck }, { v: "usadas", rotulo: "Já usamos", icone: PackageCheck }, { v: "api", rotulo: "Com API", icone: Plug },
-    { v: "plataforma", rotulo: "Via plataforma", icone: Link2 }, { v: "conferir", rotulo: "A conferir", icone: SearchCheck }, { v: "sem_contato", rotulo: "Sem contato", icone: Phone },
-    { v: "sem_rastreio", rotulo: "Sem rastreio", icone: MapPinOff }, { v: "alerta", rotulo: "Com alerta", icone: AlertTriangle },
+  // barra nova (31/10): os chips viraram as visões prontas da barra (mesmas opções e contagens)
+  const chips: { v: FiltroMarca; rotulo: string; cor?: string }[] = [
+    { v: "todas", rotulo: "Todas" }, { v: "usadas", rotulo: "Já usamos", cor: "bg-emerald-500" }, { v: "api", rotulo: "Com API", cor: "bg-sky-500" },
+    { v: "plataforma", rotulo: "Via plataforma", cor: "bg-sky-500" }, { v: "conferir", rotulo: "A conferir", cor: "bg-amber-500" }, { v: "sem_contato", rotulo: "Sem contato", cor: "bg-slate-400" },
+    { v: "sem_rastreio", rotulo: "Sem rastreio", cor: "bg-slate-400" }, { v: "alerta", rotulo: "Com alerta", cor: "bg-red-500" },
   ];
   const alterna = (id: string) => setAbertas((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
@@ -104,6 +105,22 @@ function PorMarca() {
         actions={podeEditar && <Button onClick={() => setEditar({ registro: { nome: "", ativo: true, tipo: "transportadora" } })}><Plus size={16} /> Nova transportadora</Button>} />
 
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar por nome, CNPJ, cidade, contato…"
+        visoes={{
+          lista: chips.map((c) => ({ id: c.v, nome: c.v === "todas" ? "Todas as marcas" : c.rotulo, n: filtrar(todas, c.v, usos).length, cor: c.cor })),
+          ativa: filtro, escolher: (v) => setFiltro(v as FiltroMarca),
+          pagina: "transportadoras-marcas",
+          estado: { filtro, tipo, inativas },
+          aplicar: (e) => { setFiltro((e.filtro as FiltroMarca) ?? "todas"); setTipo(String(e.tipo ?? "")); setInativas(!!e.inativas); },
+        }}
+        ligados={[
+          ...(tipo ? [{ rotulo: "Tipo", valor: TIPOS[tipo as keyof typeof TIPOS] ?? tipo, tirar: () => setTipo("") }] : []),
+          ...(inativas ? [{ rotulo: "Inativas", valor: "mostrando", tirar: () => setInativas(false) }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...chips.filter((c) => c.v !== "todas").map((c) => ({ tipo: "Visão", rotulo: c.rotulo, aplicar: () => setFiltro(c.v) })),
+          ...Object.entries(TIPOS).map(([v, l]) => ({ tipo: "Tipo", rotulo: l, aplicar: () => setTipo(v) })),
+        ] satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "marca", "marcas")}</>}
         filtros={<>
           <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Tipo</span>
             <select className="input w-auto" value={tipo} onChange={(e) => setTipo(e.target.value)}>
@@ -114,17 +131,6 @@ function PorMarca() {
         </>}
         nFiltros={(tipo ? 1 : 0) + (inativas ? 1 : 0) + (filtro !== "todas" ? 1 : 0)}
         onLimpar={() => { setBusca(""); setTipo(""); setInativas(false); setFiltro("todas"); }} />
-      <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar marcas">
-        {chips.map(({ v, rotulo, icone: I }) => {
-          const n = filtrar(todas, v, usos).length;
-          return (
-            <button key={v} type="button" aria-pressed={filtro === v} onClick={() => setFiltro(v)}
-              className={chip(filtro === v)}>
-              <I size={13} aria-hidden /> {rotulo} <span className="opacity-90">{n}</span>
-            </button>
-          );
-        })}
-      </div>
       {podeEditar && sugestoes.length > 0 && (
         <div className="mb-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
           <div className="mb-1.5 flex items-center gap-2 font-semibold"><Merge size={16} aria-hidden /> Cadastros que parecem ser da mesma empresa (mesmo CNPJ)</div>
