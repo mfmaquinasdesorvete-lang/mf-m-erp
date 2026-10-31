@@ -34,6 +34,7 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
 - IAD: "Pode publicar" do Resumir com IA dos documentos.
 
 ## Decisões da usuária
+- 31/10: no máximo 20 chats; ficaram 18 (CNF→FAZ, AUD→ENT, TIN→GER, DOC→REV; chats_claude conferido: 18 ativos). Tudo o que precisar dela vem com botões (82ff394). Gravação no banco continua pedindo aprovação, com aviso antes (1bf9d5a).
 - 28/10: auditor financeiro roda sozinho todo dia (ENT, 07:03, no ar); Dossiê da MF SC desde a abertura (FIS coordena, pedido 21a33e7d); extrato nunca cai em conta por padrão (GER consertou e publicou).
 - 27/10 (pelo GER): títulos das sessões numerados "NN ícone SIGLA · Nome — o que faz" (01 ELO … 22 REV), mesma
   ordem em `chats_claude.ordem`; o `nome` não muda. Chat novo usa o próximo número.
