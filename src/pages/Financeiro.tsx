@@ -39,6 +39,7 @@ import { ChipTipo } from "@/components/financeiro/ResumoPagar";
 import { ORDEM_TIPOS, raizCnpj, TIPOS_PAGAR, tipoPagar, type TipoPagar } from "@/lib/tiposPagar";
 import { noCartao, noEstado, resumoAgora, type CartaoAgora, type EstadoLista, type RegrasAgora } from "@/lib/agoraContas";
 import { CartoesAgora, EscolhaEstado, FaixaCartao } from "@/components/financeiro/AgoraContas";
+import { RecebidoPorConta, recebidoPorConta } from "@/components/financeiro/RecebidoPorConta";
 import type { ContaRevisao } from "@/lib/aprovacao";
 import { aguardaAprovacao, contaParada, COR_TOM, diaDoPagamento, naVisaoPagar, paraPagarHoje, passoPagar, situacaoPagar, type Decisao, type VisaoPagar } from "@/lib/programacao";
 import { BarraFiltros, ChipsSituacao, RodapeLista } from "@/components/filtros/BarraFiltros";
@@ -253,6 +254,8 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
   const [estado, setEstado] = useState<EstadoLista>("aberto");
   const [busca, setBusca] = useState("");
   const [periodo, setPeriodo] = useState<Periodo>(() => semanaAtual(hoje()));
+  // Recebidas: tocar numa conta do cartão "Recebido" mostra só o que entrou nela ("" = sem conta informada)
+  const [contaRecebida, setContaRecebida] = useState<string | null>(null);
   const [nova, setNova] = useState<Partial<Receber> | null>(null);
   const [baixa, setBaixa] = useState<{ conta: Receber; tabela: "contas_receber" } | null>(null);
   const [motivo, setMotivo] = useState<{ conta: Receber; acao: "cancelar" | "estornar" } | null>(null);
@@ -293,12 +296,18 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
     || [c.descricao, c.cliente?.nome, c.cliente?.nome_fantasia, c.forma_pagamento, c.categoria].some((t) => (t ?? "").toLowerCase().includes(termo))), [contas, termo]);
   const regras: RegrasAgora<Receber> = { decidir: (c) => (c as any).revisao === "em_revisao" };
   const resumo = useMemo(() => resumoAgora(semPeriodo, dia, regras), [semPeriodo, dia]); // eslint-disable-line react-hooks/exhaustive-deps
-  const lista = useMemo(() => (cartao ? semPeriodo.filter((c) => noCartao(c, cartao, dia, regras))
-    : semPeriodo.filter((c) => noEstado(c, estado) && noPeriodoOuPendente(c.vencimento, periodo, c.status === "aberto")))
-    .sort((a, b) => !cartao && estado === "pagas" ? (b.data_pagamento ?? "").localeCompare(a.data_pagamento ?? "") : a.vencimento.localeCompare(b.vencimento)),
+  // nas Recebidas o período é o do dia em que o dinheiro entrou (31/10); em aberto e todas, o do vencimento
+  const porRecebimento = !cartao && estado === "pagas";
+  const semConta = useMemo(() => (cartao ? semPeriodo.filter((c) => noCartao(c, cartao, dia, regras))
+    : semPeriodo.filter((c) => noEstado(c, estado) && (porRecebimento ? noPeriodo(c.data_pagamento, periodo) : noPeriodoOuPendente(c.vencimento, periodo, c.status === "aberto"))))
+    .sort((a, b) => porRecebimento ? (b.data_pagamento ?? "").localeCompare(a.data_pagamento ?? "") : a.vencimento.localeCompare(b.vencimento)),
   [semPeriodo, cartao, estado, periodo, dia]); // eslint-disable-line react-hooks/exhaustive-deps
+  const recebido = useMemo(() => recebidoPorConta(porRecebimento ? semConta : [], contaBanco), [semConta, porRecebimento]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lista = useMemo(() => (porRecebimento && contaRecebida !== null ? semConta.filter((c) => (c.conta_bancaria_id ?? "") === contaRecebida) : semConta),
+    [semConta, porRecebimento, contaRecebida]);
   const rotuloLista = cartao ? { vencidas: "Vencidas", hoje: "Hoje", semana: "Esta semana", decidir: "Para decidir" }[cartao]
-    : [{ aberto: "Em aberto", pagas: "Recebidas", todas: "Todas" }[estado], temPeriodo(periodo) ? `vencimento ${rotuloPeriodo(periodo, dia).toLowerCase()}` : ""].filter(Boolean).join(" · ");
+    : [{ aberto: "Em aberto", pagas: "Recebidas", todas: "Todas" }[estado], temPeriodo(periodo) ? `${porRecebimento ? "recebidas" : "vencimento"} ${rotuloPeriodo(periodo, dia).toLowerCase()}` : "",
+      porRecebimento && contaRecebida !== null ? recebido.contas.find((x) => x.id === contaRecebida)?.nome : ""].filter(Boolean).join(" · ");
   const rel = useRelatorio("receber", "todos", "", [rotuloLista, termo && `busca "${busca.trim()}"`].filter(Boolean).join(" · "));
   const paraRel = () => lista.map((c) => ({ ...c, terceiro: c.cliente?.nome ?? "" }));
 
@@ -338,8 +347,9 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
     <>
       {rel.visor}
       <CartoesAgora resumo={resumo} ativo={cartao} onEscolher={setCartao} />
+      {porRecebimento && <RecebidoPorConta dados={recebido} periodo={temPeriodo(periodo) ? rotuloPeriodo(periodo, dia) : "Qualquer data"} ativa={contaRecebida} onConta={setContaRecebida} />}
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar cliente, descrição ou forma de pagamento…"
-        periodo={cartao ? undefined : periodo} onPeriodo={cartao ? undefined : setPeriodo} rotuloData="Vencimento"
+        periodo={cartao ? undefined : periodo} onPeriodo={cartao ? undefined : setPeriodo} rotuloData={porRecebimento ? "Recebido em" : "Vencimento"}
         onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); }}
         direita={<>
           {!cartao && <EscolhaEstado valor={estado} onMudar={setEstado} rotuloPagas="Recebidas" />}
