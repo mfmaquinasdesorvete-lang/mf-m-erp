@@ -57,13 +57,14 @@ import { gravarSincronizado, NOME_CAMPO } from "@/lib/sincronizacao";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
 import { BarraFiltros, ChipsSituacao, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
 import { AplicarMarcadores } from "@/components/nfe/Marcadores";
-import { diaDaVenda, diaLocal, noPeriodoOuPendente, rotuloPeriodo, SEM_PERIODO, semanaAtual, somar, type Periodo } from "@/lib/filtroLista";
+import { diaDaVenda, diaLocal, noPeriodo, noPeriodoOuPendente, rotuloPeriodo, SEM_PERIODO, semanaAtual, somar, type Periodo } from "@/lib/filtroLista";
 import { urlFotoProduto } from "@/lib/catalogo";
 import {
-  contasDaVenda, envioDaVenda, meioDaVenda, pagamentoDaVenda, ROTULO_PAGAMENTO, sinaisDaVenda,
+  contasDaVenda, envioDaVenda, meioDaVenda, pagamentoDaVenda, somaDoPeriodo, ROTULO_PAGAMENTO, sinaisDaVenda,
   type ContaVenda, type Envio, type EnvioVenda, type Pagamento, type SituacaoPagamento, type TransportadoraVenda,
 } from "@/lib/vendasLista";
 import { COR_PAGAMENTO, EtiquetaPagamento, IconeEnvio, IconeMeio, MiniaturaVenda, SinaisVenda } from "@/components/vendas/ColunasVenda";
+import { ResumoDoPeriodo } from "@/components/vendas/ResumoDoPeriodo";
 import { KanbanVendas } from "@/components/vendas/KanbanVendas";
 import { clonarVenda } from "@/lib/clonarVenda";
 import { pedidoRepetido, type OutraVenda } from "@/lib/pedidoRepetido";
@@ -292,6 +293,12 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const naTela = quadro ? semSituacao : lista;
   const recebidoLista = somar(naTela, (p) => info.get(p.id)?.pg?.recebido ?? 0);
   const aReceberLista = somar(naTela, (p) => { const pg = info.get(p.id)?.pg; return pg && pg.situacao !== "sem_conta" ? pg.total - pg.recebido : 0; });
+  // resumo para mostrar ao sócio (pedido de 31/10): as vendas fechadas no período (pela data da venda, sem os pendentes
+  // de antes), com os filtros da tela; e o total com a outra área (peças + máquinas) no mesmo período e unidade
+  const doPeriodo = (p: PedidoLista) => p.status !== "orcamento" && noPeriodo(diaDaVenda(p), periodo);
+  const resumo = useMemo(() => somaDoPeriodo(filtrados.filter(doPeriodo)), [filtrados, periodo]); // eslint-disable-line react-hooks/exhaustive-deps
+  const resumoOutra = useMemo(() => somaDoPeriodo(filtrar(pedidosTodos).filter((p) => ehMaquina(p) !== (area === "maquinas") && doPeriodo(p))),
+    [pedidosTodos, filtrar, area, periodo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // excluir em lote: abre a janela com o que sai junto (OS, separações, envios e contas em aberto dos pedidos)
   const [excluindo, setExcluindo] = useState(false);
@@ -391,6 +398,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       {!quadro && <ChipsSituacao valor={filtro} onChange={setFiltro} cores={CORES_STATUS}
         opcoes={STATUS.map((st) => ({ value: st, label: area === "maquinas" && st === "orcamento" ? "Propostas" : ROTULO_STATUS[st], n: st === "todos" ? semSituacao.length : semSituacao.filter((x) => x.status === st).length }))} />}
       {vePagamento && <ChipsPagamento valor={pagamento} onChange={setPagamento} lista={quadro ? filtrados : semPagamento} info={info} />}
+      {vePagamento && !destaque && <ResumoDoPeriodo r={resumo} outra={resumoOutra} area={area} periodo={rotuloPeriodo(periodo, dia)} />}
 
       {quadro && (
         <KanbanVendas vendas={semSituacao} onAbrir={(p) => setAberto({ ...p, itens: p.itens ?? [] })} rotulos={area === "maquinas" ? { orcamento: "Propostas comerciais" } : undefined}

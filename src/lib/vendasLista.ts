@@ -132,3 +132,32 @@ export function bancoDaVenda(contas: ContaVenda[], nomes: Map<string, string>): 
     .map((c) => nomes.get(c.conta_bancaria_id!) ?? "").filter(Boolean))];
   return bancos.length ? bancos.join(" + ") : null;
 }
+
+/** Venda com parcelas, mas todas canceladas (ex.: nota a anular, venda refeita em outro pedido): fica fora do resumo. */
+export const semParcelaValendo = (p: { contas?: ContaVenda[] | null; notas?: { contas?: ContaVenda[] | null }[] | null }) =>
+  [...(p.contas ?? []), ...(p.notas ?? []).flatMap((n) => n.contas ?? [])].length > 0 && contasDaVenda(p).length === 0;
+
+export type ResumoVendas = {
+  pedidos: number; vendido: number; recebido: number; aReceber: number;
+  /** vendido − recebido − a receber nas vendas com conta: tarifas do Mercado Livre, do cartão e descontos na baixa */
+  diferenca: number; semConta: { pedidos: number; valor: number }; foraDaSoma: number[];
+};
+
+/** O resumo para mostrar ao sócio (pedido de 31/10): quantas vendas, quanto vendeu, quanto entrou e quanto falta.
+ *  Recebe as vendas já filtradas pelo período; tira orçamentos, canceladas e vendas sem parcela valendo. */
+export function somaDoPeriodo(vendas: { numero: number; status: string; valor_total: number | string; contas?: ContaVenda[] | null; notas?: { contas?: ContaVenda[] | null }[] | null }[]): ResumoVendas {
+  const r: ResumoVendas = { pedidos: 0, vendido: 0, recebido: 0, aReceber: 0, diferenca: 0, semConta: { pedidos: 0, valor: 0 }, foraDaSoma: [] };
+  for (const p of vendas) {
+    if (p.status === "orcamento" || p.status === "cancelado") continue;
+    if (semParcelaValendo(p)) { r.foraDaSoma.push(p.numero); continue; }
+    const valor = num(p.valor_total), contas = contasDaVenda(p);
+    r.pedidos++; r.vendido += valor;
+    if (!contas.length) { r.semConta.pedidos++; r.semConta.valor += valor; continue; }
+    const recebido = contas.reduce((s, c) => s + (c.status === "pago" ? num(c.valor_pago ?? c.valor) : num(c.valor_pago)), 0);
+    const falta = contas.reduce((s, c) => s + (c.status === "pago" ? 0 : Math.max(0, num(c.valor) - num(c.valor_pago))), 0);
+    r.recebido += recebido; r.aReceber += falta; r.diferenca += valor - recebido - falta;
+  }
+  const c2 = (n: number) => Math.round(n * 100) / 100;
+  return { ...r, vendido: c2(r.vendido), recebido: c2(r.recebido), aReceber: c2(r.aReceber), diferenca: c2(r.diferenca),
+    semConta: { pedidos: r.semConta.pedidos, valor: c2(r.semConta.valor) } };
+}
