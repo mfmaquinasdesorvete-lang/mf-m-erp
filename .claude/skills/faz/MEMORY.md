@@ -54,6 +54,22 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
   com `to_regclass` e `pg_proc` (em 27/10 só faltavam as do item 1).
 - Secrets não dá para ler daqui (as funções pedem login): conferir pelo "Testar conexão" ou pelo uso (dados novos).
 
+## Conferência (passada pelo CNF em 31/10)
+- Painel "Conferência dos pedidos": https://claude.ai/artifact/KScwZP833YphEzZWdWFsGq (privado, da conta dela;
+  atualizado até 28/10). Para continuar no mesmo link: Artifact read antes, depois publish com url.
+- Rodada: select em pedidos_checklist (situacao, versao, detalhe, updated_at), chats_claude e publicacoes; git fetch da
+  paineis-no-ar e da site; código no ar = hash da última linha "site <hash>" da branch site; para cada versao,
+  `git merge-base --is-ancestor <versao> <hash>`. Parado = fila/fazendo há mais de 2 dias. Cobrar o dono por
+  send_message (trailer Claude-Session do commit ou pelo assunto), no máximo 1 vez a cada 24 h.
+- Estado 31/10: 123 'voce', 0 conferidos. 28/10: 466 feitos no ar (site 30da4ea), 300 com teste descrito, 166 sem
+  (GER ~120 testando por área, FIS 19, IAD 17 já voltaram para fazendo em 29/10). 18 parados, todos respondidos.
+- #628 (bf8f7e71, 'voce'): ela ver o Início com a semana certa depois da correção do GER.
+- Gravações no checklist esperando a aprovação dela: SOR, CAR, GER, PRD, ELO (a5b511b7), DOC (FUN e IAD já entraram
+  pelo SQL Editor). Juntar várias num update só serve para ela aprovar uma vez, nunca para fugir da confirmação.
+- Proposta do CNF ainda sem resposta: os 123 'voce' por tipo (tela ~35, arquivo/acesso ~30, decidir ~25, botão no
+  ERP ~10, painel ~10, pessoal ~10) num painel, um item por linha. Perguntar com botões.
+- Prazo: os 2 botões do Tiny antes da virada de 09/11.
+
 ## Dossiê MF SC (28/10, pelo ELO)
 - Juntar no ERP tudo da MF SC desde 28/06/2022. FIS coordena (pedido 21a33e7d) com TIN, GER e ENT; eles me mandam o
   que só ela busca. Bloco "Dossiê MF SC" em `lista.md`; no resumo, só a próxima tarefa do bloco (uma por dia, a que
