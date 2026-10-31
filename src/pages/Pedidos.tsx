@@ -57,7 +57,7 @@ import { gravarSincronizado, NOME_CAMPO } from "@/lib/sincronizacao";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
 import { BarraFiltros, ChipsSituacao, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
 import { AplicarMarcadores } from "@/components/nfe/Marcadores";
-import { diaLocal, noPeriodoOuPendente, rotuloPeriodo, SEM_PERIODO, semanaAtual, somar, type Periodo } from "@/lib/filtroLista";
+import { diaDaVenda, diaLocal, noPeriodoOuPendente, rotuloPeriodo, SEM_PERIODO, semanaAtual, somar, type Periodo } from "@/lib/filtroLista";
 import { urlFotoProduto } from "@/lib/catalogo";
 import {
   contasDaVenda, envioDaVenda, meioDaVenda, pagamentoDaVenda, ROTULO_PAGAMENTO, sinaisDaVenda,
@@ -274,7 +274,8 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
     (!soLicenciados || ehLicenciado(p.cliente)) &&
     (!situacaoTiny || (situacaoTiny === "-" ? !p.situacao_origem : p.situacao_origem === situacaoTiny)) &&
     (!formaEnvio || info.get(p.id)?.envio?.rotulo === formaEnvio) &&
-    (!!destaque || noPeriodoOuPendente(p.created_at, periodo, p.status === "aprovado" || p.status === "faturado")) &&
+    // orçamento pelo dia em que foi feito; venda pelo dia da venda (aprovação), não do lançamento (31/10)
+    (!!destaque || noPeriodoOuPendente(p.status === "orcamento" ? p.created_at : diaDaVenda(p), periodo, p.status === "aprovado" || p.status === "faturado")) &&
     (!busca || combinaBusca([p.numero, p.numero_externo, info.get(p.id)?.oc, info.get(p.id)?.nf, p.codigo_rastreio, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
   ), [pedidos, busca, destaque, marcador, soLicenciados, situacaoTiny, formaEnvio, periodo, info]); // eslint-disable-line react-hooks/exhaustive-deps
   const doPagamento = (p: Pedido) => !pagamento || info.get(p.id)?.pg?.situacao === pagamento;
