@@ -91,7 +91,8 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - a8d2634a: funções publicadas em 27/10; na próxima nota de fornecedor conferir se `nfe_recebidas.xml` ficou guardado e o à vista / a prazo veio do XML, e marcar feito.
 - DANFE no menu das vendas só aparece para nota emitida pelo ERP (as do Tiny não têm danfe_url).
 - Teste da rodada de fechamento (CNF, 27/10): 17 testados (14 passaram, 3 voltaram); faltam 122 "feito" sem teste. Daqui o site não abre (rede): testar pelo banco de produção e pelo código no site.zip.
-0. Auditoria do REV de 27/10 (.claude/skills/rev/auditoria-2026-10-27.md): Auditoria financeira leve (colunas e período) e `select:` nas listas das telas do GER; depois `centavos()` única; /estoque × /produtos/pecas espera a usuária (com o PRD).
+0. Auditoria do REV de 31/10 (.claude/skills/rev/auditoria-2026-10-31.md): feitos o teste de segurança (conta_receber_pix_do_dia virou invoker, migração 205), os índices de oportunidades e máquinas unificadas e o prazoPagar sem uso apagado. Falta: `select:` em clientes (7 telas), produtos (29) e fornecedores (14) com SELECT_LISTA_CLIENTES / SELECT_LISTA_PRODUTOS; `centavos()` única no lugar das 53 cópias de r2. A Auditoria financeira leve passou para o ENT (juntou o AUD).
+0b. Auditoria do REV de 27/10 (.claude/skills/rev/auditoria-2026-10-27.md): Auditoria financeira leve (colunas e período) e `select:` nas listas das telas do GER; depois `centavos()` única; /estoque × /produtos/pecas espera a usuária (com o PRD).
 1. Com a tabela criada: funções `config_ajuste_salvar` e `cfg_num`, páginas de Configurações e as telas lendo o catálogo.
 2. Pedir "Pode publicar", avisar o ELO, marcar "Feito" em `.claude/configuravel`.
 3. E-mails automáticos e a cobrança fora da régua; depois dinheiro e prazos.

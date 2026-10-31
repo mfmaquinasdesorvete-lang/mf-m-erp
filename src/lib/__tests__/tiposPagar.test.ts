@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { prazoPagar, raizCnpj, resumoPorTipo, tipoPagar } from "../tiposPagar";
+import { raizCnpj, resumoPorTipo, tipoPagar } from "../tiposPagar";
 import type { ContaDecisao } from "../programacao";
 
 const HOJE = "2026-10-17";
@@ -65,17 +65,5 @@ describe("quanto tem para pagar", () => {
     expect(r.linhas.map((x) => [x.tipo, x.total, x.n])).toEqual([["fornecedor", 800, 2], ["transportadora", 200, 1], ["imposto", 50, 1]]);
     expect([r.total, r.n, r.vencido, r.nVencidas, r.semana, r.aprovar, r.nAprovar]).toEqual([1050, 4, 500, 1, 250, 300, 1]);
     expect([r.seguradas, r.nSeguradas]).toEqual([1076, 2]);
-  });
-});
-
-describe("prazo em palavras", () => {
-  it("pelo dia do pagamento", () => {
-    expect(prazoPagar(conta({ vencimento: "2026-10-14" }), HOJE)).toEqual({ texto: "venceu há 3 dias", tom: "atrasada" });
-    expect(prazoPagar(conta({ vencimento: "2026-10-17" }), HOJE).texto).toBe("vence hoje");
-    expect(prazoPagar(conta({ vencimento: "2026-10-18" }), HOJE).texto).toBe("vence amanhã");
-    expect(prazoPagar(conta({ vencimento: "2026-10-22" }), HOJE).texto).toBe("vence em 5 dias");
-    expect(prazoPagar(conta({ vencimento: "2026-11-30" }), HOJE)).toEqual({ texto: "vence 30/11", tom: "longe" });
-    expect(prazoPagar(conta({ vencimento: "2026-10-30", decisao: "agendado", pagar_em: "2026-10-20" }), HOJE).texto).toBe("pagar em 3 dias");
-    expect(prazoPagar({ ...conta({ status: "pago" }), data_pagamento: "2026-10-05" }, HOJE)).toEqual({ texto: "paga em 05/10", tom: "paga" });
   });
 });

@@ -37,7 +37,7 @@ export function PassoAPasso() {
   };
   return (
     <Card className="p-3 sm:p-4">
-      <button type="button" onClick={trocar} aria-expanded={aberto} className="flex w-full items-center gap-2 text-left">
+      <button type="button" onClick={trocar} aria-expanded={aberto} className="linha-clicavel -mx-1.5 flex w-full items-center gap-2 px-1.5 py-1 text-left">
         <GraduationCap size={18} className="shrink-0 text-modulo-texto" aria-hidden />
         <span className="flex-1 text-sm font-bold text-fg">Como usar o CRM: passo a passo para a equipe</span>
         <span className="text-xs text-slate-500">{aberto ? "esconder" : "mostrar"}</span>

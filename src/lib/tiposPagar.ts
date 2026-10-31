@@ -99,16 +99,3 @@ export function resumoPorTipo<T extends ContaDecisao>(contas: T[], tipoDe: (c: T
     aprovar: soma("aprovar"), nAprovar: soma("nAprovar"), seguradas: r2(seguradas), nSeguradas,
   };
 }
-
-/** O prazo em palavras ("venceu há 3 dias", "vence hoje", "vence em 5 dias"), pelo dia do pagamento. */
-export function prazoPagar(c: ContaDecisao & { data_pagamento?: string | null }, hoje: string): { texto: string; tom: "atrasada" | "hoje" | "perto" | "longe" | "paga" } {
-  if (c.status === "pago") return { texto: c.data_pagamento ? `paga em ${c.data_pagamento.slice(8, 10)}/${c.data_pagamento.slice(5, 7)}` : "paga", tom: "paga" };
-  const d = diaDoPagamento(c);
-  const n = diasEntre(hoje, d);
-  const pagar = d !== c.vencimento ? "pagar" : "vence";
-  if (n < 0) return { texto: `${pagar === "pagar" ? "era para pagar" : "venceu"} há ${-n} ${n === -1 ? "dia" : "dias"}`, tom: "atrasada" };
-  if (n === 0) return { texto: `${pagar} hoje`, tom: "hoje" };
-  if (n === 1) return { texto: `${pagar} amanhã`, tom: "perto" };
-  if (n <= 7) return { texto: `${pagar} em ${n} dias`, tom: "perto" };
-  return { texto: `${pagar} ${d.slice(8, 10)}/${d.slice(5, 7)}`, tom: "longe" };
-}
