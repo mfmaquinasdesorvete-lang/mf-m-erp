@@ -85,6 +85,12 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- Teste real (01/11) de 9 pedidos no ar, que estão como "precisa de você" em Sobre → Pedidos: Tornearia → Peças (receita);
+  cadastro novo em passos e "Salvar agora" no 1º passo; kit novo e componente de fabricação; tubo de 6 m com a
+  receita do cilindro; Impostos na venda na Gestão de preços; insumo só com custo; cadastro em abas; Peças do kit.
+  No banco não havia uso nenhum ainda (sem produto novo, material com formato, receita com uso nem desenho).
+- O-ring do dosador nos kits 3, 5 e 7 Sabores (V3D01UN/PC-VED-011 do Tiny × PC-VED-014 do ERP) e o 7 Sabores
+  (Tiny × o que ela disse em 28/10).
 - Ficha dos fabricados aqui (28/10): 5 com ficha copiada da composição (PC-CHV-004, 006, PC-MEC-001, PC-KIT-002, 013).
   Falta ela exportar do Tiny a composição das outras chaves e das peças da tornearia (o Tiny no ERP só tem vendas).
 - Preço e foto do Kit Pá Agitadora + Sanfona (PC-KIT-018, hoje 187,60 = soma dos avulsos; sem foto e fora do catálogo;
