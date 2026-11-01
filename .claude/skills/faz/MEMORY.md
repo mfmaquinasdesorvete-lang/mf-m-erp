@@ -69,6 +69,10 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - 01/11: ela quis o painel dos 'voce' por tipo. Publicado: https://claude.ai/artifact/2g2Tx4gYvdrejG2wpeS8BA (retrato de
   01/11; 143 sem os pessoais: tela 73, decidir 28, arquivo 22, botão 10, painel 10). Atualizar no mesmo link (scratchpad
   painel/pendencias.html não sobrevive: refazer pelo select de pedidos_checklist 'voce').
+- 01/11: PRD e DSG responderam à cobrança. PRD: 9 viraram 'voce' (teste real com ela; dá para juntar num teste só:
+  1 peça pelo Novo, 1 kit e o tubo de 6000 mm com receita de 420 mm; ver Esperando a usuária do PRD, 906de09). DSG:
+  ced79940 feito, 9 viraram 'voce' (cada detalhe termina com "01/11: para conferir: …") e 42db5646 (barra de filtros)
+  também espera ela. No resumo de 02/11: propor o teste juntado do PRD e 3 do DSG.
 - 01/11 (botões): inutilização SP → pediu o passo a passo (dado no chat); Tiny T1 → "Depois".
 - Prazo: os 2 botões do Tiny antes da virada de 09/11.
 - 31/10: TRA fez e publicou (dd72e33b feito, c4f6883d): envios #25 e #26 entregues (conferido no banco), tela do envio
