@@ -66,8 +66,10 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - #628 (bf8f7e71, 'voce'): ela ver o Início com a semana certa depois da correção do GER.
 - Gravações no checklist esperando a aprovação dela: SOR, CAR, GER, PRD, ELO (a5b511b7), DOC (FUN e IAD já entraram
   pelo SQL Editor). Juntar várias num update só serve para ela aprovar uma vez, nunca para fugir da confirmação.
-- Proposta do CNF ainda sem resposta: os 123 'voce' por tipo (tela ~35, arquivo/acesso ~30, decidir ~25, botão no
-  ERP ~10, painel ~10, pessoal ~10) num painel, um item por linha. Perguntar com botões.
+- 01/11: ela quis o painel dos 'voce' por tipo. Publicado: https://claude.ai/artifact/2g2Tx4gYvdrejG2wpeS8BA (retrato de
+  01/11; 143 sem os pessoais: tela 73, decidir 28, arquivo 22, botão 10, painel 10). Atualizar no mesmo link (scratchpad
+  painel/pendencias.html não sobrevive: refazer pelo select de pedidos_checklist 'voce').
+- 01/11 (botões): inutilização SP → pediu o passo a passo (dado no chat); Tiny T1 → "Depois".
 - Prazo: os 2 botões do Tiny antes da virada de 09/11.
 - 31/10: TRA fez e publicou (dd72e33b feito, c4f6883d): envios #25 e #26 entregues (conferido no banco), tela do envio
   com "Cliente retirou" no topo. Para ela conferir na tela (item 31 do para-conferir).
