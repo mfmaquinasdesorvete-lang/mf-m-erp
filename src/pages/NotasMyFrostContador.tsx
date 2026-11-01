@@ -13,9 +13,9 @@ import { PropostasTiny } from "@/components/vendas/PropostasTiny";
 import { Anexos, ID_MY_FROST } from "@/components/Anexos";
 import { FretesProtestosMyFrost } from "@/components/myfrost/FretesProtestosMyFrost";
 import { PainelMyFrost } from "@/components/myfrost/PainelMyFrost";
-import { ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado } from "@/components/filtros/BarraFiltros";
 import { useRows } from "@/lib/data";
-import { brl, dataBR } from "@/lib/format";
+import { brl, dataBR, pl } from "@/lib/format";
 import { baixarPlanilha } from "@/lib/exportar";
 import { GRUPOS, grupoDaNota, linhasParaPlanilha, resumoParaPlanilha, resumoPorAno, type Grupo, type NotaMyFrostRelatorio } from "@/lib/relatorioNotasMyFrost";
 
@@ -23,6 +23,10 @@ type Linha = Omit<NotaMyFrostRelatorio, "cliente_nome"> & { cliente: { nome: str
 
 const COR: Record<Grupo, string> = {
   Vendas: "text-emerald-700", Remessas: "text-sky-700", Devoluções: "text-amber-700", Estornos: "text-violet-700", Canceladas: "text-red-700",
+};
+/** a mesma cor do grupo, como bolinha na Visão */
+const COR_VISAO: Record<Grupo, string> = {
+  Vendas: "bg-emerald-500", Remessas: "bg-sky-500", Devoluções: "bg-amber-500", Estornos: "bg-violet-500", Canceladas: "bg-red-500",
 };
 
 export default function NotasMyFrostContador() {
@@ -96,15 +100,28 @@ function NotasContador() {
       </Table>
 
       <h2 className="mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-slate-500">Notas</h2>
-      <ChipsSituacao rotulo="Ano" valor={ano} onChange={(v) => setAno(v)} opcoes={[
-        { value: "todos", label: "Todos os anos", n: notas.length },
-        ...resumo.anos.map((l) => ({ value: l.ano, label: l.ano, n: l.validas.qtd + l.grupos.Canceladas.qtd })),
-      ]} />
-      <ChipsSituacao rotulo="Tipo" valor={grupo} onChange={(v) => setGrupo(v)} opcoes={[
-        { value: "todos" as const, label: "Todos os tipos", n: doAno.length },
-        ...GRUPOS.map((g) => ({ value: g, label: g, n: doAno.filter((n) => grupoDaNota(n) === g).length })),
-      ]} />
-      <p className="mb-2 text-sm text-slate-500">{lista.length} notas · {brl(lista.reduce((s, n) => s + Number(n.valor ?? 0), 0))}</p>
+      {/* barra nova (01/11): o tipo (vendas, remessas…) vira "Visão"; o ano vai para o painel de filtros, em pílula quando ligado */}
+      <BarraFiltros nFiltros={ano !== "todos" ? 1 : 0} onLimpar={() => setAno("todos")}
+        visoes={{
+          lista: [
+            { id: "todos", nome: "Todos os tipos", n: doAno.length },
+            ...GRUPOS.map((g) => ({ id: g, nome: g, n: doAno.filter((n) => grupoDaNota(n) === g).length, cor: COR_VISAO[g] })),
+          ],
+          ativa: grupo, escolher: (v) => setGrupo(v as Grupo | "todos"),
+          pagina: "myfrost-notas-contador",
+          estado: { grupo, ano },
+          aplicar: (e) => { setGrupo((e.grupo as Grupo | "todos") ?? "todos"); setAno(String(e.ano ?? "todos")); },
+        }}
+        ligados={ano !== "todos" ? [{ rotulo: "Ano", valor: ano, tirar: () => setAno("todos") }] satisfies FiltroLigado[] : []}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "nota", "notas")} · <b className="num text-fg">{brl(lista.reduce((s, n) => s + Number(n.valor ?? 0), 0))}</b></>}
+        filtros={
+          <label className="text-xs font-semibold text-slate-600">Ano
+            <select className="input w-auto" value={ano} onChange={(e) => setAno(e.target.value)}>
+              <option value="todos">Todos os anos ({notas.length})</option>
+              {resumo.anos.map((l) => <option key={l.ano} value={l.ano}>{l.ano} ({l.validas.qtd + l.grupos.Canceladas.qtd})</option>)}
+            </select>
+          </label>
+        } />
       <Table empty={!isLoading && !lista.length} limite={200}
         head={<><th className="th">Data / NF</th><th className="th">Tipo</th><th className="th">Destinatário</th><th className="th text-right">Valor</th></>}>
         {lista.map((n) => {

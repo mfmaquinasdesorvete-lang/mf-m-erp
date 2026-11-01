@@ -2,8 +2,9 @@
 // cada item (feito, fazendo, na fila, precisa de você), quem conferiu e quantas vezes o item mudou. Quantas vezes cada
 // tela foi alterada ficou na aba própria (Sobre → Telas alteradas).
 import { useMemo, useState } from "react";
-import { CheckCircle2, Clock, ListChecks, Search, UserCheck, Hourglass } from "lucide-react";
+import { CheckCircle2, Clock, ListChecks, UserCheck, Hourglass } from "lucide-react";
 import { Card, Stat } from "@/components/ui";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { useInvalidate, useRows } from "@/lib/data";
 import { dataBR, pl } from "@/lib/format";
 import { notifyError } from "@/lib/notify";
@@ -15,11 +16,11 @@ type ItemChecklist = {
   situacao: Situacao; ordem: number; conferido: boolean; conferido_em: string | null; alteracoes: number; versao: string | null;
 };
 
-const SITUACOES: Record<Situacao, { rotulo: string; classe: string }> = {
-  feito: { rotulo: "Feito", classe: "bg-emerald-100 text-emerald-800" },
-  fazendo: { rotulo: "Fazendo", classe: "bg-amber-100 text-amber-800" },
-  fila: { rotulo: "Na fila", classe: "bg-slate-200 text-slate-700" },
-  voce: { rotulo: "Precisa de você", classe: "bg-rose-100 text-rose-800" },
+const SITUACOES: Record<Situacao, { rotulo: string; classe: string; cor: string }> = {
+  feito: { rotulo: "Feito", classe: "bg-emerald-100 text-emerald-800", cor: "bg-emerald-500" },
+  fazendo: { rotulo: "Fazendo", classe: "bg-amber-100 text-amber-800", cor: "bg-amber-500" },
+  fila: { rotulo: "Na fila", classe: "bg-slate-200 text-slate-700", cor: "bg-slate-400" },
+  voce: { rotulo: "Precisa de você", classe: "bg-rose-100 text-rose-800", cor: "bg-red-500" },
 };
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -61,18 +62,26 @@ export function PedidosChecklist() {
         <Stat label="Precisa de você" valor={conta("voce")} icon={UserCheck} tom="critico" onClick={() => setSituacao(situacao === "voce" ? "" : "voce")} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {dias.length > 1 && (
-          <select className="input w-auto" value={diaAtual} onChange={(e) => setDia(e.target.value)} aria-label="Dia dos pedidos">
-            {dias.map((d) => <option key={d} value={d}>{dataBR(d)}</option>)}
-          </select>
-        )}
-        <div className="relative min-w-0 flex-1">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input aria-label="Buscar no checklist" className="input pl-9" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar no checklist" />
-        </div>
-        <span className="text-sm text-slate-500">{doDia.filter((i) => i.conferido).length} de {doDia.length} conferidos</span>
-      </div>
+      {/* barra nova (01/11): a situação se escolhe nos cartões de cima e aparece em pílula; o dia vai para Filtros */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar no checklist"
+        nFiltros={(situacao ? 1 : 0) + (dia && dia !== dias[0] ? 1 : 0)} onLimpar={() => { setBusca(""); setSituacao(""); setDia(""); }}
+        ligados={[
+          // a situação se escolhe nos cartões de cima (sem repetir na "Visão"): aqui fica à vista em pílula
+          ...(situacao ? [{ rotulo: "Situação", valor: SITUACOES[situacao].rotulo, tirar: () => setSituacao("") }] : []),
+          ...(dia && dia !== dias[0] ? [{ rotulo: "Dia", valor: dataBR(dia), tirar: () => setDia("") }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...(Object.keys(SITUACOES) as Situacao[]).map((s) => ({ tipo: "Situação", rotulo: SITUACOES[s].rotulo, aplicar: () => setSituacao(s) })),
+          ...dias.map((d) => ({ tipo: "Dia", rotulo: dataBR(d), aplicar: () => setDia(d) })),
+        ] satisfies SugestaoFiltro[]}
+        filtros={dias.length > 1 ? (
+          <label className="text-xs font-semibold text-slate-600">Dia dos pedidos
+            <select className="input w-auto" value={diaAtual} onChange={(e) => setDia(e.target.value)}>
+              {dias.map((d) => <option key={d} value={d}>{dataBR(d)}</option>)}
+            </select>
+          </label>
+        ) : undefined}
+        resultado={<><b className="num text-fg">{visiveis.length}</b> {pl(visiveis.length, "item", "itens")} · {doDia.filter((i) => i.conferido).length} de {doDia.length} conferidos</>} />
 
       {isLoading && <p className="py-6 text-center text-slate-500">Carregando…</p>}
       {!isLoading && !doDia.length && <p className="py-6 text-center text-slate-500">Nenhum pedido registrado ainda.</p>}

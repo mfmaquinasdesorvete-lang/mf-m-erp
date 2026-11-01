@@ -14,7 +14,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle, ArrowLeftRight, Barcode, Building2, CalendarClock, Car, ChevronLeft, ChevronRight, CreditCard, Check, Copy,
   Download, FileUp, Fuel, IceCreamCone, Gavel, HandCoins, HandHeart, HeartPulse, Home, House, Landmark, Lock, Megaphone, Mic, Paperclip, Package, Pencil, Percent, Pill, Plug, Plus,
-  Receipt, Repeat, Search, ShieldCheck, ShoppingBag, ShoppingCart, Siren, Tag, TrendingUp, Undo2, Users, UtensilsCrossed, Wallet, X,
+  Receipt, Repeat, ShieldCheck, ShoppingBag, ShoppingCart, Siren, Tag, TrendingUp, Undo2, Users, UtensilsCrossed, Wallet, X,
   type LucideIcon,
 } from "lucide-react";
 import { Button, Card, chip, Field, MaisAcoes, Modal, nomeMes, PageHeader, Tabs } from "@/components/ui";
@@ -28,6 +28,7 @@ import { ContasDoMes } from "@/components/pessoal/ContasDoMes";
 import { ControleSemCobranca } from "@/components/pessoal/ControleSemCobranca";
 import { ExtratosRecebidos } from "@/components/pessoal/ExtratosRecebidos";
 import { ResumoCarteira } from "@/components/pessoal/ResumoCarteira";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { Area, Colunas, Ranking, Rosca } from "@/components/Charts";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -589,14 +590,24 @@ export default function Pessoal() {
           </Card>
         </div>
 
-        <div id="lancamentos-pessoais" className="mb-2 flex scroll-mt-4 flex-wrap items-center gap-2">
-          <h2 className="mr-auto font-bold text-fg">Lançamentos <span className="text-sm font-normal text-slate-500">· {rotuloPeriodo}{conta ? ` · ${nomeConta(conta)?.nome}` : ""}{categoria ? ` · ${categoria}` : ""}{grupoSel ? ` · ${grupoSel.nome}` : ""}{parte ? ` · ${parte}` : ""} · {lista.length}</span></h2>
-          <label className="relative w-full sm:w-64">
-            <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-            <input className="input w-full pl-8" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar lançamento" aria-label="Buscar lançamento" />
-          </label>
-          {(conta || categoria || grupo) && <button type="button" className="link-acao text-sm" onClick={() => { setConta(""); setCategoria(""); setGrupo(""); setParte(""); }}>Tirar os filtros</button>}
-        </div>
+        <h2 id="lancamentos-pessoais" className="mb-2 scroll-mt-4 font-bold text-fg">Lançamentos <span className="text-sm font-normal text-slate-500">· {rotuloPeriodo}</span></h2>
+        {/* barra nova (01/11): busca e os filtros que os cartões ligam (conta, categoria, card, tipo) em pílulas com "×";
+            o período continua no alto da tela (formato próprio) */}
+        <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar lançamento"
+          nFiltros={[conta, categoria, grupo, parte].filter(Boolean).length}
+          onLimpar={() => { setBusca(""); setConta(""); setCategoria(""); setGrupo(""); setParte(""); }}
+          ligados={[
+            ...(conta ? [{ rotulo: "Conta", valor: nomeConta(conta)?.nome ?? "conta", tirar: () => setConta("") }] : []),
+            ...(categoria ? [{ rotulo: "Categoria", valor: categoria, tirar: () => setCategoria("") }] : []),
+            ...(grupo ? [{ rotulo: "Card", valor: grupoSel?.nome ?? "card", tirar: () => { setGrupo(""); setParte(""); } }] : []),
+            ...(parte ? [{ rotulo: "Tipo", valor: parte, tirar: () => setParte("") }] : []),
+          ] satisfies FiltroLigado[]}
+          sugestoes={[
+            ...ativas.map((c) => ({ tipo: "Conta", rotulo: c.nome, aplicar: () => setConta(c.id) })),
+            ...resumo.categorias.map((c) => ({ tipo: "Categoria", rotulo: c.nome, aplicar: () => setCategoria(c.nome) })),
+            ...grupos.map((g) => ({ tipo: "Card", rotulo: g.nome, aplicar: () => { setGrupo(g.id); setParte(""); } })),
+          ] satisfies SugestaoFiltro[]}
+          resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "lançamento", "lançamentos")}</>} />
         {grupoSel && (grupoSel.aviso || grupoSel.nota) && (
           <div className={`mb-2 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-sm ${grupoSel.aviso ? "border-amber-200 bg-amber-50 text-amber-900" : grupoSel.destaque ? "border-red-200 bg-red-50 text-red-900" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
             <span className="min-w-0 flex-1 basis-64"><b>{grupoSel.nome}:</b> {grupoSel.aviso ?? grupoSel.nota}{grupoSel.aviso && grupoSel.nota && <span className="block text-xs">{grupoSel.nota}</span>}</span>

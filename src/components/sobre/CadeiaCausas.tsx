@@ -3,10 +3,10 @@
 // nasce "em revisão" e outra pessoa revisa; o banco não deixa chamar de comprovada a ligação sem evidência.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  AlertTriangle, ArrowDown, ArrowUp, Ban, CheckCircle2, ClipboardCopy, FileSearch, GitCommitVertical, HelpCircle, Paperclip, Pencil, Plus, RotateCcw, Search, Trash2, Waypoints,
+  AlertTriangle, ArrowDown, ArrowUp, Ban, CheckCircle2, ClipboardCopy, FileSearch, GitCommitVertical, HelpCircle, Paperclip, Pencil, Plus, RotateCcw, Trash2, Waypoints,
 } from "lucide-react";
 import { Button, Card, chip, Field, Modal, Stat } from "@/components/ui";
-import { ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { pedirTexto } from "@/components/Dialogos";
 import { usePerfil } from "@/lib/auth";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -25,6 +25,8 @@ const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
 const COR_FORCA: Record<Ligacao, string> = {
   comprovada: "bg-emerald-100 text-emerald-800", provavel: "bg-amber-100 text-amber-800", correlacao: "bg-slate-200 text-slate-700",
 };
+const VISOES: [Visao, string][] = [["em_revisao", "Em revisão"], ["revisada", "Revisadas"], ["descartada", "Descartadas"], ["todas", "Todas"]];
+const COR_VISAO: Partial<Record<Visao, string>> = { em_revisao: "bg-amber-500", revisada: "bg-emerald-500", descartada: "bg-slate-400" };
 const COR_SITUACAO: Record<SituacaoCadeia, string> = {
   em_revisao: "bg-amber-100 text-amber-800", revisada: "bg-emerald-100 text-emerald-800", descartada: "bg-slate-100 text-slate-500 line-through",
 };
@@ -54,16 +56,18 @@ export function CadeiaCausas() {
         <Stat label="Cadeias" valor={cadeias.length} icon={GitCommitVertical} onClick={() => setVisao("todas")} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 basis-56 sm:max-w-sm">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input h-10 pl-9" type="search" placeholder="Buscar cadeia" aria-label="Buscar cadeia" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </div>
-        <Button className="ml-auto" onClick={() => setEditando("nova")}><Plus size={16} /> Nova cadeia</Button>
-      </div>
-      <ChipsSituacao valor={visao} onChange={setVisao} rotulo="Situação"
-        opcoes={([["em_revisao", "Em revisão"], ["revisada", "Revisadas"], ["descartada", "Descartadas"], ["todas", "Todas"]] as [Visao, string][])
-          .map(([v, l]) => ({ value: v, label: l, n: base.filter((c) => v === "todas" || c.situacao === v).length }))} />
+      {/* barra nova (01/11): os chips de situação viraram "Visão" (mesmas opções e contagens) */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar cadeia" onLimpar={() => setBusca("")}
+        visoes={{
+          lista: VISOES.map(([v, l]) => ({ id: v, nome: l, n: base.filter((c) => v === "todas" || c.situacao === v).length, cor: COR_VISAO[v] })),
+          ativa: visao, escolher: (v) => setVisao(v as Visao),
+          pagina: "sobre-cadeias", estado: { visao },
+          aplicar: (e) => setVisao((e.visao as Visao) ?? "em_revisao"),
+        }}
+        ligados={[]}
+        sugestoes={VISOES.filter(([v]) => v !== "todas").map(([v, l]) => ({ tipo: "Situação", rotulo: l, aplicar: () => setVisao(v) })) satisfies SugestaoFiltro[]}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "cadeia", "cadeias")}</>}
+        direita={<Button onClick={() => setEditando("nova")}><Plus size={16} /> Nova cadeia</Button>} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="min-w-0 p-2 lg:self-start">

@@ -6,7 +6,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { AlertTriangle, CalendarClock, ClipboardCopy, Download, HandCoins, Landmark, MessageSquareText, Pencil, Plus, ShieldAlert, Wallet } from "lucide-react";
 import { Button, Card, Field, MaisAcoes, Modal, PageHeader, Stat } from "@/components/ui";
-import { ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, type FiltroLigado } from "@/components/filtros/BarraFiltros";
 import { Anexos } from "@/components/Anexos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -170,15 +170,26 @@ export default function Parcelamentos({ embutido }: { embutido?: boolean } = {})
           </Card>
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <ChipsSituacao<Filtro> rotulo="Quais parcelamentos" valor={filtro} onChange={setFiltro}
-            opcoes={([["ativos", "Ativos"], ["risco", "Atrasados ou vencendo"], ["encerrados", "Quitados e encerrados"], ["todos", "Todos"]] as const).map(([value, label]) => ({ value, label, n: conta(value).length }))}
-            cores={{ ativos: { ponto: "bg-solido-azul", ativo: "bg-solido-azul" }, risco: { ponto: "bg-solido-vermelho", ativo: "bg-solido-vermelho" }, encerrados: { ponto: "bg-solido-cinza", ativo: "bg-solido-cinza" } }} />
-          <select className="input mb-3 w-auto max-w-56 py-1 text-xs" value={orgao} onChange={(e) => setOrgao(e.target.value as Orgao | "")} aria-label="Órgão">
-            <option value="">Todos os órgãos</option>
-            {LISTA_ORGAOS.filter((o) => daUnidade.some((p) => p.orgao === o)).map((o) => <option key={o} value={o}>{ORGAOS[o].nome}</option>)}
-          </select>
-        </div>
+        {/* barra nova (01/11): os chips de situação viram "Visão"; órgão no painel de filtros, em pílula quando ligado */}
+        <BarraFiltros nFiltros={orgao ? 1 : 0} onLimpar={() => setOrgao("")}
+          visoes={{
+            lista: ([["ativos", "Ativos", "bg-solido-azul"], ["risco", "Atrasados ou vencendo", "bg-solido-vermelho"], ["encerrados", "Quitados e encerrados", "bg-solido-cinza"], ["todos", "Todos", undefined]] as const)
+              .map(([id, nome, cor]) => ({ id, nome, n: conta(id).length, cor })),
+            ativa: filtro, escolher: (v) => setFiltro(v as Filtro),
+            pagina: `parcelamentos${embutido ? "-documentos" : ""}`,
+            estado: { filtro, orgao },
+            aplicar: (e) => { setFiltro((e.filtro as Filtro) ?? "ativos"); setOrgao((e.orgao as Orgao | "") ?? ""); },
+          }}
+          ligados={orgao ? [{ rotulo: "Órgão", valor: ORGAOS[orgao].nome, tirar: () => setOrgao("") }] satisfies FiltroLigado[] : []}
+          resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "parcelamento", "parcelamentos")} · saldo <b className="num text-fg">{brl(lista.reduce((t, p) => t + res(p).saldo, 0))}</b></>}
+          filtros={
+            <label className="text-xs font-semibold text-slate-600">Órgão
+              <select className="input w-auto max-w-56" value={orgao} onChange={(e) => setOrgao(e.target.value as Orgao | "")}>
+                <option value="">Todos os órgãos</option>
+                {LISTA_ORGAOS.filter((o) => daUnidade.some((p) => p.orgao === o)).map((o) => <option key={o} value={o}>{ORGAOS[o].nome}</option>)}
+              </select>
+            </label>
+          } />
 
         {!lista.length ? <Card className="p-6 text-center text-sm text-slate-500">Nenhum parcelamento neste filtro.</Card> : (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">

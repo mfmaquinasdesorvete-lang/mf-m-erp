@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, MessageCircle, Plus, ShoppingCart, StickyNote, Trash2 } from "lucide-react";
 import { Button, Carregando, ErroLista, Field, Modal, PageHeader, Tabs, Vazio, chip } from "@/components/ui";
 import { QuadroEtapas, CartaoEtapa } from "@/components/quadro/QuadroEtapas";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { PassoAPasso } from "@/components/oportunidades/PassoAPasso";
 import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import type { Marcador } from "@/lib/marcadores";
@@ -89,19 +90,31 @@ export default function Oportunidades() {
 
       <Tabs value={aba} onChange={setAba} options={[{ value: "quadro", label: "Quadro" }, { value: "metricas", label: "Métricas" }]} />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <input className="input w-full sm:w-64" type="search" placeholder="Buscar cliente, contato, título ou nº" aria-label="Buscar oportunidade"
-          value={busca} onChange={(e) => setBusca(e.target.value)} />
-        <select className={`input w-auto max-w-56 ${vendedor ? "!border-brand" : ""}`} aria-label="Filtrar por responsável" value={vendedor} onChange={(e) => setVendedor(e.target.value)}>
-          <option value="">Responsável: todos</option>
-          {vendedores.filter((v) => v.ativo).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
-          <option value="sem">Sem responsável</option>
-        </select>
-        <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
-        {(busca || vendedor || marcador) && (
-          <Button variant="ghost" onClick={() => { setBusca(""); setVendedor(""); setMarcador(""); }}>Limpar filtros</Button>
-        )}
-      </div>
+      {/* barra nova (01/11): busca, responsável e marcador na barra única, filtros em pílulas; sem visões (só quadro) */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar cliente, contato, título ou nº"
+        nFiltros={(vendedor ? 1 : 0) + (marcador ? 1 : 0)} onLimpar={() => { setBusca(""); setVendedor(""); setMarcador(""); }}
+        ligados={[
+          ...(vendedor ? [{ rotulo: "Responsável", valor: vendedor === "sem" ? "Sem responsável" : nomeVendedor(vendedor), tirar: () => setVendedor("") }] : []),
+          ...(marcador ? [{ rotulo: "Marcador", valor: marcadores.find((m) => m.id === marcador)?.nome ?? "marcador", tirar: () => setMarcador("") }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...vendedores.filter((v) => v.ativo).map((v) => ({ tipo: "Responsável", rotulo: v.nome, aplicar: () => setVendedor(v.id) })),
+          { tipo: "Responsável", rotulo: "Sem responsável", aplicar: () => setVendedor("sem") },
+          ...marcadores.filter((m) => m.ativo).map((m) => ({ tipo: "Marcador", rotulo: m.nome, aplicar: () => setMarcador(m.id) })),
+        ] satisfies SugestaoFiltro[]}
+        resultado={aba === "quadro" && !isLoading && !error && ops.length > 0
+          ? <><b className="num text-fg">{itens.length}</b> {pl(itens.length, "oportunidade", "oportunidades")} · <b className="num text-fg">{brl(itens.reduce((s, i) => s + i.valor, 0))}</b></>
+          : undefined}
+        filtros={<>
+          <label className="text-xs font-semibold text-slate-600">Responsável
+            <select className={`input w-auto max-w-56 ${vendedor ? "!border-brand" : ""}`} value={vendedor} onChange={(e) => setVendedor(e.target.value)}>
+              <option value="">Todos</option>
+              {vendedores.filter((v) => v.ativo).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
+              <option value="sem">Sem responsável</option>
+            </select>
+          </label>
+          <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
+        </>} />
 
       {error ? <ErroLista erro={error} onTentar={() => refetch()} />
         : isLoading ? <Carregando />

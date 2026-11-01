@@ -3,8 +3,9 @@
 // quando conferir de novo, num painel escuro (anel com a situação dos itens, números do vigia e uma barra por área).
 // O resultado pode descrever uma falha: fica só no banco (seguranca_auditoria), nunca no código.
 import { useMemo, useState } from "react";
-import { AlertTriangle, Code2, Database, Globe, Hourglass, KeyRound, Plug, RefreshCw, Search, Server, ShieldAlert, ShieldCheck, Users, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Code2, Database, Globe, Hourglass, KeyRound, Plug, RefreshCw, Server, ShieldAlert, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { Button, Card } from "@/components/ui";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { useInvalidate, useRows } from "@/lib/data";
 import { dataBR, dataHoraBR, pl } from "@/lib/format";
@@ -18,13 +19,13 @@ type ItemSeguranca = {
   resultado: string | null; pedido: string | null; verificado_em: string | null; rever_em: string | null; ordem: number;
 };
 
-const SITUACOES: Record<Situacao, { rotulo: string; classe: string }> = {
-  risco: { rotulo: "Risco", classe: "bg-rose-100 text-rose-800" },
-  atencao: { rotulo: "Atenção", classe: "bg-amber-100 text-amber-800" },
-  verificando: { rotulo: "Verificando", classe: "bg-sky-100 text-sky-800" },
-  a_verificar: { rotulo: "A verificar", classe: "bg-slate-200 text-slate-700" },
-  ok: { rotulo: "OK", classe: "bg-emerald-100 text-emerald-800" },
-  nao_se_aplica: { rotulo: "Não se aplica", classe: "bg-slate-100 text-slate-500" },
+const SITUACOES: Record<Situacao, { rotulo: string; classe: string; ponto: string }> = {
+  risco: { rotulo: "Risco", classe: "bg-rose-100 text-rose-800", ponto: "bg-red-500" },
+  atencao: { rotulo: "Atenção", classe: "bg-amber-100 text-amber-800", ponto: "bg-amber-500" },
+  verificando: { rotulo: "Verificando", classe: "bg-sky-100 text-sky-800", ponto: "bg-sky-500" },
+  a_verificar: { rotulo: "A verificar", classe: "bg-slate-200 text-slate-700", ponto: "bg-slate-400" },
+  ok: { rotulo: "OK", classe: "bg-emerald-100 text-emerald-800", ponto: "bg-emerald-500" },
+  nao_se_aplica: { rotulo: "Não se aplica", classe: "bg-slate-100 text-slate-500", ponto: "bg-slate-400" },
 };
 const PRIORIDADES: Record<Prioridade, string> = { alta: "prioridade alta", media: "prioridade média", baixa: "prioridade baixa" };
 /** cores no painel escuro (tom forte e o "neon") e na bolinha de cada item */
@@ -146,16 +147,32 @@ export function Seguranca() {
 
       <AlertasVigia vigia={vigia} />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input pl-9" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar item (ex.: login, backup, #284)" aria-label="Buscar item de segurança" />
-        </div>
-        <select className="input w-auto" value={situacao} onChange={(e) => setSituacao(e.target.value as Situacao | "")} aria-label="Situação">
-          <option value="">Todas as situações</option>
-          {(Object.keys(SITUACOES) as Situacao[]).map((s) => <option key={s} value={s}>{SITUACOES[s].rotulo}</option>)}
-        </select>
-      </div>
+      {/* barra nova (01/11): a situação vira "Visão"; a área (também escolhida no painel escuro) vai para Filtros */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar item (ex.: login, backup, #284)"
+        nFiltros={area ? 1 : 0} onLimpar={() => { setBusca(""); setSituacao(""); setArea(""); }}
+        visoes={{
+          lista: [{ id: "", nome: "Todas as situações", n: itens.length },
+            ...(Object.keys(SITUACOES) as Situacao[]).map((s) => ({ id: s, nome: SITUACOES[s].rotulo, n: conta(s), cor: SITUACOES[s].ponto }))],
+          ativa: situacao, escolher: (v) => setSituacao(v as Situacao | ""),
+          pagina: "sobre-seguranca", estado: { situacao, area },
+          aplicar: (e) => { setSituacao((e.situacao as Situacao | "") ?? ""); setArea(String(e.area ?? "")); },
+        }}
+        ligados={[
+          ...(area ? [{ rotulo: "Área", valor: area, tirar: () => setArea("") }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={[
+          ...(Object.keys(SITUACOES) as Situacao[]).map((s) => ({ tipo: "Situação", rotulo: SITUACOES[s].rotulo, aplicar: () => setSituacao(s) })),
+          ...porArea.map(([nome]) => ({ tipo: "Área", rotulo: nome, aplicar: () => setArea(nome) })),
+        ] satisfies SugestaoFiltro[]}
+        filtros={
+          <label className="text-xs font-semibold text-slate-600">Área
+            <select className="input w-auto" value={area} onChange={(e) => setArea(e.target.value)}>
+              <option value="">Todas as áreas</option>
+              {porArea.map(([nome]) => <option key={nome} value={nome}>{nome}</option>)}
+            </select>
+          </label>
+        }
+        resultado={<><b className="num text-fg">{visiveis.length}</b> {pl(visiveis.length, "item", "itens")}</>} />
       <p className="text-xs text-slate-500">As verificações só leem: não mudam dados nem sobrecarregam o sistema. O resultado fica só aqui, para o
         administrador — nunca no código, que é público.</p>
 

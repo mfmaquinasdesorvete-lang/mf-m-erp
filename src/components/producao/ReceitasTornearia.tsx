@@ -5,9 +5,10 @@
 // A receita fica em produto_componentes (a mesma ligação que a OP usa para separar o material da peça).
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ChevronDown, ChevronRight, ClipboardList, Cog, FileImage, Plus, Search, Trash2 } from "lucide-react";
-import { Badge, Button, Carregando, ErroLista, Field, Stat, Vazio, chip } from "@/components/ui";
+import { AlertTriangle, ChevronDown, ChevronRight, ClipboardList, Cog, FileImage, Plus, Trash2 } from "lucide-react";
+import { Badge, Button, Carregando, ErroLista, Field, Stat, Vazio } from "@/components/ui";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
+import { BarraFiltros, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { DocumentosMaquina } from "@/components/produtos/GaleriaProduto";
 import { useMarcadores } from "@/components/nfe/Marcadores";
 import { confirmar } from "@/components/Dialogos";
@@ -83,18 +84,21 @@ export function ReceitasTornearia() {
         <Stat label="Sem receita" valor={semReceita} tom={semReceita ? "atencao" : "bom"} icon={ClipboardList} onClick={() => setFiltro("sem_receita")} />
         <Stat label="Sem desenho" valor={semDesenho} tom={semDesenho ? "atencao" : "bom"} icon={FileImage} onClick={() => setFiltro("sem_desenho")} />
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="relative min-w-0 flex-1 basis-56">
-          <span className="sr-only">Buscar peça</span>
-          <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input pl-8" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar pelo nome ou SKU" />
-        </label>
-        <div className="faixa-chips" role="group" aria-label="Mostrar">
-          {([["todas", "Todas"], ["sem_receita", "Sem receita"], ["sem_desenho", "Sem desenho"]] as const).map(([v, r]) => (
-            <button key={v} type="button" className={chip(filtro === v)} aria-pressed={filtro === v} onClick={() => setFiltro(v)}>{r}</button>
-          ))}
-        </div>
-      </div>
+      {/* barra nova (01/11): busca na barra única; os chips Todas / Sem receita / Sem desenho viram "Visão" */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar pelo nome ou SKU" onLimpar={() => { setBusca(""); setFiltro("todas"); }}
+        visoes={{
+          lista: [
+            { id: "todas", nome: "Todas", n: pecas.length },
+            { id: "sem_receita", nome: "Sem receita", n: semReceita, cor: "bg-amber-500" },
+            { id: "sem_desenho", nome: "Sem desenho", n: semDesenho, cor: "bg-amber-500" },
+          ],
+          ativa: filtro, escolher: (v) => setFiltro(v as Filtro),
+        }}
+        sugestoes={[
+          { tipo: "Mostrar", rotulo: "Sem receita", aplicar: () => setFiltro("sem_receita") },
+          { tipo: "Mostrar", rotulo: "Sem desenho", aplicar: () => setFiltro("sem_desenho") },
+        ] satisfies SugestaoFiltro[]}
+        resultado={idTornearia ? <><b className="num text-fg">{lista.length}</b> {pl(lista.length, "peça", "peças")}</> : undefined} />
 
       {!idTornearia ? (
         <Vazio titulo="Falta o marcador Tornearia." texto='Crie o marcador "Tornearia" e ponha nas peças usinadas para elas aparecerem aqui.' />

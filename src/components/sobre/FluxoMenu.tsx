@@ -3,14 +3,16 @@
 // tocar num achado acende as telas envolvidas no desenho.
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Boxes, ClipboardCopy, Eye, Info, LayoutGrid, Link2, Lock, Plus, Search, Smartphone, Wrench, X, Zap } from "lucide-react";
+import { AlertTriangle, Boxes, ClipboardCopy, Eye, Info, LayoutGrid, Link2, Lock, Plus, Smartphone, Wrench, X, Zap } from "lucide-react";
 import { Button, Card, Stat } from "@/components/ui";
+import { BarraFiltros, type FiltroLigado } from "@/components/filtros/BarraFiltros";
 import { usePerfil } from "@/lib/auth";
 import { useConfig } from "@/lib/useConfig";
 import { ATALHOS_CELULAR, RAPIDOS, grupos, grupoDaRota, itensForaDoMenu, useVisivel, type Item } from "@/lib/menu";
 import { SOBRE_TELAS } from "@/lib/modulos";
 import { PAPEIS_INTERNOS, acoesDoPapel, itemVisivel, type MenuOculto, type Papel, type Tela } from "@/lib/permissoes";
 import { auditarMenu, auditarNavegacao, menuDoPerfil, ROTULO_GRAVIDADE, textoAuditoria, type Achado, type Gravidade, type PerfilAud } from "@/lib/auditoriaMenu";
+import { pl } from "@/lib/format";
 import { copiar } from "./Guardanapo";
 
 /** Cor lisa da área: a mais escura do degradê do menu ("from-[#10b981] to-[#059669]" → "#059669"), para a letra branca. */
@@ -75,26 +77,29 @@ export function FluxoMenu() {
         <Stat label={ROTULO_GRAVIDADE.info} valor={conta("info")} icon={Info} tom="info" onClick={() => setGrav(grav === "info" ? "" : "info")} sub="vale olhar" />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-surface px-3 text-sm font-semibold text-slate-600">
-          Ver como
-          <select className="h-8 rounded-md border-0 bg-transparent font-bold text-fg focus:outline-none" value={comoId} onChange={(e) => setComoId(e.target.value)} aria-label="Ver o menu como">
-            <option value="eu">Você</option>
-            {perfis.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-          </select>
-        </label>
-        <div className="relative min-w-0 flex-1 basis-48 sm:max-w-xs">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input h-10 pl-9" type="search" placeholder="Buscar tela no desenho" aria-label="Buscar tela no desenho" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </div>
-        <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600">
-          <input type="checkbox" checked={soVe} onChange={(e) => setSoVe(e.target.checked)} /> Só o que {comoId === "eu" ? "eu abro" : "o perfil abre"}
-        </label>
-        <div className="ml-auto flex flex-wrap gap-2">
+      {/* barra nova (01/11): busca do desenho e "Só o que eu abro" em Filtros; "Ver como" é modo de ver, fica à vista ao lado */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar tela no desenho"
+        nFiltros={soVe ? 1 : 0} onLimpar={() => { setBusca(""); setSoVe(false); }}
+        ligados={[
+          ...(soVe ? [{ rotulo: "Telas", valor: comoId === "eu" ? "Só o que eu abro" : `Só o que ${como.nome} abre`, tirar: () => setSoVe(false) }] : []),
+        ] satisfies FiltroLigado[]}
+        filtros={
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+            <input type="checkbox" checked={soVe} onChange={(e) => setSoVe(e.target.checked)} /> Só o que {comoId === "eu" ? "eu abro" : "o perfil abre"}
+          </label>
+        }
+        resultado={<><b className="num text-fg">{colunas.reduce((n, c) => n + c.visiveis.length, 0)}</b> {pl(colunas.reduce((n, c) => n + c.visiveis.length, 0), "tela", "telas")} no desenho</>}
+        direita={<>
+          <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-surface px-3 text-sm font-semibold text-slate-600">
+            Ver como
+            <select className="h-8 rounded-md border-0 bg-transparent font-bold text-fg focus:outline-none" value={comoId} onChange={(e) => setComoId(e.target.value)} aria-label="Ver o menu como">
+              <option value="eu">Você</option>
+              {perfis.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
+          </label>
           <Button variant="secondary" onClick={() => copiar(`${window.location.origin}/sobre?aba=esquemas&esquema=menu`, "Link copiado")}><Link2 size={16} /> Copiar link</Button>
           <Button onClick={() => copiar(textoAuditoria(achados, resumo), "Auditoria copiada")}><ClipboardCopy size={16} /> Copiar auditoria</Button>
-        </div>
-      </div>
+        </>} />
 
       {/* as entradas do menu para o perfil escolhido */}
       <div className="grid gap-3 md:grid-cols-3">

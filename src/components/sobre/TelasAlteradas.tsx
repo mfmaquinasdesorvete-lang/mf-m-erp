@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { CalendarDays, Flame, History, LayoutGrid, Sparkles } from "lucide-react";
 import { Card, Stat } from "@/components/ui";
 import { Colunas, Ranking } from "@/components/Charts";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { dataBR, pl } from "@/lib/format";
 import type { AlteracaoTela } from "@/lib/atualizacoes";
 import { HISTORICO } from "@/lib/historicoGit";
@@ -52,16 +53,25 @@ export function TelasAlteradas() {
       </div>
 
       <Card className="p-4">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <input className="input min-w-0 flex-1" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar tela" aria-label="Buscar tela" />
-          <select className="input w-auto" value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)} aria-label="Ordem">
-            <option value="vezes">Mais alteradas</option><option value="recente">Mexidas por último</option><option value="nome">Nome</option>
-          </select>
-          <select className="input w-auto" value={periodo} onChange={(e) => setPeriodo(e.target.value as "tudo" | "7")} aria-label="Período">
-            <option value="tudo">Todas</option><option value="7">Últimos 7 dias</option>
-          </select>
-        </div>
-        <p className="mb-2 text-sm text-slate-500">{lista.length} {pl(lista.length, "tela", "telas")}. Atualiza sozinho a cada versão publicada.</p>
+        {/* barra nova (01/11): "Todas / Últimos 7 dias" vira "Visão"; a ordem fica no painel Filtros (não conta como filtro) */}
+        <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar tela" onLimpar={() => { setBusca(""); setPeriodo("tudo"); }}
+          visoes={{
+            lista: [{ id: "tudo", nome: "Todas as telas", n: TELAS.length }, { id: "7", nome: "Mexidas nos últimos 7 dias", n: daSemana.length, cor: "bg-emerald-500" }],
+            ativa: periodo, escolher: (v) => setPeriodo(v as "tudo" | "7"),
+            pagina: "sobre-telas", estado: { periodo, ordem },
+            aplicar: (e) => { setPeriodo(e.periodo === "7" ? "7" : "tudo"); setOrdem((e.ordem as Ordem) ?? "vezes"); },
+          }}
+          ligados={[]}
+          sugestoes={[{ tipo: "Visão", rotulo: "Mexidas nos últimos 7 dias", aplicar: () => setPeriodo("7") }]}
+          filtros={
+            <label className="text-xs font-semibold text-slate-600">Ordem
+              <select className="input w-auto" value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)}>
+                <option value="vezes">Mais alteradas</option><option value="recente">Mexidas por último</option><option value="nome">Nome</option>
+              </select>
+            </label>
+          }
+          resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "tela", "telas")}</>} />
+        <p className="mb-2 text-sm text-slate-500">Atualiza sozinho a cada versão publicada.</p>
         <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
           {lista.map((t) => (
             <li key={t.arquivo} className="rounded-lg bg-slate-50 px-3 py-2 text-sm ring-1 ring-slate-100">

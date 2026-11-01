@@ -4,9 +4,9 @@
 // Cada linha leva ao e-mail ou ao arquivo do Drive de onde veio.
 import { useMemo, useState } from "react";
 import { Table } from "@/components/ui";
-import { ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, ChipsSituacao, type FiltroLigado } from "@/components/filtros/BarraFiltros";
 import { useRows } from "@/lib/data";
-import { brl, dataBR } from "@/lib/format";
+import { brl, dataBR, pl } from "@/lib/format";
 
 type Frete = {
   id: string; data: string | null; transportadora: string; tipo: string; numero: string | null; chave_cte: string | null;
@@ -77,14 +77,28 @@ function Fretes() {
       </Table>
       <p className="mb-4 mt-1 text-xs text-slate-500">A soma usa o valor dos CT-e; a fatura só entra quando a transportadora não tem CT-e com valor. Registro sem valor não soma.</p>
 
-      <ChipsSituacao rotulo="Transportadora" valor={transp} onChange={setTransp} opcoes={[
-        { value: "todas", label: "Todas", n: fretes.length },
-        ...transportadoras.map((t) => ({ value: t, label: t, n: fretes.filter((f) => f.transportadora === t).length })),
-      ]} />
-      <ChipsSituacao rotulo="Ano" valor={anoSel} onChange={setAnoSel} opcoes={[
-        { value: "todos", label: "Todos os anos", n: daTransp.length },
-        ...anos.map((a) => ({ value: a, label: a, n: daTransp.filter((f) => ano(f.data) === a).length })),
-      ]} />
+      {/* barra nova (01/11): a transportadora vira "Visão" (com a contagem); o ano vai para o painel de filtros, em pílula */}
+      <BarraFiltros nFiltros={anoSel !== "todos" ? 1 : 0} onLimpar={() => setAnoSel("todos")}
+        visoes={{
+          lista: [
+            { id: "todas", nome: "Todas as transportadoras", n: fretes.length },
+            ...transportadoras.map((t) => ({ id: t, nome: t, n: fretes.filter((f) => f.transportadora === t).length })),
+          ],
+          ativa: transp, escolher: setTransp,
+          pagina: "myfrost-fretes",
+          estado: { transp, anoSel },
+          aplicar: (e) => { setTransp(String(e.transp ?? "todas")); setAnoSel(String(e.anoSel ?? "todos")); },
+        }}
+        ligados={anoSel !== "todos" ? [{ rotulo: "Ano", valor: anoSel, tirar: () => setAnoSel("todos") }] satisfies FiltroLigado[] : []}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "registro", "registros")} · <b className="num text-fg">{brl(somaValida(lista))}</b></>}
+        filtros={
+          <label className="text-xs font-semibold text-slate-600">Ano
+            <select className="input w-auto" value={anoSel} onChange={(e) => setAnoSel(e.target.value)}>
+              <option value="todos">Todos os anos ({daTransp.length})</option>
+              {anos.map((a) => <option key={a} value={a}>{a} ({daTransp.filter((f) => ano(f.data) === a).length})</option>)}
+            </select>
+          </label>
+        } />
       <Table empty={!isLoading && !lista.length} limite={200}
         head={<><th className="th">Data</th><th className="th">Transportadora / tipo</th><th className="th">Remetente → destinatário</th><th className="th text-right">Valor</th><th className="th">Origem</th></>}>
         {lista.map((f) => (
@@ -108,10 +122,16 @@ function Protestos() {
   const lista = itens.filter((p) => tipo === "todos" || p.tipo === tipo);
   return (
     <div>
-      <ChipsSituacao rotulo="Tipo" valor={tipo} onChange={setTipo} opcoes={[
-        { value: "todos", label: "Todos", n: itens.length },
-        ...Object.entries(TIPO_PROTESTO).map(([v, label]) => ({ value: v, label, n: itens.filter((p) => p.tipo === v).length })),
-      ]} />
+      {/* barra nova (01/11): os chips de tipo viram "Visão" */}
+      <BarraFiltros
+        visoes={{
+          lista: [
+            { id: "todos", nome: "Todos", n: itens.length },
+            ...Object.entries(TIPO_PROTESTO).map(([v, nome]) => ({ id: v, nome, n: itens.filter((p) => p.tipo === v).length })),
+          ],
+          ativa: tipo, escolher: setTipo,
+        }}
+        resultado={<><b className="num text-fg">{lista.length}</b> {pl(lista.length, "registro", "registros")}</>} />
       <Table empty={!isLoading && !lista.length}
         head={<><th className="th">Data</th><th className="th">Tipo / credor</th><th className="th">Título</th><th className="th text-right">Valor</th><th className="th">Origem</th></>}>
         {lista.map((p) => (

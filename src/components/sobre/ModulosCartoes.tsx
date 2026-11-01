@@ -3,8 +3,9 @@
 // Os textos ficam em src/lib/modulos.ts (resumo) e src/lib/modulosDetalhe.ts (tudo); o teste avisa quando falta texto.
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowRight, Boxes, ChevronsDownUp, ChevronsUpDown, ExternalLink, Eye, IceCreamCone, Info, LayoutGrid, Lightbulb, Lock, Search, Settings, Wallet } from "lucide-react";
-import { Button, Card, chip, Stat } from "@/components/ui";
+import { AlertTriangle, ArrowRight, Boxes, ChevronsDownUp, ChevronsUpDown, ExternalLink, Eye, IceCreamCone, Info, LayoutGrid, Lightbulb, Lock, Settings, Wallet } from "lucide-react";
+import { Button, Card, Stat } from "@/components/ui";
+import { BarraFiltros, type FiltroLigado, type SugestaoFiltro } from "@/components/filtros/BarraFiltros";
 import { usePerfil } from "@/lib/auth";
 import { grupos, grupoDaRota, itensForaDoMenu, useVisivel, type Item } from "@/lib/menu";
 import { ONDE_ABRE, PAGINAS_POR_LINK, SOBRE_AREAS, SOBRE_TELAS } from "@/lib/modulos";
@@ -69,27 +70,31 @@ export function ModulosCartoes({ onIdeia, onAuditoria }: { onIdeia: (i: InicialI
         <Stat label="Pontos a melhorar no menu" valor={achados} icon={AlertTriangle} tom={achados ? "atencao" : "bom"} onClick={onAuditoria} sub="ver a auditoria em Esquemas" />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 basis-full sm:max-w-md sm:basis-64">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input h-10 pl-9" type="search" placeholder="Buscar tela ou assunto (ex.: boleto, frete, comissão)" aria-label="Buscar tela ou assunto"
-            value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </div>
-        <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600">
-          <input type="checkbox" checked={soMeu} onChange={(e) => setSoMeu(e.target.checked)} /> Só as que eu abro
-        </label>
-        <Button type="button" variant="secondary" className="h-10" onClick={() => { setTudoAberto((v) => !v); setAbertos(new Set()); }} aria-pressed={tudoAberto}>
-          {tudoAberto ? <ChevronsDownUp size={16} aria-hidden /> : <ChevronsUpDown size={16} aria-hidden />} {tudoAberto ? "Fechar tudo" : "Abrir tudo"}
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Área">
-        {[{ id: "", titulo: "Todas" }, ...todosBlocos].map((b) => (
-          <button key={b.id || "todas"} type="button" aria-pressed={area === b.id} onClick={() => setArea(b.id)}
-            className={chip(area === b.id, "border-transparent bg-modulo-escuro text-white")}>
-            {b.titulo}
-          </button>
-        ))}
-      </div>
+      {/* barra nova (01/11): os chips de área viraram "Visão" (com a quantidade de telas); "Só as que eu abro" vai para Filtros */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar tela ou assunto (ex.: boleto, frete, comissão)"
+        nFiltros={soMeu ? 1 : 0} onLimpar={() => { setBusca(""); setSoMeu(false); setArea(""); }}
+        visoes={{
+          lista: [{ id: "", nome: "Todas as áreas", n: todosBlocos.reduce((s, b) => s + b.itens.filter(combina).length, 0) },
+            ...todosBlocos.map((b) => ({ id: b.id, nome: b.titulo, n: b.itens.filter(combina).length }))],
+          ativa: area, escolher: setArea,
+          pagina: "sobre-modulos", estado: { area, soMeu },
+          aplicar: (e) => { setArea(String(e.area ?? "")); setSoMeu(!!e.soMeu); },
+        }}
+        ligados={[
+          ...(soMeu ? [{ rotulo: "Telas", valor: "Só as que eu abro", tirar: () => setSoMeu(false) }] : []),
+        ] satisfies FiltroLigado[]}
+        sugestoes={todosBlocos.map((b) => ({ tipo: "Área", rotulo: b.titulo, aplicar: () => setArea(b.id) })) satisfies SugestaoFiltro[]}
+        filtros={
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+            <input type="checkbox" checked={soMeu} onChange={(e) => setSoMeu(e.target.checked)} /> Só as que eu abro
+          </label>
+        }
+        resultado={<><b className="num text-fg">{blocos.reduce((s, b) => s + b.itens.length, 0)}</b> {pl(blocos.reduce((s, b) => s + b.itens.length, 0), "tela", "telas")}</>}
+        direita={
+          <Button type="button" variant="secondary" className="h-10" onClick={() => { setTudoAberto((v) => !v); setAbertos(new Set()); }} aria-pressed={tudoAberto}>
+            {tudoAberto ? <ChevronsDownUp size={16} aria-hidden /> : <ChevronsUpDown size={16} aria-hidden />} {tudoAberto ? "Fechar tudo" : "Abrir tudo"}
+          </Button>
+        } />
 
       {!blocos.length && <p className="text-sm text-slate-500">Nenhuma tela {termo ? `com "${busca.trim()}"` : "com esses filtros"}.</p>}
 
