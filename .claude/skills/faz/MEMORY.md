@@ -5,9 +5,9 @@ Atualizado em 28/10/2026.
 - 31/10: virei "Acompanhamento e o que só você faz" (juntou o CNF, eb791d1). 18 chats: TIN → GER (Tiny do Dossiê
   vai para o GER), AUD → ENT (auditor e extratos com o ENT), DOC → REV. Regra 82ff394: tudo o que precisar dela vem com
   botões (AskUserQuestion). Título da sessão: "04 📋 FAZ · Acompanhamento e o que só você faz".
-- 31/10 08:42: 4º resumo. Nada mudou desde 30/10 (rosto 0, Pluggy 0, Tiny 16/10, inutilização SP 0, 0 conferidos,
-  121 'voce'). Hostinger desconectada de novo no claude.ai (entrou no resumo). Para-conferir mostrados 1 a 15 (sem o
-  10, 13, 14). Próximo: 01/11 08:40.
+- 01/11 08:42: 5º resumo. Nada da lista feito (rosto 0, Tiny 16/10, inutilização 0, 0 conferidos); 132 'voce';
+  69 parados (cobrados DSG 10 e PRD 9 em 01/11; IA 14 esperam teste). Hostinger conectada. Para-conferir mostrados
+  até o 20. Próximo: 02/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 
@@ -104,7 +104,7 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - Decisão dela (FIS): testar a NF-e em lote emitindo de verdade (b369f5d6).
 
 ## Próximos passos
-0. Resumo diário 08:40 (send_later, a tarefa agendada tem o roteiro). Itens para conferir já mostrados: até o 15. Topo do resumo de 28/10
+0. Resumo diário 08:40 (send_later, a tarefa agendada tem o roteiro). Itens para conferir já mostrados: até o 20. Topo do resumo de 28/10
    (pedido do ELO, lista do FIS em 5827327): 1) 14 pedidos entregues sem nota (9 de outubro já pagos e 5 do Tiny,
    um de máquina): emitir a NF-e pelo pedido; 2) notas com valor menor que a venda; 3) parcelamento do Simples
    antigo sem pagamento depois de 10/2025 (conferir no e-CAC); 4) certidões vencidas. Depois a virada do Tiny e as

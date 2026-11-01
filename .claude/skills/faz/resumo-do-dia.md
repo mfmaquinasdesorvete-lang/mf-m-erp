@@ -1,33 +1,31 @@
-# Resumo da manhã — 31/10/2026 (FAZ)
-Nada da lista mudou desde ontem. O mais importante primeiro; passo a passo em `lista.md`.
+# Resumo da manhã — 01/11/2026 (FAZ)
+O mais importante primeiro. Passo a passo em `lista.md`.
 
-## 1. Fiscal (do FIS) — prazo mais perto
-1. **Filial SP: inutilizar os números 4 a 398 da série 1 até 10/11** (faltam 10 dias): Notas fiscais → Inutilizar
-   numeração. Pedir à contabilidade os XML das notas 1 a 3.
-2. **Guias federais de 09/2026:** pedir ao contador que refaça com os códigos do Lucro Real antes de pagar.
-3. Pedidos entregues sem nota: emitir a NF-e pelo pedido.
+## 1. Prazos
+1. **Filial SP: inutilizar os números 4 a 398 da série 1 até 10/11** (faltam 9 dias): Notas fiscais → Inutilizar
+   numeração. Ainda não feito.
+2. **Os 2 botões do Tiny antes da virada de 09/11:** Importar → Tiny → "Buscar recebimentos" e "Atualizar cadastros"
+   (última importação: 16/10).
+3. Guias federais de 09/2026: pedir ao contador que refaça com os códigos do Lucro Real antes de pagar.
 
-## 2. Dossiê MF SC — tarefa de hoje
-**T1. Dois cliques no ERP antes de cancelar o Tiny:** Importar → Tiny → "Buscar recebimentos do Tiny" e "Atualizar
-cadastros do Tiny" (última importação: 16/10).
+## 2. O que você manda
+- Extratos: InfinitePay SC depois de 28/10 e Mercado Pago SP depois de 05/2026 (ENT).
 
-## 3. Painéis (só você)
-- **Hostinger desconectada de novo no claude.ai:** claude.ai → Configurações → Conectores → Hostinger → Conectar.
-  Sem isso os chats não publicam o site.
-- Escolher como os chats gravam no banco (claude.ai → Conectores → Supabase).
+## 3. Painéis
 - Duas etapas (GitHub, Supabase com QR novo, Hostinger, 2 contas Google); chave da Hostinger no GitHub; rosto.
+- Hostinger: conectada (conferido hoje).
 
-## 4. Decisões que os chats esperam
-- GER: conferir Comissões e o CRM parte 1 (ok para a parte 2); onde o cliente pagou a 2ª parcela do #628.
-- ENT: extrato da InfinitePay SC de 29/10 em diante; data de abertura da Olist.
-- CLI: conferir no ar os menus da Ficha 360 e a ficha pelo link (publicados em 30/10).
-- 121 pedidos em "precisa de você".
+## 4. Decisões
+- FIS: a NF 438 (com o contador); GER: Comissões e o CRM parte 1; 132 pedidos em "precisa de você".
 
 ## 5. Para conferir na tela (3 de hoje)
-- bd07864a: ordem de compra anda sozinha (pago, nota, despacho) (Compras).
-- 95487ebf: NF-e não autoriza sozinha: tela "Conferir a NF-e" (Fiscal).
-- 0117350c: pedidos pagos sem nota saem da fila da NF-e (Vendas/Fiscal).
-(Nenhum dos 9 anteriores foi marcado como conferido.)
+- 2156fcf3: máquina vendida com NF-e entra sozinha na ficha do cliente, com o nº de série (Clientes).
+- 398101b0: Ficha 360 com máquinas, compras, valores e nota (Clientes).
+- e9ded9b5: clientes com nome ou CPF/CNPJ iguais: unificar (Clientes).
+Também novos: tela do envio com "Cliente retirou" e Vendas → "Este mês" pela data da venda.
 
-## 6. Auditor financeiro
-Nada novo hoje.
+## 6. Acompanhamento dos chats
+69 pedidos parados há mais de 2 dias; cobrei o DSG (10) e o PRD (9). Os 14 da IA esperam o teste com tarefa real.
+
+## 7. Auditor financeiro
+Nada novo.
