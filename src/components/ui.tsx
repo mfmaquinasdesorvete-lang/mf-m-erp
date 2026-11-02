@@ -7,11 +7,12 @@ import { Contagem } from "./Animar";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 
+// o hover e o toque vêm da camada de estado (Material 3, em CLASSE_BOTAO): a cor do botão não muda, ganha uma película
 const variants: Record<Variant, string> = {
-  primary: "bg-brand text-brand-fg shadow-sm hover:bg-brand-dark",
-  secondary: "border border-slate-300 bg-surface text-slate-700 shadow-sm hover:bg-slate-50",
-  danger: "bg-solido-vermelho text-white shadow-sm hover:opacity-90",
-  ghost: "text-slate-600 hover:bg-slate-100",
+  primary: "bg-brand text-brand-fg shadow-sm",
+  secondary: "border border-slate-300 bg-surface text-slate-700 shadow-sm",
+  danger: "bg-solido-vermelho text-white shadow-sm",
+  ghost: "text-slate-600",
 };
 
 /**
@@ -22,15 +23,15 @@ const variants: Record<Variant, string> = {
  */
 export type TomAcao = "enviar" | "fiscal" | "logistica" | "servico" | "documento" | "desfazer" | "perigo";
 export const TOM_ACAO: Record<TomAcao, string> = {
-  enviar: "border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm hover:bg-emerald-100",
-  fiscal: "border border-sky-200 bg-sky-50 text-sky-800 shadow-sm hover:bg-sky-100",
-  logistica: "border border-amber-200 bg-amber-50 text-amber-800 shadow-sm hover:bg-amber-100",
-  servico: "border border-purple-200 bg-purple-50 text-purple-800 shadow-sm hover:bg-purple-100",
-  documento: "border border-slate-300 bg-surface text-slate-700 shadow-sm hover:bg-slate-50",
-  desfazer: "border border-orange-200 bg-orange-50 text-orange-800 shadow-sm hover:bg-orange-100",
-  perigo: "border border-red-200 bg-red-50 text-red-800 shadow-sm hover:bg-red-100",
+  enviar: "border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm",
+  fiscal: "border border-sky-200 bg-sky-50 text-sky-800 shadow-sm",
+  logistica: "border border-amber-200 bg-amber-50 text-amber-800 shadow-sm",
+  servico: "border border-purple-200 bg-purple-50 text-purple-800 shadow-sm",
+  documento: "border border-slate-300 bg-surface text-slate-700 shadow-sm",
+  desfazer: "border border-orange-200 bg-orange-50 text-orange-800 shadow-sm",
+  perigo: "border border-red-200 bg-red-50 text-red-800 shadow-sm",
 };
-export const CLASSE_BOTAO = "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-botao px-3.5 py-2 text-sm font-semibold sm:min-h-0 sm:px-4 transition disabled:cursor-not-allowed disabled:opacity-50";
+export const CLASSE_BOTAO = "camada-estado inline-flex min-h-10 items-center justify-center gap-1.5 rounded-botao px-3.5 py-2 text-sm font-semibold sm:min-h-0 sm:px-4 transition disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
  * Botão padrão do ERP; `tamanho="mini"` é o pequeno das ações dentro de linhas e cartões.

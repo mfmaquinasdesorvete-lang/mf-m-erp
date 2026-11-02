@@ -1,4 +1,4 @@
-# Design system do ERP Line · v1.0 (30/10/2026)
+# Design system do ERP Line · v1.1 (02/11/2026)
 
 O manual da interface: fundamentos, peças, padrões e regras de contribuição. Parte do inventário real do código (medido em
 30/10) e diz o que fazer com as divergências. Dono: chat DSG ("ERP Line – Design system"). As regras de qualidade de
@@ -129,6 +129,20 @@ do tema ficam em `src/index.css` (claro em `:root`, escuro em `:root[data-theme=
 
 ---
 
+### 2.5 Material 3: o que adotamos (02/11)
+
+Comparado com o Material Design 3 do Google (valores do pacote oficial `@material/web`), nas mesmas medidas:
+
+| M3 | No ERP | Situação |
+|---|---|---|
+| Camada de estado: película da cor do texto, 8% no hover, 12% no foco e ao apertar, 16% ao arrastar | `ESTADO` em `tokens.js` → `--estado-*`; classe `.camada-estado` e todas as peças de botão, chip e linha de lista | **Adotado.** Nenhuma peça troca a cor de fundo no hover |
+| Movimento: durações curta1–4 (50–200 ms), média1–4 (250–400 ms), longa; curvas padrão `(0.2, 0, 0, 1)`, enfatizada, desacelera e acelera | `MOVIMENTO` em `tokens.js` → `duration-curta3`, `ease-padrao`, `ease-enfatizada-desacelera`…; `transition` sem nome já usa a curva padrão e 150 ms | **Adotado** |
+| Cantos: nenhum, 4, 8, 12, 16, 28 px e cheio | `rounded-chip` 6, `rounded-campo`/`rounded-botao` 8, `rounded-cartao` 12, `rounded-painel` 16 | Igual, com nomes de uso; os 28 px do M3 só nas janelas grandes do celular |
+| Letras: display, headline, title, body e label, cada um em grande, médio e pequeno | `text-3xl` (display pequeno), `text-2xl` (headline pequeno), `text-xl`/`text-lg` (title), `text-base`/`text-sm` (body), `text-xs`/`text-2xs` (label) | Mesma escala; o ERP não usa os tamanhos display grandes (é sistema de trabalho, não site) |
+| Cores por papel: primary/on-primary, container/on-container, surface container (do mais baixo ao mais alto), outline | `brand`/`brand-fg`, `brand-light` (container), `canvas` → `surface` → `campo`/`slate-50…200`, `linha` | Mesmo raciocínio: sempre o par fundo + texto do mesmo papel |
+| Elevação: níveis 0 a 5 | `shadow-card` (nível 1) e `shadow-pop` (nível 3, janelas e menus) | Dois níveis bastam para o ERP |
+| Tamanhos de janela: compacta < 600, média 600–839, expandida 840–1199, grande 1200+ | `sm` 640, `md` 768, `lg` 1024, `xl` 1280 do Tailwind | Mantido o do Tailwind; celular = abaixo de `sm`/`md` |
+
 ## 3. Estados
 
 ### 3.1 Estados de interação (toda peça clicável)
@@ -136,7 +150,7 @@ do tema ficam em `src/index.css` (claro em `:root`, escuro em `:root[data-theme=
 | Estado | Como aparece | Onde está |
 |---|---|---|
 | Normal | Cor do papel | — |
-| Hover | Fundo um tom acima (`hover:bg-slate-100`) | Só no computador |
+| Hover | Película da cor do texto a 8% (camada de estado do M3) | Só onde há mouse; peça nova usa `.camada-estado`, nunca `hover:bg-…` |
 | Foco | Contorno de 2 px na cor da marca (`:focus-visible`) | `index.css`, global: não tirar |
 | Ativo / selecionado | `chip-ativo`, `aria-pressed`, `aria-current` | `chip()`, abas, menu |
 | Desativado | `disabled` + `opacity-50`, `cursor-not-allowed` | Peças de botão |

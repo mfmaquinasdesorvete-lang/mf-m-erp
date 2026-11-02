@@ -228,11 +228,24 @@ h1, h2, h3 { text-wrap: balance; }
      inteiro; as classes de tamanho e espaço ficam em cada tela (ex.: "cartao p-4", "botao-icone h-8 w-8"). */
   .cartao { @apply rounded-cartao border border-slate-200/80 bg-surface shadow-card; }
   .link-acao { @apply font-semibold text-brand hover:underline max-sm:py-1.5; }
-  .botao-icone { @apply grid shrink-0 place-items-center rounded-botao p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-fg disabled:opacity-30; }
-  .botao-icone-perigo { @apply grid shrink-0 place-items-center rounded-botao p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-30; }
+  .botao-icone { @apply grid shrink-0 place-items-center rounded-botao p-1.5 text-slate-500 transition hover:text-fg disabled:opacity-30; }
+  .botao-icone-perigo { @apply grid shrink-0 place-items-center rounded-botao p-1.5 text-slate-400 transition hover:text-red-600 disabled:pointer-events-none disabled:opacity-30; }
   .link-modulo { @apply font-semibold text-modulo-texto hover:underline max-sm:py-1.5; }
   .link-discreto { @apply font-semibold text-slate-500 hover:text-fg hover:underline max-sm:py-1.5; }
   /* botão pequeno (ações dentro de linhas e cartões); as cores vêm de Button (variant/tom) ou de .botao-mini-neutro */
+  /* camada de estado (Material 3, 02/11): uma película da cor do texto por cima, com a força do token
+     (--estado-hover 8%, --estado-foco e --estado-pressionado 12%). Vale para todas as peças clicáveis e para quem
+     usar .camada-estado; a cor de fundo da peça não muda no hover, então fica igual no claro, no escuro e na cor da marca. */
+  .camada-estado, .botao-icone, .botao-icone-perigo, .botao-mini, .botao-claro, .chip, .linha-clicavel { position: relative; isolation: isolate; }
+  :is(.camada-estado, .botao-icone, .botao-icone-perigo, .botao-mini, .botao-claro, .chip, .linha-clicavel)::before {
+    content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: currentColor; opacity: 0; pointer-events: none;
+    transition: opacity var(--duracao-curta3) var(--curva-padrao);
+  }
+  @media (hover: hover) {
+    :is(.camada-estado, .botao-icone, .botao-icone-perigo, .botao-mini, .botao-claro, .chip, .linha-clicavel):hover:not(:disabled)::before { opacity: var(--estado-hover); }
+  }
+  :is(.camada-estado, .botao-icone, .botao-icone-perigo, .botao-mini, .botao-claro, .chip, .linha-clicavel):focus-visible::before { opacity: var(--estado-foco); }
+  :is(.camada-estado, .botao-icone, .botao-icone-perigo, .botao-mini, .botao-claro, .chip, .linha-clicavel):active:not(:disabled)::before { opacity: var(--estado-pressionado); }
   .botao-mini { @apply inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-botao px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 max-sm:min-h-8; }
   /* área de toque no celular (30/10, regra 9 da auditoria): botões de ícone, mini e chips têm 28 a 32 px de desenho;
      uma área invisível em volta leva o toque para perto de 44 px sem mudar o desenho (só em tela de toque).
@@ -241,17 +254,17 @@ h1, h2, h3 { text-wrap: balance; }
     .botao-icone, .botao-icone-perigo, .botao-mini, .chip { position: relative; }
     .botao-icone::after, .botao-icone-perigo::after, .botao-mini::after, .chip::after { content: ""; position: absolute; inset: -6px -3px; }
   }
-  .botao-mini-neutro { @apply border border-slate-300 bg-surface text-slate-700 shadow-sm hover:bg-slate-50; }
+  .botao-mini-neutro { @apply border border-slate-300 bg-surface text-slate-700 shadow-sm; }
   /* chip de filtro ou de escolha (o mesmo de ChipsSituacao): .chip + .chip-ativo, .chip-neutro ou uma cor própria */
   .chip { @apply inline-flex shrink-0 items-center gap-1.5 rounded-chip border px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 max-sm:min-h-8; }
   .chip-ativo { @apply border-brand bg-brand text-brand-fg; }
   .chip-neutro { @apply border-slate-200 bg-surface text-slate-600 hover:border-slate-300 hover:text-fg; }
   /* botão sobre fundo escuro ou colorido (avisos, painéis escuros, apps do celular): vidro branco */
-  .botao-claro { @apply inline-flex shrink-0 items-center justify-center gap-1.5 rounded-botao bg-white/15 font-semibold text-white transition hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-50; }
+  .botao-claro { @apply inline-flex shrink-0 items-center justify-center gap-1.5 rounded-botao bg-white/15 font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50; }
   /* linha de lista que abre algo ao tocar (cliente, conta, item) */
   /* cartão, bolinha ou número que se toca (resumos do Início, acesso rápido, equipe): encolhe de leve ao tocar */
   .botao-toque { @apply transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50; }
-  .linha-clicavel { @apply w-full rounded-botao text-left transition hover:bg-slate-50; }
+  .linha-clicavel { @apply w-full rounded-botao text-left transition; }
   /* chips/abas de filtro: no celular uma linha só que rola para o lado (antes quebravam em 3 ou 4 linhas no topo) */
   .faixa-chips {
     @apply -mx-4 flex flex-nowrap gap-1.5 overflow-x-auto px-4 pb-0.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0;

@@ -128,6 +128,30 @@ export const CAMADA = {
   alerta: "70", // erro da tela e foto em tela cheia: sempre por cima de tudo
 };
 
+/**
+ * Camada de estado (Material 3, 02/11): ao passar o mouse, focar, apertar ou arrastar, toda peça clicável ganha por cima
+ * uma película da cor do próprio texto com esta transparência (classe .camada-estado e as peças de botão, em index.css).
+ * Um jeito só no ERP todo, no claro e no escuro, no lugar de cada peça escolher a sua cor de hover.
+ */
+export const ESTADO = { hover: "0.08", foco: "0.12", pressionado: "0.12", arrastando: "0.16" };
+
+/**
+ * Movimento (Material 3): durações e curvas com nome. Curtas para hover, foco e chips; médias para abrir menu, painel
+ * e janela; longas só para mudanças grandes de tela. "padrao" é a curva de quase tudo; "enfatizada" para o que entra
+ * em destaque; "desacelera" quando algo entra na tela e "acelera" quando sai.
+ */
+export const MOVIMENTO = {
+  duracao: { curta1: "50ms", curta2: "100ms", curta3: "150ms", curta4: "200ms", media1: "250ms", media2: "300ms", media3: "350ms", media4: "400ms", longa1: "450ms", longa2: "500ms" },
+  curva: {
+    padrao: "cubic-bezier(0.2, 0, 0, 1)",
+    "padrao-desacelera": "cubic-bezier(0, 0, 0, 1)",
+    "padrao-acelera": "cubic-bezier(0.3, 0, 1, 1)",
+    enfatizada: "cubic-bezier(0.2, 0, 0, 1)",
+    "enfatizada-desacelera": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+    "enfatizada-acelera": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+  },
+};
+
 /** Variáveis CSS de cada token (o tailwind.config.js põe no :root). */
 export function variaveis() {
   /** @type {Record<string, string>} */
@@ -137,6 +161,9 @@ export function variaveis() {
   v["--raio-linha-celular"] = RAIO.linhaCelular;
   for (const [k, [tam]] of Object.entries(TEXTO)) v[`--texto-${k}`] = tam;
   for (const [k, x] of Object.entries(ESPACO)) v[`--espaco-${k}`] = x;
+  for (const [k, x] of Object.entries(ESTADO)) v[`--estado-${k}`] = x;
+  for (const [k, x] of Object.entries(MOVIMENTO.duracao)) v[`--duracao-${k}`] = x;
+  for (const [k, x] of Object.entries(MOVIMENTO.curva)) v[`--curva-${k}`] = x;
   return v;
 }
 
@@ -155,4 +182,7 @@ export const TAILWIND = {
   borderWidth: { DEFAULT: BORDA.fina, 2: BORDA.grossa, 4: BORDA.destaque },
   boxShadow: SOMBRA,
   zIndex: CAMADA,
+  // transition sem nome usa a curva e a duração curta do Material 3; duration-media2, ease-enfatizada… pelo nome
+  transitionDuration: { DEFAULT: MOVIMENTO.duracao.curta3, ...MOVIMENTO.duracao },
+  transitionTimingFunction: { DEFAULT: MOVIMENTO.curva.padrao, ...MOVIMENTO.curva },
 };

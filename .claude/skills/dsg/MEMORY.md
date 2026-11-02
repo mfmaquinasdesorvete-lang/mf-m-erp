@@ -59,6 +59,10 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
   sugere opções, visões salvas "cadastro-<tabela>") e as 37 telas com BarraFiltros. Onde os cartões de cima já escolhem a
   situação (Garantias, Códigos EAN, Acompanhamento de compras), sem Visão repetida: a escolha vira pílula.
 
+- Material 3 (02/11, pedido "analise m3.material.io e aprimore"): camada de estado única (película 8/12/16% em
+  `.camada-estado` e nas peças de botão, sem hover:bg nas peças) e tokens de movimento (MOVIMENTO, ease-padrao). O site
+  m3.material.io não abre neste ambiente (rede); valores tirados do pacote oficial @material/web 2.2.0. Manual v1.1.
+
 ## Em andamento
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 
