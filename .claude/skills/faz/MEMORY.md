@@ -5,9 +5,9 @@ Atualizado em 28/10/2026.
 - 31/10: virei "Acompanhamento e o que só você faz" (juntou o CNF, eb791d1). 18 chats: TIN → GER (Tiny do Dossiê
   vai para o GER), AUD → ENT (auditor e extratos com o ENT), DOC → REV. Regra 82ff394: tudo o que precisar dela vem com
   botões (AskUserQuestion). Título da sessão: "04 📋 FAZ · Acompanhamento e o que só você faz".
-- 02/11 08:42: 6º resumo. Nada da lista feito (rosto 0, Tiny 16/10, inutilização 0, 0 conferidos); 150 'voce'.
-  Cobrado FIS (9 parados) em 02/11; respondeu: 51bd3cd2 feito, 8 viraram 'voce' com "Para conferir: …" (d15ad20d:
-  olhar o cartão Vendas das notas emitidas). Inutilização SP ainda sem registro. Hostinger conectada. Próximo: 03/11 08:40.
+- 03/11 08:42: 7º resumo. Nada da lista feito (rosto 0, Tiny 16/10, inutilização 0, 0 conferidos); 159 'voce'.
+  Painel republicado (v2, 152 sem pessoais). Cobrados GER (6), SEG (3, + deploy key e duas etapas) e CLI (2).
+  Próximo: 04/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 

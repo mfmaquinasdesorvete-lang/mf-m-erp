@@ -1,28 +1,23 @@
-# Resumo da manhã — 02/11/2026 (FAZ)
-Painel com tudo o que espera por você: https://claude.ai/artifact/2g2Tx4gYvdrejG2wpeS8BA
+# Resumo da manhã — 03/11/2026 (FAZ)
+Painel atualizado hoje: https://claude.ai/artifact/2g2Tx4gYvdrejG2wpeS8BA
 
 ## 1. Prazos
-1. **Inutilizar os números 4 a 398 da série 1 da filial SP até 10/11** (faltam 8 dias). Notas fiscais → Inutilizar
-   numeração → Filial SP, série 1, do 4 ao 398. Ainda não feito.
-2. **Os 2 botões do Tiny antes de 09/11** (faltam 7 dias): Importar → Tiny → "Buscar recebimentos" e "Atualizar
-   cadastros". Última importação: 16/10.
+1. **Os 2 botões do Tiny até 09/11** (faltam 6 dias): Importar → Tiny → "Buscar recebimentos" e "Atualizar cadastros".
+   Última importação: 16/10.
+2. **Inutilizar a série 1 da filial SP, do 4 ao 398, até 10/11** (faltam 7 dias): Notas fiscais → Inutilizar
+   numeração. Ainda não feito.
 3. Guias federais de 09/2026: o contador refaz com os códigos do Lucro Real.
 
-## 2. Teste de hoje (uns 15 min, tudo de uma vez)
-- **Produtos:** cadastrar uma peça de verdade pelo Novo; um kit novo; o tubo do cilindro com 6000 mm e uma receita de
-  420 mm. Fecha 9 pedidos do PRD.
-- **Design:** no celular, o topo da Venda de Peças; no Início, os números que sobem; a barra de filtros nova.
+## 2. Teste (uns 15 min)
+Produtos: uma peça pelo Novo, um kit e o tubo de 6000 mm com receita de 420 mm. Fiscal: o cartão Vendas em Notas
+emitidas (as transferências saíram de lá).
 
 ## 3. Mandar
-- Extratos: InfinitePay SC depois de 28/10 e Mercado Pago SP depois de 05/2026 (ENT).
+Extratos: InfinitePay SC depois de 28/10 e Mercado Pago SP depois de 05/2026.
 
-## 4. Painéis
-- Duas etapas (GitHub, Supabase com QR novo, Hostinger, 2 contas Google); chave da Hostinger no GitHub; rosto.
-- Hostinger conectada (conferido hoje).
+## 4. Acompanhamento
+159 pedidos em "precisa de você" (0 conferidos). FIS respondeu ontem (8 para você conferir). Cobrei hoje GER (6),
+SEG (3) e CLI (2). IA (15) espera o seu teste.
 
-## 5. Acompanhamento
-150 pedidos em "precisa de você" (0 marcados como conferidos). Parados: IA 15 (esperam o seu teste), FIS 9 (cobrado
-hoje), GER 6. PRD e DSG responderam ontem.
-
-## 6. Auditor financeiro
+## 5. Auditor financeiro
 Nada novo.
