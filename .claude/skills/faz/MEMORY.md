@@ -7,6 +7,7 @@ Atualizado em 28/10/2026.
   botões (AskUserQuestion). Título da sessão: "04 📋 FAZ · Acompanhamento e o que só você faz".
 - 03/11 08:42: 7º resumo. Nada da lista feito (rosto 0, Tiny 16/10, inutilização 0, 0 conferidos); 159 'voce'.
   Painel republicado (v2, 152 sem pessoais). Cobrados GER (6), SEG (3, + deploy key e duas etapas) e CLI (2).
+  CLI respondeu: e3e2cb8c e c5348c1c viraram 'voce' (ficha pelo link no celular; menus da lista, Ficha 360, Meus dados).
   Próximo: 04/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
