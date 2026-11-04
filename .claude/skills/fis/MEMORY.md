@@ -1,5 +1,5 @@
 # MEMORY — FIS (ERP Line – Fiscal e contábil)
-Atualizado em 31/10/2026 (Corrigir e reenviar busca os dados pela NF).
+Atualizado em 04/11/2026 (baixar o XML das notas).
 
 ## Estado agora
 A emissão da NF-e, o DIFAL, as certidões e a previsão de imposto por máquina estão no ar. O que falta depende
@@ -18,6 +18,10 @@ guias e os parcelamentos que chegam na caixa do contador.
   emitida como venda e nas notas de pedidos do Tiny com valor menor que a venda.
 
 ## Em andamento
+- Baixar o XML das notas (pedido de 04/11): botão XML salva o arquivo (emitida via nfe-consultar ação xml;
+  recebida via nfe-recebidas-sync ação xml, que guarda o XML na nota; carregarItens também guarda); "Baixar XML" das
+  marcadas num .zip (src/lib/xmlNotas.ts; as sem XML e as de teste fora da aba Teste vão para NOTAS-SEM-XML.txt).
+  Função no ar em 04/11; site montado (branch site 56c6546) esperando a Hostinger reconectar para publicar e testar.
 - Transportadora e etiquetas pela NF (pedido de 29/10): no ar (site 8297f12, funções nfe-emitir e nfe-consultar).
   Nota direta com transportadora; Carta de correção → "Trocar a transportadora" (texto em src/lib/cartaCorrecao.ts; a
   última carta substitui as anteriores, por isso a nova começa com o texto dela; o servidor troca no pedido e na
