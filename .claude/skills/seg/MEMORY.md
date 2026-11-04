@@ -1,5 +1,5 @@
 # MEMORY — SEG (ERP Line – Segurança)
-Atualizado em 29/10/2026.
+Atualizado em 04/11/2026.
 
 ## Estado agora
 A auditoria de segurança está em Sobre → Segurança, com 33 itens em 7 áreas, e o vigia confere o banco todo dia.
@@ -44,6 +44,7 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
   Google; chave da Hostinger no GitHub; rosto ligado no Supabase e cadastrado.
 - Login com o rosto: um passo de configuração dela e o cadastro do rosto. Depois, marcar a data (+7 dias).
 - Pendências de segurança abertas (ver no banco, `seguranca_auditoria`).
+- Pix de saída do Inter (pedido 48893310, "voce"): só dá para testar quando ela pagar uma conta pelo Pix do Inter no ERP.
 - GitHub: cadastrar a chave de leitura da Hostinger em Settings → Deploy keys (só leitura) antes de deixar privado.
 - Drive da conta principal também tem certificados digitais espalhados em pastas antigas: decidir se organiza igual.
 
@@ -74,4 +75,6 @@ Os achados de prioridade alta foram corrigidos e estão no ar. O que ainda falta
 0. Workflows agendados (backup, CI) rodam pelo arquivo da main: ao mudar um workflow na paineis-no-ar, levar à main.
 1. Quando a usuária terminar o passo do rosto: marcar `rosto_obrigatorio_em` para 7 dias depois e avisar a equipe.
 2. Trabalhar as pendências "atenção" da aba Segurança, uma por vez, com o "Pode publicar".
-3. Ideia oferecida: o teste de restauração do backup comparar também o conteúdo e os arquivos.
+3. Juntar as regras de acesso repetidas (76 casos em 51 tabelas, pedido 0e079f8c em "fila"): só depois da rodada
+   de fechamento.
+4. Ideia oferecida: o teste de restauração do backup comparar também o conteúdo e os arquivos.
