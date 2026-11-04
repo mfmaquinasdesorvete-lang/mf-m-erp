@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CircleCheck, Copy, Download, PackageCheck, PackagePlus, RefreshCw, ShieldCheck, Tags, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import { Button, Field, Modal, Tabs } from "@/components/ui";
 import { callFunction, supabase } from "@/lib/supabase";
+import { nomeArquivoXml, salvarArquivo, xmlDaRecebida } from "@/lib/xmlNotas";
 import { brl, dataBR, docFormat, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate } from "@/lib/data";
@@ -74,11 +75,8 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
   }
 
   async function baixarXml() {
-    const r = await executar({ acao: "xml", chave: n.chave }, () => "XML baixado");
-    if (!r?.xml) return;
-    const url = URL.createObjectURL(new Blob([r.xml], { type: "application/xml" }));
-    Object.assign(document.createElement("a"), { href: url, download: `${n.chave}.xml` }).click();
-    URL.revokeObjectURL(url);
+    setOcupado(true);
+    try { salvarArquivo(nomeArquivoXml(n), await xmlDaRecebida(n)); } catch (e) { notifyError(e); } finally { setOcupado(false); }
   }
 
   async function manifestar(tipo: string) {
@@ -199,9 +197,14 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
           </div>
         </Field>
 
+        {leitura && n.chave && (
+          <div className="flex justify-end border-t pt-3">
+            <Button type="button" variant="ghost" disabled={ocupado} title="Salvar o arquivo XML no computador" onClick={baixarXml}><Download size={15} /> {ocupado ? "Baixando…" : "XML"}</Button>
+          </div>
+        )}
         {!leitura && (
           <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
-            <Button type="button" variant="ghost" disabled={ocupado} onClick={baixarXml}><Download size={15} /> XML</Button>
+            <Button type="button" variant="ghost" disabled={ocupado} title="Salvar o arquivo XML no computador" onClick={baixarXml}><Download size={15} /> XML</Button>
             <Button type="button" variant="ghost" onClick={() => setJanela("validar")} title="Conferir o XML com as regras oficiais da SEFAZ"><ShieldCheck size={15} /> Validar</Button>
             {ativa && ["pendente", "aguardando_xml", "aguardando_vinculo", "revisao"].includes(n.processamento) && (
               <Button type="button" variant="secondary" disabled={ocupado} onClick={() => executar({ acao: "processar", nfe_id: n.id }, (r) => `Situação: ${String(r.processamento).replace(/_/g, " ")}`, true)}><RefreshCw size={15} /> Processar de novo</Button>

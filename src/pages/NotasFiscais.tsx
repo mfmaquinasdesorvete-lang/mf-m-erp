@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { ArrowLeft, Ban, CalendarClock, FileDown, FlaskConical, Lightbulb, ListChecks, RefreshCw, Scale, Search, Send, Settings2, ShieldCheck, Tags, Undo2, Upload } from "lucide-react";
+import { ArrowLeft, Ban, CalendarClock, Download, FileDown, FlaskConical, Lightbulb, ListChecks, RefreshCw, Scale, Search, Send, Settings2, ShieldCheck, Tags, Undo2, Upload } from "lucide-react";
 import { AcoesNoTopo, Button, CelulaAbrir, chip, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
@@ -11,6 +11,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { baixarPlanilha } from "@/lib/exportar";
 import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
+import { juntarXmls, LIMITE_XML_LOTE, salvarArquivo, salvarZipXml, xmlDaEmitida, xmlDaRecebida } from "@/lib/xmlNotas";
 import { InutilizarModal, RegrasTributacao } from "@/components/FiscalAvancado";
 import { ComplianceFiscal } from "@/components/ComplianceFiscal";
 import { EmitirNfeModal } from "@/components/EmitirNfe";
@@ -110,11 +111,32 @@ function useSelecao(ids: string[]) {
   return { sel, setSel, alternar, caixaTodos };
 }
 
-function BarraSelecao({ n, onMarcadores, onLimpar }: { n: number; onMarcadores: () => void; onLimpar: () => void }) {
+/** Baixa o XML das notas marcadas num .zip (as que não vierem ficam listadas num .txt dentro dele). */
+function useBaixarXmlLote<T extends { id: string; chave: string | null; numero?: string | number | null }>(buscar: (n: T) => Promise<string>, prefixo: string) {
+  const [andamento, setAndamento] = useState<string | null>(null);
+  async function baixar(notas: T[]) {
+    if (!notas.length || andamento) return;
+    if (notas.length > LIMITE_XML_LOTE) return notifyError(new Error(`Marque até ${LIMITE_XML_LOTE} notas por vez`));
+    setAndamento(`0/${notas.length}`);
+    try {
+      const { arquivos, falhas } = await juntarXmls(notas, buscar, (f, t) => setAndamento(`${f}/${t}`));
+      const ok = Object.keys(arquivos).length;
+      if (!ok) throw new Error(falhas[0]?.erro ?? "Nenhum XML disponível");
+      if (ok === 1 && !falhas.length) { const [nome, xml] = Object.entries(arquivos)[0]; salvarArquivo(nome, xml); }
+      else await salvarZipXml(`${prefixo}-${new Date().toISOString().slice(0, 10)}.zip`, arquivos, falhas);
+      if (falhas.length) notifyError(new Error(`${ok} XML ${pl(ok, "baixado", "baixados")}; ${falhas.length} sem XML (a lista está no arquivo NOTAS-SEM-XML.txt do .zip)`));
+      else notify(`${ok} XML ${pl(ok, "baixado", "baixados")}`);
+    } catch (e) { notifyError(e); } finally { setAndamento(null); }
+  }
+  return { baixar, andamento };
+}
+
+function BarraSelecao({ n, onMarcadores, onLimpar, onXml, xmlAndamento }: { n: number; onMarcadores: () => void; onLimpar: () => void; onXml?: () => void; xmlAndamento?: string | null }) {
   if (!n) return null;
   return (
     <div className="sticky top-2 z-10 mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-brand/40 bg-surface p-2 text-sm shadow-card">
       <b className="px-1">{n} {pl(n, "selecionada", "selecionadas")}</b>
+      {onXml && <Button type="button" variant="secondary" disabled={!!xmlAndamento} onClick={onXml} title="Salvar o XML das notas marcadas (várias vão num .zip)"><Download size={15} /> {xmlAndamento ? `Baixando ${xmlAndamento}…` : "Baixar XML"}</Button>}
       <Button type="button" variant="secondary" onClick={onMarcadores}><Tags size={15} /> Marcadores</Button>
       <Button type="button" variant="ghost" onClick={onLimpar}>Limpar seleção</Button>
     </div>
@@ -230,6 +252,7 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
       && noPeriodoOuPendente(n.created_at, filtros.f, pendenteEmitida(n)));
   const { filtrada, limite, mais, busca, buscar } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(filtrada.map((n) => n.id));
+  const xmlLote = useBaixarXmlLote<NotaEmitida>(xmlDaEmitida, "XML-notas-emitidas");
   const [aberta, setAberta] = useState<NotaEmitida | null>(null);
   // uma nota só em destaque (ex.: vinda da busca do menu): já abre
   const [destaqueAberto, setDestaqueAberto] = useState<string | null>(null);
@@ -333,7 +356,8 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
       )}
       {aba === "excluidas" ? <Excluidas tabela="notas_fiscais" /> : (
         <>
-          <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
+          <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())}
+            onXml={() => xmlLote.baixar(data.filter((n) => sel.has(n.id) && (n.origem === "importada" || n.xml_url)))} xmlAndamento={xmlLote.andamento} />
           <div className="tabela-leve"><Table
             limite={limite}
             empty={!isLoading && daAba.length === 0}
@@ -411,6 +435,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
       && noPeriodoOuPendente(n.data_emissao, filtros.f, pendenteRecebida(n)));
   const { filtrada, limite, mais, busca, buscar } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, marketplaceDe.has(n.id) ? `marketplace ${NOME_MARKETPLACE[marketplaceDe.get(n.id)!]}` : "", n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(filtrada.map((n) => n.id));
+  const xmlLote = useBaixarXmlLote<Recebida>(xmlDaRecebida, "XML-notas-recebidas");
   const [aberta, setAberta] = useState<Recebida | null>(null);
   const [janela, setJanela] = useState<"marcadores" | "gerenciar" | null>(null);
   const [buscando, setBuscando] = useState(false);
@@ -481,7 +506,8 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
       <div className="mb-2"><LegendaEvolucao tipo="recebidas" /></div>
       {aba === "excluidas" ? <Excluidas tabela="nfe_recebidas" /> : (
         <>
-          <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
+          <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())}
+            onXml={() => xmlLote.baixar(data.filter((n) => sel.has(n.id) && n.chave))} xmlAndamento={xmlLote.andamento} />
           <div className="tabela-leve"><Table
             limite={limite}
             empty={!isLoading && daAba.length === 0}

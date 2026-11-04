@@ -79,7 +79,8 @@ export async function carregarItens(db: SupabaseClient, nfe: { id: string; chave
   const xml = nfe.xml || await baixarXml(db, nfe.chave);
   if (!xml) return null;
   const lido = lerNfe(xml);
-  await db.from("nfe_recebidas").update({ itens: lido.itens, nfe_completa: true }).eq("id", nfe.id);
+  // o XML que veio da SEFAZ fica guardado na nota (para baixar depois sem depender da Focus)
+  await db.from("nfe_recebidas").update({ itens: lido.itens, nfe_completa: true, ...(nfe.xml ? {} : { xml }) }).eq("id", nfe.id);
   return { ...lido, xml };
 }
 

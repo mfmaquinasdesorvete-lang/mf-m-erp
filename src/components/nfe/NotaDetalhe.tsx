@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Copy, Download, ExternalLink, FilePen, FlaskConical, Printer, RefreshCw, Search, Send, ShieldCheck, Tags, Trash2, Undo2, Wrench } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { supabase, callFunction } from "@/lib/supabase";
+import { nomeArquivoXml, salvarArquivo, xmlDaEmitida, type NotaParaXml } from "@/lib/xmlNotas";
 import { brl, dataBR, docFormat, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate, ler } from "@/lib/data";
@@ -46,12 +47,9 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 const duplicidadeSemOutraChave = (n: { status: string; mensagem: string | null }) =>
   n.status === "erro" && /duplicidade/i.test(n.mensagem ?? "") && !/diferen/i.test(n.mensagem ?? "");
 
-export async function baixarXmlImportado(n: { id: string; chave: string | null; numero: string | null }) {
-  const { data, error } = await supabase.from("notas_fiscais_xml").select("xml").eq("nota_id", n.id).maybeSingle();
-  if (error || !data?.xml) return notifyError(error ?? new Error("XML não encontrado"));
-  const url = URL.createObjectURL(new Blob([data.xml], { type: "application/xml" }));
-  Object.assign(document.createElement("a"), { href: url, download: `${n.chave ?? n.numero}.xml` }).click();
-  URL.revokeObjectURL(url);
+/** Salva o XML da nota no computador (a do ERP vem da Focus pelo servidor; a importada, do banco). */
+export async function baixarXmlEmitida(n: NotaParaXml) {
+  try { salvarArquivo(nomeArquivoXml(n), await xmlDaEmitida(n)); } catch (e) { notifyError(e); }
 }
 
 export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; leitura?: boolean; onClose: () => void }) {
@@ -60,6 +58,7 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
   const invalidate = useInvalidate();
   const [ocupado, setOcupado] = useState(false);
   const [janela, setJanela] = useState<"marcadores" | "carta" | "cancelar" | "excluir" | "devolucao" | "corrigir" | "validar" | null>(null);
+  const [baixandoXml, setBaixandoXml] = useState(false);
   const [obs, setObs] = useState(n.observacao_interna ?? "");
   const sit = situacaoEmitida(n);
   const p = n.payload ?? {};
@@ -203,8 +202,7 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
 
         <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
           {n.danfe_url && <a href={n.danfe_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-light"><ExternalLink size={15} /> DANFE</a>}
-          {n.xml_url && <a href={n.xml_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-light"><Download size={15} /> XML</a>}
-          {importada && <Button type="button" variant="ghost" onClick={() => baixarXmlImportado(n)}><Download size={15} /> XML</Button>}
+          {(importada || n.xml_url) && <Button type="button" variant="ghost" disabled={baixandoXml} title="Salvar o arquivo XML no computador" onClick={async () => { setBaixandoXml(true); await baixarXmlEmitida(n); setBaixandoXml(false); }}><Download size={15} /> {baixandoXml ? "Baixando…" : "XML"}</Button>}
           {n.chave && (importada || n.xml_url) && <Button type="button" variant="ghost" onClick={() => setJanela("validar")} title="Conferir o XML com as regras oficiais da SEFAZ"><ShieldCheck size={15} /> Validar</Button>}
           {!leitura && (n.status === "processando" || duplicidadeSemOutraChave(n)) && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => acao({}, "Situação atualizada")}><RefreshCw size={15} /> Atualizar</Button>}
           {podeFiscal && n.status === "contingencia" && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => acao({ acao: "reenviar" }, "Nota reenviada")}><Send size={15} /> Reenviar</Button>}

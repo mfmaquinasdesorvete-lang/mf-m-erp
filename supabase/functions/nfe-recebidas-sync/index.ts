@@ -34,8 +34,10 @@ Deno.serve(async (req) => {
 
   try {
     // notas de fornecedor: financeiro e compras; contas a pagar só o financeiro (abaixo)
-    await requireErpUser(req, ["financeiro", "compras"]);
     const body = await req.json();
+    // baixar o XML também é do contador (ele pede os arquivos); o resto é de financeiro e compras
+    const papeisXml = ["financeiro", "compras", "contador"];
+    await requireErpUser(req, body?.acao === "xml" ? papeisXml : ["financeiro", "compras"]);
     const db = adminClient();
 
     const carregarNota = async () => {
@@ -130,9 +132,21 @@ Deno.serve(async (req) => {
       }
 
       case "xml": {
-        const { data: salvo } = await db.from("nfe_recebidas").select("xml").eq("chave", body.chave).maybeSingle();
-        const xml = salvo?.xml || await baixarXml(db, body.chave);
-        if (!xml) throw new HttpError(422, "XML indisponível — faça a ciência da operação e tente novamente");
+        const chave = String(body.chave ?? "").replace(/\D/g, "");
+        if (chave.length !== 44) throw new HttpError(400, "chave de acesso inválida");
+        const { data: salvo } = await db.from("nfe_recebidas").select("id, xml, manifestacao").eq("chave", chave).is("excluida_em", null).maybeSingle();
+        if (!salvo) throw new HttpError(404, "nota não encontrada");
+        if (salvo.xml) return json({ ok: true, xml: salvo.xml });
+        // a SEFAZ só entrega o XML completo depois da ciência da operação
+        // (o contador só lê: para ele não se manifesta nada; a ciência fica com compras e financeiro)
+        if (!salvo.manifestacao) {
+          const podeManifestar = await requireErpUser(req, ["financeiro", "compras"]).then(() => true, () => false);
+          if (podeManifestar) await manifestar(db, chave, "ciencia").catch(() => null);
+        }
+        const xml = await baixarXml(db, chave);
+        if (!xml) throw new HttpError(422, "O XML desta nota ainda não chegou da SEFAZ (depois da ciência pode levar alguns minutos). Tente de novo mais tarde.");
+        // guarda na nota: da próxima vez sai na hora e não depende da Focus
+        await db.from("nfe_recebidas").update({ xml }).eq("id", salvo.id).is("xml", null);
         return json({ ok: true, xml });
       }
 
