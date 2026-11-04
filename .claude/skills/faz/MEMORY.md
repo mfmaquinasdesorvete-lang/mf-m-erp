@@ -5,12 +5,9 @@ Atualizado em 28/10/2026.
 - 31/10: virei "Acompanhamento e o que só você faz" (juntou o CNF, eb791d1). 18 chats: TIN → GER (Tiny do Dossiê
   vai para o GER), AUD → ENT (auditor e extratos com o ENT), DOC → REV. Regra 82ff394: tudo o que precisar dela vem com
   botões (AskUserQuestion). Título da sessão: "04 📋 FAZ · Acompanhamento e o que só você faz".
-- 03/11 08:42: 7º resumo. Nada da lista feito (rosto 0, Tiny 16/10, inutilização 0, 0 conferidos); 159 'voce'.
-  Painel republicado (v2, 152 sem pessoais). Cobrados GER (6), SEG (3, + deploy key e duas etapas) e CLI (2).
-  SEG respondeu: 0df2c991 feito, 48893310 'voce' (pagar uma conta pelo Pix do Inter no ERP), 0e079f8c fila de propósito;
-  deploy key e duas etapas: nem o SEG vê; cobrar com botões. Ao "já fiz" da chave: avisar o SEG (testa o deploy SSH).
-  CLI respondeu: e3e2cb8c e c5348c1c viraram 'voce' (ficha pelo link no celular; menus da lista, Ficha 360, Meus dados).
-  Próximo: 04/11 08:40.
+- 04/11 08:42: 8º resumo. Nada feito (rosto 0, Tiny 16/10, inutilização 0, 0 conferidos); 164 'voce'. GER respondeu
+  (5339d28e e 175e21ac feitos; 4 'voce' com Para conferir; f534b4f6 feito). Hostinger desconectada de novo.
+  Painel v3. Próximo: 05/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 
