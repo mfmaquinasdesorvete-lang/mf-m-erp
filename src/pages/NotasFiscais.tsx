@@ -114,12 +114,16 @@ function useSelecao(ids: string[]) {
 /** Baixa o XML das notas marcadas num .zip (as que não vierem ficam listadas num .txt dentro dele). */
 function useBaixarXmlLote<T extends { id: string; chave: string | null; numero?: string | number | null }>(buscar: (n: T) => Promise<string>, prefixo: string) {
   const [andamento, setAndamento] = useState<string | null>(null);
-  async function baixar(notas: T[]) {
-    if (!notas.length || andamento) return;
+  /** `semXml`: as marcadas que não têm XML (rejeitada, em processamento, de teste fora da aba Teste): entram na lista das que não vieram. */
+  async function baixar(notas: T[], semXml: { nota: T; erro: string }[] = []) {
+    if (andamento) return;
+    if (!notas.length) return notifyError(new Error(semXml.length ? `Nenhuma das notas marcadas tem XML (${semXml[0].erro.toLowerCase()})` : "Marque as notas"));
     if (notas.length > LIMITE_XML_LOTE) return notifyError(new Error(`Marque até ${LIMITE_XML_LOTE} notas por vez`));
     setAndamento(`0/${notas.length}`);
     try {
-      const { arquivos, falhas } = await juntarXmls(notas, buscar, (f, t) => setAndamento(`${f}/${t}`));
+      const juntos = await juntarXmls(notas, buscar, (f, t) => setAndamento(`${f}/${t}`));
+      const { arquivos } = juntos;
+      const falhas = [...semXml, ...juntos.falhas];
       const ok = Object.keys(arquivos).length;
       if (!ok) throw new Error(falhas[0]?.erro ?? "Nenhum XML disponível");
       if (ok === 1 && !falhas.length) { const [nome, xml] = Object.entries(arquivos)[0]; salvarArquivo(nome, xml); }
@@ -357,7 +361,13 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
       {aba === "excluidas" ? <Excluidas tabela="notas_fiscais" /> : (
         <>
           <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())}
-            onXml={() => xmlLote.baixar(data.filter((n) => sel.has(n.id) && (n.origem === "importada" || n.xml_url)))} xmlAndamento={xmlLote.andamento} />
+            onXml={() => {
+              // só a autorizada tem XML; a de teste (homologação, sem valor fiscal) só vai quando a aba é a Teste
+              const marcadas = data.filter((n) => sel.has(n.id));
+              const motivo = (n: NotaEmitida) => !(n.origem === "importada" || n.xml_url) ? "Nota sem XML (só a autorizada tem)"
+                : n.ambiente === "homologacao" && aba !== "teste" ? "Nota de teste (sem valor fiscal): baixe pela aba Teste" : null;
+              xmlLote.baixar(marcadas.filter((n) => !motivo(n)), marcadas.filter((n) => motivo(n)).map((n) => ({ nota: n, erro: motivo(n)! })));
+            }} xmlAndamento={xmlLote.andamento} />
           <div className="tabela-leve"><Table
             limite={limite}
             empty={!isLoading && daAba.length === 0}
@@ -507,7 +517,10 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
       {aba === "excluidas" ? <Excluidas tabela="nfe_recebidas" /> : (
         <>
           <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())}
-            onXml={() => xmlLote.baixar(data.filter((n) => sel.has(n.id) && n.chave))} xmlAndamento={xmlLote.andamento} />
+            onXml={() => {
+              const marcadas = data.filter((n) => sel.has(n.id));
+              xmlLote.baixar(marcadas.filter((n) => n.chave), marcadas.filter((n) => !n.chave).map((n) => ({ nota: n, erro: "Nota sem chave de acesso" })));
+            }} xmlAndamento={xmlLote.andamento} />
           <div className="tabela-leve"><Table
             limite={limite}
             empty={!isLoading && daAba.length === 0}

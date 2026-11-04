@@ -29,7 +29,7 @@ describe("juntarXmls", () => {
     }, (f) => vistos.push(f));
     expect(Object.keys(r.arquivos).sort()).toEqual([`${CHAVE}-2.xml`, `${CHAVE}.xml`, "NF-4.xml"].sort());
     expect(r.falhas.map((f) => [f.nota.id, f.erro])).toEqual([["2", "Focus fora"]]);
-    expect(vistos.at(-1)).toBe(4);
+    expect(vistos[vistos.length - 1]).toBe(4);
   });
   it("lista vazia não busca nada", async () => {
     const buscar = vi.fn();
