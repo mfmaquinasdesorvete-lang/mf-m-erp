@@ -21,7 +21,14 @@ with lista(pref, teste) as (values
   ('fc94bf54', 'Testado em 28/10 na demonstração: componente de fabricação sem preço de venda, margem nem sugerido (só custo).'),
   ('e8620e82', 'Testado em 29/10 na demonstração (computador e celular): produto salvo em abas, com o quanto falta e a aba Documentos.'),
   ('b2d52b34', 'Testado em 29/10 na demonstração: aba Peças do kit com preço e custo por peça; no banco, a peça +R$ 10 subiu o custo do kit (teste desfeito).'),
-  ('ee946732', 'Testado em 30/10 na demonstração (celular): sem descrição não aparece o Salvar agora; com descrição grava no 1º passo.')
+  ('ee946732', 'Testado em 30/10 na demonstração (celular): sem descrição não aparece o Salvar agora; com descrição grava no 1º passo.'),
+  ('f4128eb7', 'Testado em 05/11 na demonstração: o Fluxo de pedidos abre sem erro e sem pedidos nem canais do Tiny.'),
+  ('6b7069c3', 'Testado em 05/11 na demonstração: Clonar venda no pedido #106 → Salvar orçamento → "Pedido salvo", sem erro.'),
+  ('bd5c4168', 'Testado em 05/11 no banco de produção: os 96 avisos dos chats desde 28/10 foram só para a usuária, nenhum para a equipe.'),
+  ('8a363b5a', 'Testado em 30/10 na demonstração (quadro, nova oportunidade, perdido pede motivo, métricas, celular) e no banco (desfeito). A parte 2 espera a decisão dela.'),
+  ('bf8f7e71', 'Testado em 30/10 na demonstração (Data da venda no pedido) e no banco de produção: com a #628 em 30/07, a semana deixou de contar a venda antiga.'),
+  ('1cb1c7c7', 'Testado em 31/10 na demonstração (computador e celular; esconder e mostrar).'),
+  ('eb650308', 'Testado em 31/10 na demonstração (computador e celular) e conta conferida no banco: outubro bate com a conta do ENT.')
   -- (mais chats entram aqui quando responderem)
 )
 update public.pedidos_checklist p
