@@ -21,7 +21,7 @@ guias e os parcelamentos que chegam na caixa do contador.
 - Baixar o XML das notas (pedido de 04/11): botão XML salva o arquivo (emitida via nfe-consultar ação xml;
   recebida via nfe-recebidas-sync ação xml, que guarda o XML na nota; carregarItens também guarda); "Baixar XML" das
   marcadas num .zip (src/lib/xmlNotas.ts; as sem XML e as de teste fora da aba Teste vão para NOTAS-SEM-XML.txt).
-  Função no ar em 04/11; site montado (branch site 56c6546) esperando a Hostinger reconectar para publicar e testar.
+  No ar em 05/11 (função e site afcba2f). Falta o teste dela (XML de uma emitida, de uma recebida e o .zip).
 - Transportadora e etiquetas pela NF (pedido de 29/10): no ar (site 8297f12, funções nfe-emitir e nfe-consultar).
   Nota direta com transportadora; Carta de correção → "Trocar a transportadora" (texto em src/lib/cartaCorrecao.ts; a
   última carta substitui as anteriores, por isso a nova começa com o texto dela; o servidor troca no pedido e na
