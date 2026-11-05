@@ -45,8 +45,8 @@ Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cob
 - 05/11 (botões, "sem tempo"): (1) os 'voce' só de olhar na tela, no ar e testados na demonstração viram "feito" sem a
   conferência dela; ficam com ela só decisões, arquivos e o que mexe com dinheiro ou nota. Pedi a lista a todos os chats
   (id + "Testado em dd/mm na demonstração: …"); eu junto num update único e ela aprova uma vez. (2) Resumo da manhã só
-  com 1 a 3 coisas; o resto no painel. Lista juntada em `sql/fechar-conferidos.sql` (responderam: ENT 4, CLI 2, FUN 6, PRD 7, GER 7 = 26;
-  sem itens: TEC, SOR, TRA, SEG, FIS, MYF, REV; faltam DSG, IAD, MKT). Pendente também: migração 20261101000205 do SOR (ajuste do REV) esperando aprovação dela. (3) Prazos Tiny/inutilização: quis fazer "agora comigo", mas ainda não fez.
+  com 1 a 3 coisas; o resto no painel. Lista juntada em `sql/fechar-conferidos.sql` (responderam: ENT 4, CLI 2, FUN 6, PRD 7, GER 7, MKT 2 = 28;
+  sem itens: TEC, SOR, TRA, SEG, FIS, MYF, REV, IAD; falta DSG). Pendente também: migração 20261101000205 do SOR (ajuste do REV) esperando aprovação dela. (3) Prazos Tiny/inutilização: quis fazer "agora comigo", mas ainda não fez.
 - 27/10: este chat dá a lista do que só ela faz no Supabase, no GitHub e na Hostinger e fica cobrando.
 - 27/10 (pelo ELO, af5913d): o FAZ é o único que manda o resumo da manhã: tarefas de painel, decisões que cada chat
   espera dela (o CNF me passa) e o que ficou pronto para conferir. Curto, o mais importante primeiro (por ora: o fiscal

@@ -28,7 +28,9 @@ with lista(pref, teste) as (values
   ('8a363b5a', 'Testado em 30/10 na demonstração (quadro, nova oportunidade, perdido pede motivo, métricas, celular) e no banco (desfeito). A parte 2 espera a decisão dela.'),
   ('bf8f7e71', 'Testado em 30/10 na demonstração (Data da venda no pedido) e no banco de produção: com a #628 em 30/07, a semana deixou de contar a venda antiga.'),
   ('1cb1c7c7', 'Testado em 31/10 na demonstração (computador e celular; esconder e mostrar).'),
-  ('eb650308', 'Testado em 31/10 na demonstração (computador e celular) e conta conferida no banco: outubro bate com a conta do ENT.')
+  ('eb650308', 'Testado em 31/10 na demonstração (computador e celular) e conta conferida no banco: outubro bate com a conta do ENT.'),
+  ('4f0bac69', 'Testado em 29/10 com dados reais no ar: os 57 produtos da loja têm anúncio no Mercado Livre, ativos e com estoque mínimo de 1.'),
+  ('6ee8f2be', 'Testado em 05/11 na demonstração: aba Simulador (MF-300) mostra lucro, margem, preço mínimo, preço para o lucro desejado, verba de anúncio e o "como foi calculado".')
   -- (mais chats entram aqui quando responderem)
 )
 update public.pedidos_checklist p
