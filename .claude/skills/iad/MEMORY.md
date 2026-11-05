@@ -1,5 +1,5 @@
 # MEMORY — IAD (ERP Line – IA do dia a dia (ideias))
-Atualizado em 30/10/2026.
+Atualizado em 05/11/2026.
 
 ## Estado agora
 As cinco frentes de IA nos cadastros e nas vendas estão no ar, e também a fila das ideias da pesquisa (resumo, busca nos
@@ -29,7 +29,8 @@ As outras estão no ar e esperando o primeiro uso real.
 
 ## Esperando a usuária
 - Teste com tarefa real (eu não tenho login no ERP nem a chave da IA para testar sozinho):
-  1. Clientes → Novo → Preencher com IA (o erro 400 foi corrigido em 26/10; a última tentativa foi antes da correção).
+  1. Clientes → Novo → Preencher com IA: o uso real de 30/10 deu outro erro 400 (campos opcionais demais no esquema);
+     corrigido em 05/11 e esperando o "Pode publicar"; depois, testar de novo.
   2. Vendas → novo pedido → Montar com IA, com uma conversa de cliente.
   3. Ficha 360 → Responder no WhatsApp → Escrever com IA.
   4. Produtos → Preencher com IA mandando o PDF do fornecedor (NCM, peso e medidas).

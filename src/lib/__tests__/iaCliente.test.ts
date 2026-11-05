@@ -52,4 +52,24 @@ describe("esquemas das IAs", () => {
     modulos.forEach((m, i) => Object.entries(m).filter(([k]) => k.startsWith("ESQUEMA")).forEach(([k, v]) => olhar(v, `${i}:${k}`)));
     expect(ruins).toEqual([]);
   });
+  it("nenhum esquema passa de 16 campos \"texto ou null\" (a API recusa: erro 400 do cliente em 30/10)", async () => {
+    const modulos = await Promise.all([
+      import("../../../supabase/functions/_shared/ia-cliente"), import("../../../supabase/functions/_shared/ia-itens"),
+      import("../../../supabase/functions/_shared/ia-produto"), import("../../../supabase/functions/_shared/ia-voz"),
+      import("../../../supabase/functions/_shared/ia-busca"), import("../../../supabase/functions/_shared/ia-manutencao"),
+      import("../../../supabase/functions/_shared/ia-orcamento"), import("../../../supabase/functions/_shared/ia-texto"),
+      import("../../../supabase/functions/_shared/ia-titulos"), import("../../../supabase/functions/_shared/ia-resumo"),
+      import("../../../supabase/functions/_shared/ia-busca-docs"), import("../../../supabase/functions/_shared/ia-acao"),
+    ]);
+    const contar = (n: unknown): number => {
+      if (!n || typeof n !== "object") return 0;
+      const o = n as Record<string, unknown>;
+      return (Array.isArray(o.type) || Array.isArray(o.anyOf) ? 1 : 0) + Object.values(o).reduce<number>((t, v) => t + contar(v), 0);
+    };
+    const passou = modulos.flatMap((m) => Object.entries(m).filter(([k]) => k.startsWith("ESQUEMA")).map(([k, v]) => [k, contar(v)] as const)).filter(([, n]) => n > 16);
+    expect(passou).toEqual([]);
+  });
+  it("campo vazio vira null", () => {
+    expect(normalizarCliente({ nome: "", tipo_pessoa: "", cpf_cnpj: "", uf: "" }).dados).toMatchObject({ nome: null, tipo_pessoa: null, cpf_cnpj: null, uf: null });
+  });
 });

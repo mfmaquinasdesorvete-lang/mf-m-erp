@@ -88,3 +88,6 @@ Recebo as ideias da usuária para a IA no trabalho do dia a dia e cuido das IAs 
 - Esquema de saída da IA (json_schema): a API recusa `enum` junto com `null` ("Enum value does not match declared
   type"). Campo opcional com lista fechada vai como `type: ["string","null"]` sem enum e a lista é conferida no
   normalizar; o teste "esquemas das IAs" em `iaCliente.test.ts` pega isso.
+- Esquema de saída da IA: no máximo 16 campos "texto ou null" (type com lista) por esquema; passou disso a API dá 400
+  ("too many parameters with union types"). Com muitos campos, use `type: "string"` e "" para o que não veio; o
+  teste em `iaCliente.test.ts` conta. O Perguntar à IA (ia-busca) está no limite: 16.
