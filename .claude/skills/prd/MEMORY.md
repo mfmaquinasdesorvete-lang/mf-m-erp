@@ -85,6 +85,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
+- 05/11: 7 dos 9 foram mandados ao FAZ para "feito" (decisão dela: só olhar, no ar e testado na demonstração); ficam
+  com ela cfa55e75 (Tornearia, nunca aberta na demonstração) e 3389ac04 (Impostos na venda).
 - Teste real (01/11) de 9 pedidos no ar, que estão como "precisa de você" em Sobre → Pedidos: Tornearia → Peças (receita);
   cadastro novo em passos e "Salvar agora" no 1º passo; kit novo e componente de fabricação; tubo de 6 m com a
   receita do cilindro; Impostos na venda na Gestão de preços; insumo só com custo; cadastro em abas; Peças do kit.
