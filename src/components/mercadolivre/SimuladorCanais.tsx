@@ -30,7 +30,7 @@ type FonteCusto = "cadastro" | "avista" | "ultima";
  *  em 27/10 e usados só na simulação, enquanto as Configurações estão com 0%. A apuração oficial é do contador. */
 const IMPOSTO_LOJA = 25, IMPOSTO_ML = 27, CREDITO_COMPRAS = 21.25;
 const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-const pctTxt = (v: number | null | undefined) => (v == null ? "—" : `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`);
+const pctTxt = (v: number | null | undefined) => (v == null ? "—" : `${v.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`);
 
 export function SimuladorCanais() {
   const { data: cfgBruta } = useConfig();
