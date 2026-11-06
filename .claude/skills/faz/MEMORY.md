@@ -6,7 +6,8 @@ Atualizado em 28/10/2026.
   vai para o GER), AUD → ENT (auditor e extratos com o ENT), DOC → REV. Regra 82ff394: tudo o que precisar dela vem com
   botões (AskUserQuestion). Título da sessão: "04 📋 FAZ · Acompanhamento e o que só você faz".
 - 06/11: update único gravado com a aprovação dela: 28 pedidos em "feito" (27 mudaram, 1 já estava), detalhes do TRA
-  c2eaf691 e do SEG 1bb8f5db; 'voce' foi de 166 para 139. Chats avisados. DSG não respondeu (seus itens seguem 'voce').
+  c2eaf691 e do SEG 1bb8f5db; 'voce' foi de 166 para 139. Chats avisados. DSG respondeu depois: mais 9 gravados com aprovação
+  dela (130 'voce'). Regras de 05/11 no CLAUDE.md (4d88b7f).
   Prazos: "mais tarde hoje"; conferência agendada às 18h.
 - 06/11 08:42: 10º resumo (curto, 3 coisas). Tiny e inutilização ainda não feitos; DSG não respondeu (update com 28).
   Próximo: 07/11 08:40.
