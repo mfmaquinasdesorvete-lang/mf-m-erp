@@ -8,7 +8,7 @@ pendentes, quase todas sem venda, nota ou conta a receber no sistema que expliqu
 
 ## No ar
 - Auditoria financeira mais leve (31/10, site 74377c7): só as colunas e o histórico que as regras usam (~3,5 MB em
-  vez de ~6,8 MB); índice `auditor_achados (ultima_rodada)` (migração 20261101000206). Falta ela abrir e conferir.
+  vez de ~6,8 MB); índice `auditor_achados (ultima_rodada)` (migração 20261101000206). Feito em 06/11 (FAZ).
 - Data de abertura da conta (contas_bancarias.aberta_em / aberta_em_so_ano): no cartão e no cadastro
   (migração 20261101000191; publicado em 28/10, site 2581db4). Olist sem data: a usuária confirma.
 - Link de pagamento (28/10, migração 20261101000192): o link do pedido dá baixa em todas as parcelas; sem taxa
