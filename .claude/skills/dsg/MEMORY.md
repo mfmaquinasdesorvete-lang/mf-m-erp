@@ -67,11 +67,9 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 
 ## Esperando a usuária
-- Teste no ERP no ar com login (este chat não entra no ar): os 57 pedidos do DSG foram testados em 27/10 no modo
-  demonstração, que roda o mesmo código, e o teste está escrito no detalhe de cada um em Sobre → Pedidos. Para a
-  usuária conferir no ar quando puder: Início → Organizar → mover uma seção → Pronto; uma lista no celular com as letras novas.
-- Aviso do meio da tela (setas, Ciente em todos, som): não deu para testar sem um aviso de chat de verdade; pedido voltou
-  para "fazendo" até aparecer um aviso.
+- (06/11) Os 9 pedidos só visuais foram para "feito" com a aprovação dela, pela regra de 05/11 (teste na demonstração).
+- Avisos do meio da tela (aec3838c): setas, "Ciente em todos" e som; não abre aviso de chat na demonstração.
+- Visual da nota rejeitada (e47f15ea): tela de nota fiscal, fica com ela.
 
 ## Decisões da usuária
 - Cor primária: o ciano de sempre (cada pessoa pode trocar em Aparência).
