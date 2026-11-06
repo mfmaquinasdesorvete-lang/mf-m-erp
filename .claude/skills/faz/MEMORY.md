@@ -5,9 +5,8 @@ Atualizado em 28/10/2026.
 - 31/10: virei "Acompanhamento e o que só você faz" (juntou o CNF, eb791d1). 18 chats: TIN → GER (Tiny do Dossiê
   vai para o GER), AUD → ENT (auditor e extratos com o ENT), DOC → REV. Regra 82ff394: tudo o que precisar dela vem com
   botões (AskUserQuestion). Título da sessão: "04 📋 FAZ · Acompanhamento e o que só você faz".
-- 05/11 08:42: 9º resumo. Nada mudou (Tiny 16/10, inutilização 0, rosto 0, 0 conferidos; 165 'voce'). Em 04/11 ela
-  disse "Já fiz" no Tiny e na inutilização sem ter feito; corrigiu para "Ainda não fiz". Conferir sempre no banco.
-  Próximo: 06/11 08:40.
+- 06/11 08:42: 10º resumo (curto, 3 coisas). Tiny e inutilização ainda não feitos; DSG não respondeu (update com 28).
+  Próximo: 07/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 
