@@ -38,9 +38,12 @@
   tokens, uma ação principal, celular, carregando/vazio/erro, volta e Cancelar, acessibilidade, permissões, tarefa real).
 - Rodada de fechamento (desde 27/10, até a usuária dizer que acabou): função nova só se ela pedir. Cada chat termina o
   que está em andamento, conserta e testa com uma tarefa real (do começo ao fim, no ERP no ar); "feito" em Sobre → Pedidos
-  só depois desse teste, com o que foi testado no detalhe.
+  só depois desse teste, com o que foi testado no detalhe. Desde 05/11, o que é só olhar na tela, já no ar e testado na
+  demonstração vira "feito" sem a conferência da usuária; ficam com ela só decisões, arquivos e o que mexe com dinheiro
+  ou nota fiscal.
 - Cobrança da usuária: só o FAZ manda o resumo da manhã (o que só ela faz nos painéis, as decisões que cada chat espera
-  dela e o que ficou pronto para ela conferir). Os outros chats avisam no ERP só quando precisam dela na hora (publicar,
+  dela e o que ficou pronto para ela conferir). Desde 05/11 o resumo traz só de 1 a 3 coisas por dia; o resto fica no
+  painel. Os outros chats avisam no ERP só quando precisam dela na hora (publicar,
   trabalho travado) e anotam o resto em "Esperando a usuária" da sua MEMORY.md, onde o FAZ lê.
 - Marcadores são da usuária e não se perdem: importação (Tiny ou outra), unificação de cadastros e correções
   automáticas só somam marcadores, nunca tiram; os marcadores que vierem do Tiny (ex.: Em garantia, Fora de garantia,
