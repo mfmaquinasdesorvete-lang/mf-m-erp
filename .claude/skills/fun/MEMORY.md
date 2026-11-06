@@ -1,5 +1,5 @@
 # MEMORY — FUN (ERP Line – Funcionários (RH))
-Atualizado em 29/10/2026.
+Atualizado em 06/11/2026.
 
 ## Estado agora
 Funcionários é uma área própria do menu, com 6 abas no ar. O cadastro tem a equipe atual e os ex-funcionários
@@ -21,9 +21,7 @@ das épocas anteriores. Falta a usuária importar os documentos do Drive (a past
 - Nada; os pedidos esperam o teste na tela (abaixo).
 
 ## Esperando a usuária
-- Rodada de fechamento: daqui não há login no ERP. Os 4 pedidos de 24/10 estão "voce" com a conferência no detalhe;
-  falta o teste na tela, feito por ela (ou por um chat com o computador dela): Equipe (lista fechada e os 5 cartões),
-  Crown Móveis (filtro e abrir pessoa), Importar pasta e Recibos (cartões por pessoa, abrir um cartão).
+- Os pedidos de tela (área, lista fechada, cartões, Crown, recibos) viraram "feito" em 06/11 pela regra do FAZ (testados na demonstração).
 - Baixar no computador a pasta "ERP – Pastas dos funcionários" do Drive da MF e usar Importar pasta.
   Depois, conferir no banco quantos arquivos entraram por pessoa.
 - Pagamentos da época Crown com meses sem documento; os extratos daquela época no Drive podem completar.
