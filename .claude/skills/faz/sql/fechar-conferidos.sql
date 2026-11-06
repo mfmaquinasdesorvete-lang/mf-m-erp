@@ -1,3 +1,4 @@
+-- GRAVADO em 06/11/2026 com a aprovação dela (28 em feito). Guardado só como registro.
 -- FAZ (05/11/2026): decisão da usuária. Os pedidos em "voce" que são só olhar na tela, já no ar e testados, viram
 -- "feito" sem a conferência dela. Cada chat mandou a sua lista; vai tudo num update só, para ela aprovar uma vez.
 -- Junta o teste no detalhe (não apaga o que estava escrito).

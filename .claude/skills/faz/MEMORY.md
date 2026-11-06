@@ -5,6 +5,9 @@ Atualizado em 28/10/2026.
 - 31/10: virei "Acompanhamento e o que só você faz" (juntou o CNF, eb791d1). 18 chats: TIN → GER (Tiny do Dossiê
   vai para o GER), AUD → ENT (auditor e extratos com o ENT), DOC → REV. Regra 82ff394: tudo o que precisar dela vem com
   botões (AskUserQuestion). Título da sessão: "04 📋 FAZ · Acompanhamento e o que só você faz".
+- 06/11: update único gravado com a aprovação dela: 28 pedidos em "feito" (27 mudaram, 1 já estava), detalhes do TRA
+  c2eaf691 e do SEG 1bb8f5db; 'voce' foi de 166 para 139. Chats avisados. DSG não respondeu (seus itens seguem 'voce').
+  Prazos: "mais tarde hoje"; conferência agendada às 18h.
 - 06/11 08:42: 10º resumo (curto, 3 coisas). Tiny e inutilização ainda não feitos; DSG não respondeu (update com 28).
   Próximo: 07/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
