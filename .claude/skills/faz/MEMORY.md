@@ -9,8 +9,8 @@ Atualizado em 28/10/2026.
   c2eaf691 e do SEG 1bb8f5db; 'voce' foi de 166 para 139. Chats avisados. DSG respondeu depois: mais 9 gravados com aprovação
   dela (130 'voce'). Regras de 05/11 no CLAUDE.md (4d88b7f).
   Prazos: "mais tarde hoje"; conferência agendada às 18h.
-- 06/11 08:42: 10º resumo (curto, 3 coisas). Tiny e inutilização ainda não feitos; DSG não respondeu (update com 28).
-  Próximo: 07/11 08:40.
+- 07/11 08:42: 11º resumo (2 coisas). Tiny e inutilização ainda não feitos (lembrete enviado 06/11 18h). 131 'voce'.
+  Próximo: 08/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 
