@@ -13,6 +13,7 @@ Atualizado em 28/10/2026.
 - 08/11 08:41: 12º resumo (2 coisas). Tiny e inutilização ainda não feitos. 131 'voce', 0 rostos. Amanhã (09/11): se o Tiny seguir sem ser feito, avisar o GER.
 - 08/11 17:48: lembrete do Tiny; ela escolheu "Faço agora". Conferência no banco agendada para 18:09.
 - 08/11 18:10: conferido no banco: Tiny ainda em 16/10. Ela escolheu "Amanhã cedo" (09/11, último dia). Resumo das 08:40 cobra; se não fizer, avisar o GER.
+- 08/11 18:30: pedido do ELO: conferi os 8 chats parados (FIS, PRD, FUN, MYF, SOR, DSG, SEG, IAD). DSG e IAD: só testes de tela, pedi que testem na demonstração e fechem. Os outros seguem valendo (fila do resumo: PRD kits de borracha, SEG quem tem acesso, FUN pasta, MYF documentos). Ela escolheu aprovar hoje a tabela das marcas do SOR (migração 205); SOR avisado e vai pedir a gravação.
   Próximo: 09/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
