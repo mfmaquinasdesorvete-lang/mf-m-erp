@@ -67,9 +67,7 @@ degradê nem brilho decorativo, escuro liso como padrão. Celular repaginado no 
 - Rodada de fechamento: testar a janela de avisos com um aviso de verdade (pedido aec3838c).
 
 ## Esperando a usuária
-- (06/11) Os 9 pedidos só visuais foram para "feito" com a aprovação dela, pela regra de 05/11 (teste na demonstração).
-- Avisos do meio da tela (aec3838c): setas, "Ciente em todos" e som; não abre aviso de chat na demonstração.
-- Visual da nota rejeitada (e47f15ea): tela de nota fiscal, fica com ela.
+- Nada (08/11): os dois últimos (avisos do meio da tela e nota rejeitada no escuro) foram testados na demonstração e estão em "feito".
 
 ## Decisões da usuária
 - Cor primária: o ciano de sempre (cada pessoa pode trocar em Aparência).
