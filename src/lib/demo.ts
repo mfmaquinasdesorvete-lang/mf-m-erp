@@ -23,6 +23,7 @@ import { conferirAgendamento, frequenciaDe, type FrequenciaColeta } from "./cole
 import { faltaParaCotarRte } from "../../supabase/functions/_shared/rodonaves";
 import { normalizarSugestao } from "../../supabase/functions/_shared/ia-produto";
 import { normalizarItens, type ItemIA } from "../../supabase/functions/_shared/ia-itens";
+import { normalizarCliente } from "../../supabase/functions/_shared/ia-cliente";
 import { sugestaoLocal } from "./autoFill";
 
 type Row = Record<string, any>;
@@ -5597,6 +5598,20 @@ const funcoes: Record<string, (b: any) => any> = {
   // na prévia as fotos continuam pelo link (não há armazenamento)
   "produtos-fotos": () => ({ copiadas: 0, falharam: 0, restantes: 0 }),
   // na prévia não há IA: simula a resposta com as regras do ERP + o que uma foto/PDF traria (marca, voltagem)
+  // Preencher com IA do cliente: lê CPF/CNPJ, e-mail, telefone e CEP do texto colado (a IA de verdade lê bem mais)
+  "ia-cliente": (b) => {
+    const t = String(b.texto ?? "");
+    const doc = t.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}|\d{3}\.?\d{3}\.?\d{3}-?\d{2}/)?.[0] ?? "";
+    const fone = t.match(/\(?\d{2}\)?\s?9?\d{4}[-\s]?\d{4}/)?.[0] ?? "";
+    const { dados, avisos } = normalizarCliente({
+      nome: t.match(/\b(?:da|do|de)\s+([^,\n]+)/i)?.[1]?.trim() ?? "", cpf_cnpj: doc,
+      email: t.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0] ?? "", whatsapp: fone, cep: t.match(/cep\s*:?\s*(\d{5}-?\d{3})/i)?.[1] ?? "",
+      observacao: b.imagem ? "lido do cartão de visita (simulação)" : "",
+    });
+    const repetidos = (db.clientes ?? []).filter((c) => dados.cpf_cnpj && String(c.cpf_cnpj ?? "").replace(/\D/g, "") === dados.cpf_cnpj)
+      .slice(0, 3).map((c) => ({ id: c.id, nome: c.nome_fantasia || c.nome, codigo: c.codigo ?? null, motivo: "mesmo CPF/CNPJ" }));
+    return { dados, avisos, repetidos, modelo: "simulação da prévia" };
+  },
   "ia-produto": (b) => {
     if (b.acao === "situacao") return { configurada: true };
     // Conferir itens das notas: liga ao 1º candidato, marca uso e consumo pelo nome, senão sugere criar
