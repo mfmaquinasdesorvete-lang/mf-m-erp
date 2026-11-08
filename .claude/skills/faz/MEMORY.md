@@ -11,6 +11,7 @@ Atualizado em 28/10/2026.
   Prazos: "mais tarde hoje"; conferência agendada às 18h.
 - 07/11 08:42: 11º resumo (2 coisas). Tiny e inutilização ainda não feitos (lembrete enviado 06/11 18h). 131 'voce'.
 - 08/11 08:41: 12º resumo (2 coisas). Tiny e inutilização ainda não feitos. 131 'voce', 0 rostos. Amanhã (09/11): se o Tiny seguir sem ser feito, avisar o GER.
+- 08/11 17:48: lembrete do Tiny; ela escolheu "Faço agora". Conferência no banco agendada para 18:09.
   Próximo: 09/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
