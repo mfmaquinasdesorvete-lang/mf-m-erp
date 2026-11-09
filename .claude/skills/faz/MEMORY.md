@@ -17,7 +17,8 @@ Atualizado em 28/10/2026.
 - 08/11 18:29: DSG fechou os 2 testes (aec3838c, e47f15ea), conferido no banco: feito. DSG sem nada com ela.
 - 08/11 18:35: IAD testou o Preencher com IA na demonstração; com a aprovação dela gravei b12b4aba e 976206dc em feito. IAD sem nada com ela (5f1ccef já publicado em 06/11; b415ecc da demonstração vai na próxima publicação).
 - 08/11 18:33: SOR aplicou a migração 205 (tabela das marcas) com a aprovação dela; índice conferido no banco. Pendência do REV resolvida.
-  Próximo: 09/11 08:40.
+- 09/11 08:41: 13º resumo (2 coisas). Tiny ainda em 16/10 (prazo hoje); GER avisado e perguntado o que se perde. Inutilização SP nada (prazo 10/11). 129 'voce'. Conferência às 14:40.
+  Próximo: 10/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 
