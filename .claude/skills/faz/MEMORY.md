@@ -18,6 +18,7 @@ Atualizado em 28/10/2026.
 - 08/11 18:35: IAD testou o Preencher com IA na demonstração; com a aprovação dela gravei b12b4aba e 976206dc em feito. IAD sem nada com ela (5f1ccef já publicado em 06/11; b415ecc da demonstração vai na próxima publicação).
 - 08/11 18:33: SOR aplicou a migração 205 (tabela das marcas) com a aprovação dela; índice conferido no banco. Pendência do REV resolvida.
 - 09/11 08:41: 13º resumo (2 coisas). Tiny ainda em 16/10 (prazo hoje); GER avisado e perguntado o que se perde. Inutilização SP nada (prazo 10/11). 129 'voce'. Conferência às 14:40.
+- 09/11 10:35: GER respondeu: 09/11 é prazo nosso, não do Tiny. A API funciona enquanto a assinatura estiver ativa; dá para esperar alguns dias. Regra: NÃO cancelar a assinatura do Tiny antes de rodar os 2 botões e o GER conferir as contagens (senão ficam de fora os recebimentos de ~135 pedidos antigos e o DRE e a conciliação desses pedidos ficam furados). Plano B (pior): planilhas de Contas a receber e Contatos + backup final, importação à mão pelo GER.
   Próximo: 10/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.

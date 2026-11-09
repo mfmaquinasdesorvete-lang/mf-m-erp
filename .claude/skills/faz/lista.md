@@ -101,7 +101,7 @@ de extratos do ERP. Prefira OFX; se o banco não tiver, PDF. Depois de importar,
 - **D5. Banco Inter SC** (GER) — o ERP só tem desde 10/2026 (ligação automática). Se a conta é mais antiga: app Inter →
   Extrato → período → Exportar → OFX.
 **Tiny, antes de cancelar a assinatura** (TIN; o resto do Tiny já está no ERP). Mandar os arquivos no chat do TIN.
-- **T1. Primeiro de tudo (2 cliques, a API do Tiny para quando a assinatura acabar):** no ERP, Importar → Tiny →
+- **T1. Primeiro de tudo (2 cliques; a API do Tiny para quando a assinatura acabar, então NÃO cancele o Tiny antes disto e da conferência do GER):** no ERP, Importar → Tiny →
   **Buscar recebimentos do Tiny** e **Atualizar cadastros do Tiny** (período: tudo).
 - **T2. NFS-e emitidas pelo Tiny:** Tiny → Serviços → Notas fiscais de serviço → período 01/2023 a 09/2026 → selecionar
   todas → Exportar XML (e PDF, se tiver). Se a lista estiver vazia, avise o TIN: não há nada a trazer.
