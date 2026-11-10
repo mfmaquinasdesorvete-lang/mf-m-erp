@@ -58,6 +58,8 @@ Cuido de impostos, apuração, notas fiscais (NF-e, NFS-e, configuração do CT-
 - `supabase/migrations/20261021000000_contador.sql` (fechamento do mês e mês travado).
 
 ## Cuidados conhecidos
+- Rejeição 781 ("Emissor não habilitado para emissão da NF-e/NFC-e") é da SEFAZ sobre a própria MF (IE suspensa ou
+  credenciamento da NF-e no SAT), não do cliente nem do ERP: compare o payload com a última autorizada e leve ao contador.
 - CC-e: o texto (xCorrecao) não aceita quebra de linha nem caracteres fora de espaço–ÿ, e a última carta substitui
   todas as anteriores (Ajuste SINIEF 07/05, cl. 14ª-A § 4º): a carta nova precisa repetir o que ainda vale.
 - XML da NF-e emitida pelo ERP fica na Focus (notas_fiscais.xml_url), não em notas_fiscais_xml (só as importadas): conta

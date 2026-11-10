@@ -57,6 +57,10 @@ guias e os parcelamentos que chegam na caixa do contador.
   No ar em 29/10 (site e função); falta o teste: Validar uma nota emitida no ar.
 
 ## Esperando a usuária
+- Desde 09/11 a SEFAZ SC recusa as NF-e da Matriz (Focus status_sefaz 781, "Emissor não habilitado para emissão
+  da NF-e/NFC-e"), com o mesmo CNPJ e dados das notas autorizadas em 03 e 04/11. É a situação da IE ou o
+  credenciamento da NF-e da MF SC no SAT (pendência de DIME/EFD ou IE suspensa). Ela ou o contador olham o SAT.
+  SP emite normal; nota por SP só para mercadoria que sai fisicamente de SP.
 - NF 438 (pedido #619, autorizada em 27/10): o pedido foi refeito como #630 com outro redutor, então a nota não
   serve ao #630 e passou o prazo de 24 h. Ela vai ver se as peças saíram. Se não saíram: o contador escolhe entre
   cancelar fora do prazo na SEF/SC ou fazer uma NF de entrada para anular, e depois sai uma NF nova pelo #630.
