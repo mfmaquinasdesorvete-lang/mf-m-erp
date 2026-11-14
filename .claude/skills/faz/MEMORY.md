@@ -19,7 +19,10 @@ Atualizado em 28/10/2026.
 - 08/11 18:33: SOR aplicou a migração 205 (tabela das marcas) com a aprovação dela; índice conferido no banco. Pendência do REV resolvida.
 - 09/11 08:41: 13º resumo (2 coisas). Tiny ainda em 16/10 (prazo hoje); GER avisado e perguntado o que se perde. Inutilização SP nada (prazo 10/11). 129 'voce'. Conferência às 14:40.
 - 09/11 10:35: GER respondeu: 09/11 é prazo nosso, não do Tiny. A API funciona enquanto a assinatura estiver ativa; dá para esperar alguns dias. Regra: NÃO cancelar a assinatura do Tiny antes de rodar os 2 botões e o GER conferir as contagens (senão ficam de fora os recebimentos de ~135 pedidos antigos e o DRE e a conciliação desses pedidos ficam furados). Plano B (pior): planilhas de Contas a receber e Contatos + backup final, importação à mão pelo GER.
-  Próximo: 10/11 08:40.
+- 10/11 08:41: resumo (inutilização SP no último dia); aviso enviado; a pergunta com botões ficou sem resposta e o turno parou ANTES de agendar o próximo: os resumos de 11 a 13/11 não saíram (erro meu).
+- 10/11: FIS respondeu (lido só em 14/11): fora do prazo ainda dá para inutilizar, pode haver multa (contador diz o valor). E a SEFAZ SC recusa as notas da Matriz desde 09/11 (código 781, IE da MF SC no SAT): o contador precisa olhar.
+- 14/11 15:45: conferido: inutilização ainda nada, Tiny ainda 16/10, 129 'voce', 0 rostos. Aviso + celular enviados; perguntei ao FIS se a 781 continua e se o contador já sabe. Próximo resumo 15/11 08:40.
+  Próximo: 15/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 

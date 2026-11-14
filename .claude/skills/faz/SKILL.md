@@ -122,3 +122,4 @@ Confiro se cada pedido feito aos chats deu certo e está no ar, cobro os chats p
 - Entrega sem a linha `Claude-Session` no commit não aparece na Central dos chats.
 - Publicação parada há mais de 20 min é marcada como abandonada pela própria trava.
 - A main é antiga: conferir sempre na `paineis-no-ar`.
+- Resumo da manhã: agendar o próximo ANTES de perguntar com botões. Em 10/11 a pergunta ficou sem resposta, o turno parou e os resumos de 11 a 13/11 não saíram.
