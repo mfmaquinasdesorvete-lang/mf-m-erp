@@ -22,7 +22,9 @@ Atualizado em 28/10/2026.
 - 10/11 08:41: resumo (inutilização SP no último dia); aviso enviado; a pergunta com botões ficou sem resposta e o turno parou ANTES de agendar o próximo: os resumos de 11 a 13/11 não saíram (erro meu).
 - 10/11: FIS respondeu (lido só em 14/11): fora do prazo ainda dá para inutilizar, pode haver multa (contador diz o valor). E a SEFAZ SC recusa as notas da Matriz desde 09/11 (código 781, IE da MF SC no SAT): o contador precisa olhar.
 - 14/11 15:45: conferido: inutilização ainda nada, Tiny ainda 16/10, 129 'voce', 0 rostos. Aviso + celular enviados; perguntei ao FIS se a 781 continua e se o contador já sabe. Próximo resumo 15/11 08:40.
-  Próximo: 15/11 08:40.
+- 14/11 15:45 (resposta do FIS): ninguém tentou NF-e desde as 3 recusas de 09/11; o contador NÃO foi avisado. Tarefa dela: pedir ao contador para olhar no SAT de SC a IE da MF e o credenciamento da NF-e.
+- 15/11 08:41: resumo (2 coisas: contador SAT e inutilização SP). Próximo já agendado antes da pergunta (16/11 08:40). Inutilização ainda nada, Tiny 16/10, 129 'voce'.
+  Próximo: 16/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 

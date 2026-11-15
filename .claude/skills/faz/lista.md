@@ -13,6 +13,10 @@ Conferido no banco e no GitHub em 27/10: as funções do Supabase estão todas n
 ("abra este chat para aprovar a gravação") e espera 1 a 2 minutos antes de gravar.
 
 
+## 0a. Contador: recusa 781 das notas da Matriz SC (FIS, 14/11)
+**Por que importa:** desde 09/11 a SEFAZ SC recusa as notas da Matriz (emissor não habilitado); notas da Matriz não saem.
+**O que fazer:** pedir ao contador para olhar no SAT de SC a inscrição estadual da MF e o credenciamento da NF-e (pendência de DIME/EFD ou inscrição suspensa). Quando ele responder, avise o FIS.
+
 ## 0b. GitHub: cadastrar a chave de leitura da Hostinger (SEG) — 3 minutos
 **Por que importa:** é o que falta para deixar o repositório **privado** (decisão sua de 27/10). Com ele privado, os
 nomes antigos que ficaram nos commits deixam de ficar abertos. Sem a chave, a Hostinger não conseguiria mais ler o
