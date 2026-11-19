@@ -27,7 +27,8 @@ Atualizado em 28/10/2026.
 - 16/11 08:41: resumo (mesmas 2: contador SAT e inutilização SP); sem resposta dela desde 08/11 (as perguntas com botões de 10, 14 e 15/11 ficaram sem resposta). Próximo agendado 17/11 08:40.
 - 17/11 08:41: resumo (mesmas 2). Nada mudou no banco. Sem resposta dela desde 08/11. Próximo agendado 18/11 08:40.
 - 18/11 08:41: resumo (mesmas 2). Nada mudou no banco. Sem resposta dela desde 08/11. Próximo agendado 19/11 08:40.
-  Próximo: 19/11 08:40.
+- 19/11 08:41: resumo (mesmas 2). Nada mudou. Avisei o ELO que ela não responde desde 08/11. Próximo agendado 20/11 08:40.
+  Próximo: 20/11 08:40.
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 
