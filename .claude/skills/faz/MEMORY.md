@@ -29,7 +29,8 @@ Atualizado em 28/10/2026.
 - 18/11 08:41: resumo (mesmas 2). Nada mudou no banco. Sem resposta dela desde 08/11. Próximo agendado 19/11 08:40.
 - 19/11 08:41: resumo (mesmas 2). Nada mudou. Avisei o ELO que ela não responde desde 08/11. Próximo agendado 20/11 08:40.
 - 20/11 08:40: nada mudou no banco. Combinado com o ELO (19/11): como ela não responde desde 08/11, o FAZ não repete o aviso igual todo dia. A conferência diária é silenciosa; aviso e celular só se algo mudar ou às segundas (1 lembrete por semana). Quando ela voltar a falar, retomar o resumo com botões. Próximo 21/11 08:40.
-  Próximo: 21/11 08:40 (silencioso).
+- 21/11 08:41: conferência silenciosa, nada mudou (Tiny 16/10, inutilização 0). Próximo 22/11; lembrete semanal na segunda 23/11.
+  Próximo: 22/11 08:40 (silencioso).
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 
