@@ -1,0 +1,52 @@
+name: Testes dos chats
+
+# Roda os testes dos chats (scripts/agentes/rodar-testes.ts) pela API do Claude. Só pelo botão "Run workflow":
+# cada rodada gasta créditos da API. As ferramentas dos chats são simuladas: nada é gravado no banco nem publicado.
+# Precisa do segredo ANTHROPIC_API_KEY no repositório (Settings → Secrets and variables → Actions).
+on:
+  workflow_dispatch:
+    inputs:
+      agente:
+        description: "Sigla do chat (ex.: FIS). Vazio = todos os 18"
+        required: false
+        default: "FIS"
+      nivel:
+        description: "Nível 1, 2 ou 3. Vazio = os três"
+        required: false
+        default: ""
+      repeticoes:
+        description: "Repetições por caso (o dataset usa 3)"
+        required: false
+        default: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: paineis-no-ar
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Plano e estimativa de custo
+        run: node scripts/agentes/rodar-testes.ts --seco $ARGS
+        env:
+          ARGS: ${{ format('{0}{1}{2}', inputs.agente != '' && format('--agente {0} ', inputs.agente) || '', inputs.nivel != '' && format('--nivel {0} ', inputs.nivel) || '', inputs.repeticoes != '' && format('--repeticoes {0}', inputs.repeticoes) || '') }}
+      - name: Rodar os chats e dar a nota
+        run: node scripts/agentes/rodar-testes.ts $ARGS
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ARGS: ${{ format('{0}{1}{2}', inputs.agente != '' && format('--agente {0} ', inputs.agente) || '', inputs.nivel != '' && format('--nivel {0} ', inputs.nivel) || '', inputs.repeticoes != '' && format('--repeticoes {0}', inputs.repeticoes) || '') }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: resultados-testes-chats
+          path: scripts/agentes/resultados/
+          if-no-files-found: ignore
