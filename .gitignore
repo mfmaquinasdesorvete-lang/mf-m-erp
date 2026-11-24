@@ -6,3 +6,6 @@ supabase/.temp
 dist-demo
 previa-erp-mf-maquinas.html
 *.tsbuildinfo
+
+# resultados dos testes dos chats (rodar-testes.ts)
+scripts/agentes/resultados/

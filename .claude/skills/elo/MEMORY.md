@@ -14,8 +14,9 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
 - Testes dos chats (24/11): `src/lib/agentes/test_dataset.json` (18 chats × níveis 1, 2 e 3 = 54 casos, 3 repetições,
   nota 0 ou 1) e o carregador `src/lib/agentes/testesAgentes.ts` (confere o modelo, planeja as repetições, pontua o
   nível 1 por conferências fixas + IA juíza, o 2 pela ferramenta escolhida e o 3 pela trajetória, e junta em pass^3).
-  Teste em `src/lib/__tests__/testesAgentes.test.ts`. Ainda não roda os chats de verdade: falta quem execute cada chat
-  e a IA juíza (precisa da chave ANTHROPIC_API_KEY).
+  Teste em `src/lib/__tests__/testesAgentes.test.ts`. Quem roda os chats: `scripts/agentes/rodar-testes.ts` (Claude API,
+  CLAUDE.md + skill do chat, ferramentas simuladas, juíza no nível 1; `--seco` mostra o plano e o custo). Precisa da
+  chave ANTHROPIC_API_KEY (credencial de api.anthropic.com no ambiente ELO). Suíte inteira ≈ 700 pedidos, ≈ US$ 24.
 - Memória geral em `MEMORY.md` e modelo em `.claude/memoria-modelo.md`. Os 19 chats já têm a sua `MEMORY.md` (25/10).
 
 ## Em andamento

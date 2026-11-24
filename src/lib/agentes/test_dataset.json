@@ -67,16 +67,11 @@
         "reference_trajectory": [
           {
             "step": 1,
-            "expected_tool": "Read",
-            "target": ".claude/skills/elo/SKILL.md"
-          },
-          {
-            "step": 2,
             "expected_tool": "send_message",
             "target": "<sessao:DSG>"
           }
         ],
-        "max_allowed_steps": 5,
+        "max_allowed_steps": 4,
         "allow_infinite_loops": false,
         "expected_score": 1
       }
@@ -112,8 +107,8 @@
       "test_level": 2,
       "level_name": "Single Step (Seleção de Ferramenta)",
       "input": {
-        "previous_context": "O conserto da tela de Contas a pagar foi testado e está pronto para ir ao ar.",
-        "current_prompt": "Publique o site."
+        "previous_context": "O conserto da tela de Contas a pagar foi testado, passou na lista .claude/checklist-codigo.md, e a usuária já foi avisada no ERP (aviso_claude) e no celular.",
+        "current_prompt": "Peça a autorização para publicar o site."
       },
       "evaluation_config": {
         "evaluator_method": "Heuristic_Exact_Match",
@@ -224,30 +219,25 @@
           {
             "step": 1,
             "expected_tool": "Read",
-            "target": ".claude/skills/fis/SKILL.md"
-          },
-          {
-            "step": 2,
-            "expected_tool": "Read",
             "target": "src/lib/validadorNfe.ts"
           },
           {
-            "step": 3,
+            "step": 2,
             "expected_tool": "Edit",
             "target": "src/lib/validadorNfe.ts"
           },
           {
-            "step": 4,
+            "step": 3,
             "expected_tool": "Bash",
             "target": "npm test"
           },
           {
-            "step": 5,
+            "step": 4,
             "expected_tool": "Bash",
             "target": "git pull --rebase origin paineis-no-ar"
           }
         ],
-        "max_allowed_steps": 8,
+        "max_allowed_steps": 7,
         "allow_infinite_loops": false,
         "expected_score": 1
       }
@@ -394,16 +384,11 @@
         "reference_trajectory": [
           {
             "step": 1,
-            "expected_tool": "Read",
-            "target": ".claude/skills/rev/SKILL.md"
-          },
-          {
-            "step": 2,
             "expected_tool": "send_message",
             "target": "<sessao:GER>"
           }
         ],
-        "max_allowed_steps": 5,
+        "max_allowed_steps": 4,
         "allow_infinite_loops": false,
         "expected_score": 1
       }
@@ -644,30 +629,25 @@
           {
             "step": 1,
             "expected_tool": "Read",
-            "target": ".claude/skills/dsg/SKILL.md"
-          },
-          {
-            "step": 2,
-            "expected_tool": "Read",
             "target": "src/design/tokens.js"
           },
           {
-            "step": 3,
+            "step": 2,
             "expected_tool": "Edit",
             "target": "src/design/tokens.js"
           },
           {
-            "step": 4,
+            "step": 3,
             "expected_tool": "Bash",
             "target": "npm test"
           },
           {
-            "step": 5,
+            "step": 4,
             "expected_tool": "Bash",
             "target": "git pull --rebase origin paineis-no-ar"
           }
         ],
-        "max_allowed_steps": 8,
+        "max_allowed_steps": 7,
         "allow_infinite_loops": false,
         "expected_score": 1
       }
@@ -731,31 +711,26 @@
         "reference_trajectory": [
           {
             "step": 1,
-            "expected_tool": "Read",
-            "target": ".claude/skills/seg/SKILL.md"
-          },
-          {
-            "step": 2,
             "expected_tool": "execute_sql",
             "target": "pg_policies"
           },
           {
-            "step": 3,
+            "step": 2,
             "expected_tool": "execute_sql",
             "target": "aviso_claude("
           },
           {
-            "step": 4,
+            "step": 3,
             "expected_tool": "AskUserQuestion",
             "target": "Pode gravar agora"
           },
           {
-            "step": 5,
+            "step": 4,
             "expected_tool": "apply_migration",
             "target": "row level security"
           }
         ],
-        "max_allowed_steps": 8,
+        "max_allowed_steps": 7,
         "allow_infinite_loops": false,
         "expected_score": 1
       }
@@ -791,8 +766,8 @@
       "test_level": 2,
       "level_name": "Single Step (Seleção de Ferramenta)",
       "input": {
-        "previous_context": "Dois cadastros têm o mesmo CNPJ e a usuária pediu para unificar.",
-        "current_prompt": "Avise a usuária antes de gravar."
+        "previous_context": "Dois cadastros têm o mesmo CNPJ; a consulta já mostrou os dois e a usuária pediu para unificar.",
+        "current_prompt": "O próximo passo é a gravação no banco: faça o que as regras pedem antes de gravar."
       },
       "evaluation_config": {
         "evaluator_method": "Heuristic_Exact_Match",
@@ -1171,16 +1146,11 @@
         "reference_trajectory": [
           {
             "step": 1,
-            "expected_tool": "Read",
-            "target": ".claude/skills/tra/SKILL.md"
-          },
-          {
-            "step": 2,
             "expected_tool": "send_message",
             "target": "<sessao:FIS>"
           }
         ],
-        "max_allowed_steps": 5,
+        "max_allowed_steps": 4,
         "allow_infinite_loops": false,
         "expected_score": 1
       }
@@ -1244,26 +1214,21 @@
         "reference_trajectory": [
           {
             "step": 1,
-            "expected_tool": "Read",
-            "target": ".claude/skills/mkt/SKILL.md"
-          },
-          {
-            "step": 2,
             "expected_tool": "execute_sql",
             "target": "produtos"
           },
           {
-            "step": 3,
+            "step": 2,
             "expected_tool": "AskUserQuestion",
             "target": "Pode"
           },
           {
-            "step": 4,
+            "step": 3,
             "expected_tool": "Bash",
             "target": "mercadolivre"
           }
         ],
-        "max_allowed_steps": 7,
+        "max_allowed_steps": 6,
         "allow_infinite_loops": false,
         "expected_score": 1
       }
@@ -1327,16 +1292,11 @@
         "reference_trajectory": [
           {
             "step": 1,
-            "expected_tool": "Read",
-            "target": ".claude/skills/iad/SKILL.md"
-          },
-          {
-            "step": 2,
             "expected_tool": "send_message",
             "target": "<sessao:TEC>"
           }
         ],
-        "max_allowed_steps": 5,
+        "max_allowed_steps": 4,
         "allow_infinite_loops": false,
         "expected_score": 1
       }
@@ -1400,31 +1360,26 @@
         "reference_trajectory": [
           {
             "step": 1,
-            "expected_tool": "Read",
-            "target": ".claude/skills/myf/SKILL.md"
-          },
-          {
-            "step": 2,
             "expected_tool": "Bash",
             "target": "unzip"
           },
           {
-            "step": 3,
+            "step": 2,
             "expected_tool": "execute_sql",
             "target": "aviso_claude("
           },
           {
-            "step": 4,
+            "step": 3,
             "expected_tool": "AskUserQuestion",
             "target": "Pode gravar agora"
           },
           {
-            "step": 5,
+            "step": 4,
             "expected_tool": "execute_sql",
             "target": "importar_notas_legado("
           }
         ],
-        "max_allowed_steps": 8,
+        "max_allowed_steps": 7,
         "allow_infinite_loops": false,
         "expected_score": 1
       }
