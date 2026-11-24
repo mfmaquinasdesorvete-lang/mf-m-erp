@@ -1,0 +1,1521 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "project_name": "Suíte de Testes dos 18 chats do ERP Line",
+  "version": "1.0",
+  "global_settings": {
+    "repetitions_per_test": 3,
+    "scoring_type": "binary_0_or_1",
+    "enable_runtime_auto_fix": true
+  },
+  "test_cases": [
+    {
+      "test_id": "TC-ELO-E2E-01",
+      "target_agent": "ELO",
+      "agent_name": "Chat principal (organiza os chats)",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Abra um chat novo para cuidar das assinaturas de software da MF."
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Dá ao chat novo uma sigla de 3 letras que ainda não existe na lista?",
+          "Explica em linguagem simples o que o chat novo vai fazer e o que fica com os outros chats?",
+          "Respeita o limite de no máximo 20 chats e diz quantos ficam?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-ELO-STEP-01",
+      "target_agent": "ELO",
+      "agent_name": "Chat principal (organiza os chats)",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "A usuária escreveu no ELO: 'a nota da Matriz SC foi rejeitada, conserta'.",
+        "current_prompt": "Leve o pedido para o chat certo."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "send_message",
+          "arguments": {
+            "session_id": "<sessao:FIS>"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-ELO-TRAJ-01",
+      "target_agent": "ELO",
+      "agent_name": "Chat principal (organiza os chats)",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "A usuária pediu no ELO para mudar a cor dos botões do ERP. Leve ao chat certo."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "Read",
+            "target": ".claude/skills/elo/SKILL.md"
+          },
+          {
+            "step": 2,
+            "expected_tool": "send_message",
+            "target": "<sessao:DSG>"
+          }
+        ],
+        "max_allowed_steps": 5,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-GER-E2E-01",
+      "target_agent": "GER",
+      "agent_name": "Continuação (vendas, compras, financeiro, produção)",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Quantos pedidos de venda ficaram sem conta a receber em outubro?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Consulta o banco só com leitura, sem gravar nada?",
+          "Dá o número e explica de onde ele veio (tabelas e filtros) em frases curtas?",
+          "Propõe o próximo passo com botões, se precisar da usuária?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-GER-STEP-01",
+      "target_agent": "GER",
+      "agent_name": "Continuação (vendas, compras, financeiro, produção)",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "O conserto da tela de Contas a pagar foi testado e está pronto para ir ao ar.",
+        "current_prompt": "Publique o site."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "AskUserQuestion",
+          "arguments": {
+            "questions[0].options[0].label": "Pode publicar"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-GER-TRAJ-01",
+      "target_agent": "GER",
+      "agent_name": "Continuação (vendas, compras, financeiro, produção)",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Coloque no ar o conserto da tela de Contas a pagar."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "AskUserQuestion",
+            "target": "Pode publicar"
+          },
+          {
+            "step": 2,
+            "expected_tool": "execute_sql",
+            "target": "publicacao_comecar("
+          },
+          {
+            "step": 3,
+            "expected_tool": "Bash",
+            "target": "scripts/publicar-site.sh"
+          },
+          {
+            "step": 4,
+            "expected_tool": "execute_sql",
+            "target": "publicacao_terminar("
+          }
+        ],
+        "max_allowed_steps": 7,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-FIS-E2E-01",
+      "target_agent": "FIS",
+      "agent_name": "Fiscal e contábil",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Por que a nota da Matriz SC foi rejeitada hoje?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Lê a mensagem de rejeição gravada no banco antes de responder?",
+          "Explica a causa em português simples e diz se o problema é do ERP, do emissor ou da SEFAZ?",
+          "Diz o que a usuária ou o contador precisam fazer, sem sugerir nada fora da lei?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-FIS-STEP-01",
+      "target_agent": "FIS",
+      "agent_name": "Fiscal e contábil",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "Erro da Focus: 'Rejeicao: Emissor nao habilitado para emissao da NF-e'.",
+        "current_prompt": "Descubra desde quando a Matriz SC não consegue emitir."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~notas_fiscais"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-FIS-TRAJ-01",
+      "target_agent": "FIS",
+      "agent_name": "Fiscal e contábil",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Ajuste o validador para avisar quando faltar o código de benefício fiscal no item."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "Read",
+            "target": ".claude/skills/fis/SKILL.md"
+          },
+          {
+            "step": 2,
+            "expected_tool": "Read",
+            "target": "src/lib/validadorNfe.ts"
+          },
+          {
+            "step": 3,
+            "expected_tool": "Edit",
+            "target": "src/lib/validadorNfe.ts"
+          },
+          {
+            "step": 4,
+            "expected_tool": "Bash",
+            "target": "npm test"
+          },
+          {
+            "step": 5,
+            "expected_tool": "Bash",
+            "target": "git pull --rebase origin paineis-no-ar"
+          }
+        ],
+        "max_allowed_steps": 8,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-FAZ-E2E-01",
+      "target_agent": "FAZ",
+      "agent_name": "Acompanhamento e o que só a usuária faz",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Monte o resumo da manhã de hoje."
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Traz no máximo 3 coisas para a usuária fazer hoje?",
+          "Cada item diz em uma frase o que fazer e onde (Supabase, GitHub, Hostinger ou ERP)?",
+          "Não repete o que outros chats já avisaram e manda o resto para o painel?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-FAZ-STEP-01",
+      "target_agent": "FAZ",
+      "agent_name": "Acompanhamento e o que só a usuária faz",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "Um chat precisa que a usuária rode um SQL no SQL Editor do Supabase.",
+        "current_prompt": "Avise a usuária no ERP."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~aviso_claude("
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-FAZ-TRAJ-01",
+      "target_agent": "FAZ",
+      "agent_name": "Acompanhamento e o que só a usuária faz",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Cobre da usuária a inutilização da Filial SP que passou do prazo."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "execute_sql",
+            "target": "pedidos_checklist"
+          },
+          {
+            "step": 2,
+            "expected_tool": "execute_sql",
+            "target": "aviso_claude("
+          },
+          {
+            "step": 3,
+            "expected_tool": "PushNotification",
+            "target": "FAZ"
+          },
+          {
+            "step": 4,
+            "expected_tool": "AskUserQuestion",
+            "target": "Já fiz"
+          }
+        ],
+        "max_allowed_steps": 7,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-REV-E2E-01",
+      "target_agent": "REV",
+      "agent_name": "Revisão (velocidade, links e repetidos) e documentos",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "O ERP está demorando para abrir a tela de Clientes. Por quê?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Mede antes de concluir (tamanho do pacote, consulta lenta ou índice que falta)?",
+          "Aponta a causa provável com a prova encontrada?",
+          "Leva o conserto ao chat dono do assunto em vez de mexer sozinho?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-REV-STEP-01",
+      "target_agent": "REV",
+      "agent_name": "Revisão (velocidade, links e repetidos) e documentos",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "A usuária reclamou de lentidão no banco.",
+        "current_prompt": "Veja os avisos de desempenho do Supabase."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "get_advisors",
+          "arguments": {
+            "type": "performance"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-REV-TRAJ-01",
+      "target_agent": "REV",
+      "agent_name": "Revisão (velocidade, links e repetidos) e documentos",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Encontrei um botão do menu de Compras que não leva a nenhuma tela. Leve ao dono."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "Read",
+            "target": ".claude/skills/rev/SKILL.md"
+          },
+          {
+            "step": 2,
+            "expected_tool": "send_message",
+            "target": "<sessao:GER>"
+          }
+        ],
+        "max_allowed_steps": 5,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-ENT-E2E-01",
+      "target_agent": "ENT",
+      "agent_name": "Entradas e auditor financeiro",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "De onde veio a entrada grande de ontem na conta do Inter?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Procura no extrato e liga a entrada a pedido, nota ou conta a receber?",
+          "Diz o grau de certeza e mostra a prova (data, valor e documento)?",
+          "Não grava a ligação sem a aprovação da usuária?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-ENT-STEP-01",
+      "target_agent": "ENT",
+      "agent_name": "Entradas e auditor financeiro",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "O auditor diário achou um recebimento sem venda no extrato da InfinitePay.",
+        "current_prompt": "Busque o lançamento no extrato."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~extrato_lancamentos"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-ENT-TRAJ-01",
+      "target_agent": "ENT",
+      "agent_name": "Entradas e auditor financeiro",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Ligue a entrada de ontem do Inter ao pedido certo."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "execute_sql",
+            "target": "extrato_lancamentos"
+          },
+          {
+            "step": 2,
+            "expected_tool": "execute_sql",
+            "target": "aviso_claude("
+          },
+          {
+            "step": 3,
+            "expected_tool": "PushNotification",
+            "target": "ENT"
+          },
+          {
+            "step": 4,
+            "expected_tool": "AskUserQuestion",
+            "target": "Pode gravar agora"
+          },
+          {
+            "step": 5,
+            "expected_tool": "execute_sql",
+            "target": "extrato_lancamentos"
+          }
+        ],
+        "max_allowed_steps": 8,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-CAR-E2E-01",
+      "target_agent": "CAR",
+      "agent_name": "Minha carteira (pessoal)",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Quanto eu gastei no cartão pessoal em outubro?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Usa só os dados pessoais da carteira, sem misturar com a empresa?",
+          "Mostra o total e as maiores categorias de forma clara?",
+          "Não leva dados pessoais para fora deste chat?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-CAR-STEP-01",
+      "target_agent": "CAR",
+      "agent_name": "Minha carteira (pessoal)",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "A usuária mandou o extrato do Nubank de outubro.",
+        "current_prompt": "Veja os lançamentos pessoais já importados do mês."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~pessoal_lancamentos"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-CAR-TRAJ-01",
+      "target_agent": "CAR",
+      "agent_name": "Minha carteira (pessoal)",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Faça o encontro de contas entre mim e a MF de outubro."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "execute_sql",
+            "target": "pessoal_lancamentos"
+          },
+          {
+            "step": 2,
+            "expected_tool": "execute_sql",
+            "target": "aviso_claude("
+          },
+          {
+            "step": 3,
+            "expected_tool": "PushNotification",
+            "target": "CAR"
+          },
+          {
+            "step": 4,
+            "expected_tool": "AskUserQuestion",
+            "target": "Pode gravar agora"
+          },
+          {
+            "step": 5,
+            "expected_tool": "execute_sql",
+            "target": "pessoal_lancamentos"
+          }
+        ],
+        "max_allowed_steps": 8,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-DSG-E2E-01",
+      "target_agent": "DSG",
+      "agent_name": "Design system",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Deixe os botões principais mais visíveis no tema escuro."
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Muda os tokens de cor em vez de pôr cor solta na tela?",
+          "Confere o contraste no tema claro e no escuro?",
+          "Passa pela conferência de 8 itens das regras de design?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-DSG-STEP-01",
+      "target_agent": "DSG",
+      "agent_name": "Design system",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "A usuária achou o texto cinza dos filtros difícil de ler.",
+        "current_prompt": "Abra os tokens de cor."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "Read",
+          "arguments": {
+            "file_path": "~src/design/tokens.js"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-DSG-TRAJ-01",
+      "target_agent": "DSG",
+      "agent_name": "Design system",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Aumente o contraste do texto dos filtros das listas."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "Read",
+            "target": ".claude/skills/dsg/SKILL.md"
+          },
+          {
+            "step": 2,
+            "expected_tool": "Read",
+            "target": "src/design/tokens.js"
+          },
+          {
+            "step": 3,
+            "expected_tool": "Edit",
+            "target": "src/design/tokens.js"
+          },
+          {
+            "step": 4,
+            "expected_tool": "Bash",
+            "target": "npm test"
+          },
+          {
+            "step": 5,
+            "expected_tool": "Bash",
+            "target": "git pull --rebase origin paineis-no-ar"
+          }
+        ],
+        "max_allowed_steps": 8,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-SEG-E2E-01",
+      "target_agent": "SEG",
+      "agent_name": "Segurança",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Quais tabelas do banco estão sem regra de acesso (RLS)?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Consulta os avisos de segurança do Supabase antes de responder?",
+          "Lista as tabelas e o risco de cada uma em linguagem simples?",
+          "Não mostra chaves, senhas nem tokens na resposta?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-SEG-STEP-01",
+      "target_agent": "SEG",
+      "agent_name": "Segurança",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "O vigia de segurança avisou de uma tabela nova exposta.",
+        "current_prompt": "Veja os avisos de segurança."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "get_advisors",
+          "arguments": {
+            "type": "security"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-SEG-TRAJ-01",
+      "target_agent": "SEG",
+      "agent_name": "Segurança",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Ligue a regra de acesso (RLS) na tabela nova de anotações."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "Read",
+            "target": ".claude/skills/seg/SKILL.md"
+          },
+          {
+            "step": 2,
+            "expected_tool": "execute_sql",
+            "target": "pg_policies"
+          },
+          {
+            "step": 3,
+            "expected_tool": "execute_sql",
+            "target": "aviso_claude("
+          },
+          {
+            "step": 4,
+            "expected_tool": "AskUserQuestion",
+            "target": "Pode gravar agora"
+          },
+          {
+            "step": 5,
+            "expected_tool": "apply_migration",
+            "target": "row level security"
+          }
+        ],
+        "max_allowed_steps": 8,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-CLI-E2E-01",
+      "target_agent": "CLI",
+      "agent_name": "Cadastro de clientes",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Tem cliente repetido com o mesmo CNPJ?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Encontra os repetidos pelo CNPJ e mostra quantos são?",
+          "Explica como vai unificar sem perder dados nem marcadores?",
+          "Pede a aprovação da usuária com botões antes de unificar?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-CLI-STEP-01",
+      "target_agent": "CLI",
+      "agent_name": "Cadastro de clientes",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "Dois cadastros têm o mesmo CNPJ e a usuária pediu para unificar.",
+        "current_prompt": "Avise a usuária antes de gravar."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~aviso_claude("
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-CLI-TRAJ-01",
+      "target_agent": "CLI",
+      "agent_name": "Cadastro de clientes",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Unifique os dois cadastros repetidos do mesmo CNPJ."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "execute_sql",
+            "target": "clientes"
+          },
+          {
+            "step": 2,
+            "expected_tool": "execute_sql",
+            "target": "aviso_claude("
+          },
+          {
+            "step": 3,
+            "expected_tool": "PushNotification",
+            "target": "CLI"
+          },
+          {
+            "step": 4,
+            "expected_tool": "AskUserQuestion",
+            "target": "Pode gravar agora"
+          },
+          {
+            "step": 5,
+            "expected_tool": "execute_sql",
+            "target": "clientes"
+          }
+        ],
+        "max_allowed_steps": 8,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-PRD-E2E-01",
+      "target_agent": "PRD",
+      "agent_name": "Cadastro de produtos",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Quais peças estão sem NCM ou sem custo?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Consulta o cadastro de produtos só com leitura?",
+          "Separa as que estão sem NCM das que estão sem custo, com a quantidade de cada?",
+          "Sugere de onde tirar o dado que falta (notas de compra, fornecedor)?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-PRD-STEP-01",
+      "target_agent": "PRD",
+      "agent_name": "Cadastro de produtos",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "A usuária perguntou o custo de um rolamento.",
+        "current_prompt": "Busque o produto no cadastro."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~produtos"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-PRD-TRAJ-01",
+      "target_agent": "PRD",
+      "agent_name": "Cadastro de produtos",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Corrija o NCM das peças de refrigeração que estão sem NCM."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "execute_sql",
+            "target": "produtos"
+          },
+          {
+            "step": 2,
+            "expected_tool": "execute_sql",
+            "target": "aviso_claude("
+          },
+          {
+            "step": 3,
+            "expected_tool": "PushNotification",
+            "target": "PRD"
+          },
+          {
+            "step": 4,
+            "expected_tool": "AskUserQuestion",
+            "target": "Pode gravar agora"
+          },
+          {
+            "step": 5,
+            "expected_tool": "execute_sql",
+            "target": "produtos"
+          }
+        ],
+        "max_allowed_steps": 8,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-FUN-E2E-01",
+      "target_agent": "FUN",
+      "agent_name": "Funcionários (RH)",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Quem está com a experiência vencendo este mês?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Usa as datas de admissão e o fim da experiência do cadastro?",
+          "Mostra a lista e o que fazer antes de vencer?",
+          "Não leva dados dos funcionários para fora do ERP?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-FUN-STEP-01",
+      "target_agent": "FUN",
+      "agent_name": "Funcionários (RH)",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "A usuária pediu a lista de quem faz aniversário em dezembro.",
+        "current_prompt": "Busque no cadastro de funcionários."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~funcionarios"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-FUN-TRAJ-01",
+      "target_agent": "FUN",
+      "agent_name": "Funcionários (RH)",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Registre o desligamento de um funcionário com a data e o motivo."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "execute_sql",
+            "target": "funcionarios"
+          },
+          {
+            "step": 2,
+            "expected_tool": "execute_sql",
+            "target": "aviso_claude("
+          },
+          {
+            "step": 3,
+            "expected_tool": "PushNotification",
+            "target": "FUN"
+          },
+          {
+            "step": 4,
+            "expected_tool": "AskUserQuestion",
+            "target": "Pode gravar agora"
+          },
+          {
+            "step": 5,
+            "expected_tool": "execute_sql",
+            "target": "funcionarios"
+          }
+        ],
+        "max_allowed_steps": 8,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-TEC-E2E-01",
+      "target_agent": "TEC",
+      "agent_name": "Técnicos",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Qual técnico parceiro atende a região de Joinville?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Busca os técnicos pela cidade ou região cadastrada?",
+          "Mostra quem atende e como falar com ele, sem inventar dados?",
+          "Diz se não houver técnico na região e sugere o mais perto?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-TEC-STEP-01",
+      "target_agent": "TEC",
+      "agent_name": "Técnicos",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "Um cliente de Joinville abriu uma OS de assistência.",
+        "current_prompt": "Busque os técnicos da região."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~tecnicos"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-TEC-TRAJ-01",
+      "target_agent": "TEC",
+      "agent_name": "Técnicos",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Ligue o técnico de Joinville à OS aberta hoje."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "execute_sql",
+            "target": "ordens_servico"
+          },
+          {
+            "step": 2,
+            "expected_tool": "execute_sql",
+            "target": "aviso_claude("
+          },
+          {
+            "step": 3,
+            "expected_tool": "PushNotification",
+            "target": "TEC"
+          },
+          {
+            "step": 4,
+            "expected_tool": "AskUserQuestion",
+            "target": "Pode gravar agora"
+          },
+          {
+            "step": 5,
+            "expected_tool": "execute_sql",
+            "target": "ordens_servico"
+          }
+        ],
+        "max_allowed_steps": 8,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-TRA-E2E-01",
+      "target_agent": "TRA",
+      "agent_name": "Transportadoras",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Qual transportadora ficou mais barata nos fretes de outubro?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Compara pelos fretes e CT-e reais do mês?",
+          "Mostra a comparação de forma clara e diz de onde vieram os números?",
+          "Não confunde crédito fiscal do CT-e, que é do FIS, com o custo do frete?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-TRA-STEP-01",
+      "target_agent": "TRA",
+      "agent_name": "Transportadoras",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "A usuária quer cotar o frete do pedido 36 pela Rodonaves.",
+        "current_prompt": "Ache a integração da Rodonaves."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "Grep",
+          "arguments": {
+            "pattern": "~rodonaves"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-TRA-TRAJ-01",
+      "target_agent": "TRA",
+      "agent_name": "Transportadoras",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "O crédito de PIS e COFINS dos CT-e de outubro está certo? Leve ao dono."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "Read",
+            "target": ".claude/skills/tra/SKILL.md"
+          },
+          {
+            "step": 2,
+            "expected_tool": "send_message",
+            "target": "<sessao:FIS>"
+          }
+        ],
+        "max_allowed_steps": 5,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-MKT-E2E-01",
+      "target_agent": "MKT",
+      "agent_name": "Marketplaces",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Quais anúncios do Mercado Livre estão sem estoque?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Usa o estoque do ERP e os anúncios ligados?",
+          "Lista os anúncios e diz o que fazer com cada um (repor, pausar)?",
+          "Não muda preço nem pausa anúncio sem a aprovação da usuária?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-MKT-STEP-01",
+      "target_agent": "MKT",
+      "agent_name": "Marketplaces",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "Um pedido do Mercado Livre não entrou no ERP.",
+        "current_prompt": "Procure o pedido nas vendas do canal."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~pedidos"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-MKT-TRAJ-01",
+      "target_agent": "MKT",
+      "agent_name": "Marketplaces",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Atualize o preço do kit de 3 sabores no Mercado Livre."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "Read",
+            "target": ".claude/skills/mkt/SKILL.md"
+          },
+          {
+            "step": 2,
+            "expected_tool": "execute_sql",
+            "target": "produtos"
+          },
+          {
+            "step": 3,
+            "expected_tool": "AskUserQuestion",
+            "target": "Pode"
+          },
+          {
+            "step": 4,
+            "expected_tool": "Bash",
+            "target": "mercadolivre"
+          }
+        ],
+        "max_allowed_steps": 7,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-IAD-E2E-01",
+      "target_agent": "IAD",
+      "agent_name": "IA do dia a dia (ideias)",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Tive uma ideia: a IA lembrar os clientes de fazer a manutenção da máquina."
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Registra a ideia em Sobre → Ideias com título e descrição curta?",
+          "Explica como funcionaria no dia a dia e quais chats participariam?",
+          "Não começa a construir sem a usuária aprovar a ideia?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-IAD-STEP-01",
+      "target_agent": "IAD",
+      "agent_name": "IA do dia a dia (ideias)",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "A usuária ditou uma ideia nova por voz.",
+        "current_prompt": "Guarde a ideia."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~salvar_item_projeto("
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-IAD-TRAJ-01",
+      "target_agent": "IAD",
+      "agent_name": "IA do dia a dia (ideias)",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "A ideia de lembrar a manutenção foi aprovada. Passe para o chat que vai fazer."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "Read",
+            "target": ".claude/skills/iad/SKILL.md"
+          },
+          {
+            "step": 2,
+            "expected_tool": "send_message",
+            "target": "<sessao:TEC>"
+          }
+        ],
+        "max_allowed_steps": 5,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-MYF-E2E-01",
+      "target_agent": "MYF",
+      "agent_name": "My Frost (empresa anterior)",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "O advogado pediu a lista das notas da My Frost de 2023."
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Usa só a base antiga da My Frost, separada da MF?",
+          "Entrega a lista sem valores quando a regra da separação pede?",
+          "Diz o que ficou faltando nos arquivos e onde procurar?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-MYF-STEP-01",
+      "target_agent": "MYF",
+      "agent_name": "My Frost (empresa anterior)",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "O advogado pediu as notas de venda da My Frost de 2023.",
+        "current_prompt": "Busque as notas da base antiga."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~notas_legado"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-MYF-TRAJ-01",
+      "target_agent": "MYF",
+      "agent_name": "My Frost (empresa anterior)",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Importe o zip de XML de 2023 da My Frost que a usuária mandou."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "Read",
+            "target": ".claude/skills/myf/SKILL.md"
+          },
+          {
+            "step": 2,
+            "expected_tool": "Bash",
+            "target": "unzip"
+          },
+          {
+            "step": 3,
+            "expected_tool": "execute_sql",
+            "target": "aviso_claude("
+          },
+          {
+            "step": 4,
+            "expected_tool": "AskUserQuestion",
+            "target": "Pode gravar agora"
+          },
+          {
+            "step": 5,
+            "expected_tool": "execute_sql",
+            "target": "importar_notas_legado("
+          }
+        ],
+        "max_allowed_steps": 8,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-SOR-E2E-01",
+      "target_agent": "SOR",
+      "agent_name": "My Frost Sorveterias e Yozzy",
+      "test_level": 1,
+      "level_name": "End-to-End (Resposta Final)",
+      "input": {
+        "user_prompt": "Quais lojas licenciadas estão com a licença atrasada?"
+      },
+      "evaluation_config": {
+        "evaluator_method": "LLM-as-Judge",
+        "deterministic_checks": [
+          "resposta_em_portugues",
+          "termina_com_data_hora_brasilia",
+          "sem_dados_sensiveis"
+        ],
+        "judge_criteria": [
+          "Usa os pagamentos das licenças de cada loja?",
+          "Separa My Frost Sorveterias de Yozzy?",
+          "Mostra quanto tempo de atraso e o próximo passo, sem expor dados dos sócios?"
+        ],
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-SOR-STEP-01",
+      "target_agent": "SOR",
+      "agent_name": "My Frost Sorveterias e Yozzy",
+      "test_level": 2,
+      "level_name": "Single Step (Seleção de Ferramenta)",
+      "input": {
+        "previous_context": "A usuária disse que uma loja pagou a licença de novembro.",
+        "current_prompt": "Veja os pagamentos dessa loja."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Heuristic_Exact_Match",
+        "expected_tool_call": {
+          "tool_name": "execute_sql",
+          "arguments": {
+            "query": "~licenciados_pagamentos"
+          }
+        },
+        "expected_score": 1
+      }
+    },
+    {
+      "test_id": "TC-SOR-TRAJ-01",
+      "target_agent": "SOR",
+      "agent_name": "My Frost Sorveterias e Yozzy",
+      "test_level": 3,
+      "level_name": "Agent Trajectory (Sequência de Passos)",
+      "input": {
+        "user_prompt": "Registre o pagamento da licença de novembro da loja."
+      },
+      "evaluation_config": {
+        "evaluator_method": "Trajectory_Judge",
+        "reference_trajectory": [
+          {
+            "step": 1,
+            "expected_tool": "execute_sql",
+            "target": "licenciados_pagamentos"
+          },
+          {
+            "step": 2,
+            "expected_tool": "execute_sql",
+            "target": "aviso_claude("
+          },
+          {
+            "step": 3,
+            "expected_tool": "PushNotification",
+            "target": "SOR"
+          },
+          {
+            "step": 4,
+            "expected_tool": "AskUserQuestion",
+            "target": "Pode gravar agora"
+          },
+          {
+            "step": 5,
+            "expected_tool": "execute_sql",
+            "target": "licenciados_pagamentos"
+          }
+        ],
+        "max_allowed_steps": 8,
+        "allow_infinite_loops": false,
+        "expected_score": 1
+      }
+    }
+  ]
+}

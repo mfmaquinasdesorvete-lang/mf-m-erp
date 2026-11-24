@@ -11,6 +11,11 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
 - Levantamento do que só muda pelo código, com 254 itens e a ordem de trabalho, em `.claude/configuravel/` (08d3f08).
 - Aba Sobre → Conhecer o ERP → Páginas (só admin): as páginas que os chats fizeram, com o botão para abrir. Os links
   ficam na tabela `paginas_claude` (o repositório é público). Migração `20261101000173_paginas_claude`.
+- Testes dos chats (24/11): `src/lib/agentes/test_dataset.json` (18 chats × níveis 1, 2 e 3 = 54 casos, 3 repetições,
+  nota 0 ou 1) e o carregador `src/lib/agentes/testesAgentes.ts` (confere o modelo, planeja as repetições, pontua o
+  nível 1 por conferências fixas + IA juíza, o 2 pela ferramenta escolhida e o 3 pela trajetória, e junta em pass^3).
+  Teste em `src/lib/__tests__/testesAgentes.test.ts`. Ainda não roda os chats de verdade: falta quem execute cada chat
+  e a IA juíza (precisa da chave ANTHROPIC_API_KEY).
 - Memória geral em `MEMORY.md` e modelo em `.claude/memoria-modelo.md`. Os 19 chats já têm a sua `MEMORY.md` (25/10).
 
 ## Em andamento
