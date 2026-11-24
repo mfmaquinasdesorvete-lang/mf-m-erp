@@ -32,7 +32,8 @@ Atualizado em 28/10/2026.
 - 21/11 08:41: conferência silenciosa, nada mudou (Tiny 16/10, inutilização 0). Próximo 22/11; lembrete semanal na segunda 23/11.
 - 22/11 08:41: conferência silenciosa, nada mudou. Amanhã (segunda 23/11) vai o lembrete semanal.
 - 23/11 08:41: lembrete semanal (aviso + celular): contador SAT e inutilização SP. Nada mudou no banco. Próximo 24/11 (silencioso); próximo lembrete 30/11.
-  Próximo: 24/11 08:40 (silencioso).
+- 24/11 08:41: conferência silenciosa, nada mudou.
+  Próximo: 25/11 08:40 (silencioso).
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 
