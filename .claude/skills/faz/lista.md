@@ -13,7 +13,7 @@ Conferido no banco e no GitHub em 27/10: as funções do Supabase estão todas n
 ("abra este chat para aprovar a gravação") e espera 1 a 2 minutos antes de gravar.
 
 
-## 0a. Contador: recusa 781 das notas da Matriz SC (FIS, 14/11)
+## 0a. ~~Contador: recusa 781 das notas da Matriz SC (FIS, 14/11)~~ — RESOLVIDO em 23/11 (SC autoriza de novo)
 **Por que importa:** desde 09/11 a SEFAZ SC recusa as notas da Matriz (emissor não habilitado); notas da Matriz não saem.
 **O que fazer:** pedir ao contador para olhar no SAT de SC a inscrição estadual da MF e o credenciamento da NF-e (pendência de DIME/EFD ou inscrição suspensa). Quando ele responder, avise o FIS.
 
