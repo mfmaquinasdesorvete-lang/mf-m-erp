@@ -36,7 +36,8 @@ Atualizado em 28/10/2026.
 - 24/11 11:20: FIS avisou que a recusa 781 da Matriz SC acabou; conferido no banco: 4 NF-e autorizadas em 23/11. Tarefa do contador sai da lista. Fica com ela só a inutilização SP. Resumo agendado de 25/11 atualizado.
 - 25/11 08:41: conferência silenciosa, nada mudou.
 - 26/11 08:41: conferência silenciosa, nada mudou.
-  Próximo: 27/11 08:40 (silencioso).
+- 27/11 08:41: conferência silenciosa, nada mudou.
+  Próximo: 28/11 08:40 (silencioso).
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 
