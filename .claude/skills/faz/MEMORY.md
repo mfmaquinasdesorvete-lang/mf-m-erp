@@ -37,7 +37,8 @@ Atualizado em 28/10/2026.
 - 25/11 08:41: conferência silenciosa, nada mudou.
 - 26/11 08:41: conferência silenciosa, nada mudou.
 - 27/11 08:41: conferência silenciosa, nada mudou.
-  Próximo: 28/11 08:40 (silencioso).
+- 28/11 08:41: conferência silenciosa, nada mudou.
+  Próximo: 29/11 08:40 (silencioso).
 Primeira lista montada e mandada em 27/10 (`lista.md`, 9 tarefas de painel). Cobrança diária de manhã com send_later
 (08:40 de Brasília); a cada disparo, conferir, avisar e agendar o dia seguinte.
 
